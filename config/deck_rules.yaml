@@ -1,0 +1,19 @@
+# Slot rules (spec section 2). Supercell changes these often: edit here, never in code.
+# Source: mid-March 2026 update. Unresolved items are marked VERIFY.
+deck_size: 8
+
+# Special slots. A card in a special form (evo / hero) or a champion must occupy
+# a special slot whose `accepts` list contains its kind. Base, non-champion cards
+# may occupy any slot (an empty special slot is just a normal slot).
+special_slots:
+  - name: evo
+    accepts: [evo]
+  - name: hero
+    accepts: [hero, champion]
+  - name: wild
+    # VERIFY: sources disagree; the official post says "any special form".
+    accepts: [evo, hero, champion]
+
+# VERIFY in-game: can the Hero slot and the Wild slot both hold champions?
+# Old rule was one champion. Keep 1 until confirmed.
+max_champions: 1

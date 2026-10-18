@@ -1,0 +1,34 @@
+# Data collection settings (spec sections 3 and 6).
+api:
+  base_url: https://api.clashroyale.com/v1
+  key_env: CR_API_KEY          # read from .env; never printed
+  request_delay_s: 0.15        # fixed delay between requests
+  max_retries: 5
+  backoff_base_s: 2.0          # exponential backoff on 429 / 5xx
+  timeout_s: 20
+
+# Raw responses are cached under data/raw/<window.id>/. A new collection window
+# gets a new id; files already present for the same id are never re-fetched.
+window:
+  id: "2026-10-w3"
+  start: null                  # optional UTC ISO filter on battle_time, e.g. "2026-10-01T00:00:00Z"
+  end: null
+
+leaderboard:
+  # VERIFY: endpoint shape is from pre-2026 docs (see docs/api-notes.md).
+  location_id: global
+  season_id: null              # null -> /locations/{id}/pathoflegend/players
+  limit: 1000
+
+battles:
+  battle_types: [pathOfLegend] # VERIFY the exact `type` string in a real battle log
+
+form_resolution:
+  # Set these only after docs/api-notes.md records an observed field.
+  evo_field: evolutionLevel    # battle card field whose value > 0 means Evolution form
+  hero_field: null             # e.g. "heroLevel" once observed; null = hero/base indistinguishable
+  slot_position_observable: false
+
+split:
+  train_frac: 0.70
+  valid_frac: 0.15             # remainder is the test window

@@ -1,0 +1,45 @@
+# Model, search and warning settings (spec sections 7 and 8). Starting points, not validated choices.
+seed: 42
+
+synergy:
+  k: 50                # shrinkage strength toward the global win rate
+  min_games: 200       # fewer pair games -> INSUFFICIENT_SAMPLE
+  interval: 0.90
+  # "without_partner" (default) or "marginal" (spec literal; double-counts pair
+  # effects when cards almost always co-occur). See src/crdeck/synergy.py.
+  expected_from: without_partner
+
+strength:
+  C_grid: [0.003, 0.01, 0.03, 0.1, 0.3, 1.0]   # L2 strength chosen on validation log loss
+  max_iter: 5000
+  min_feature_games: 20   # card:form features seen fewer times in train are dropped
+  top_n_pairs: 100        # pair features for the second model
+
+deck_score:
+  n_opponent_decks: 2000  # sampled from the test window
+  n_bootstrap: 200
+  interval: 0.90
+
+search:
+  beam_width: 50
+  beam_parents_min: 10    # each parent keeps at most beam_width / this many children per step
+  synergy_weight: 0.5     # objective = meta_win_prob + synergy_weight * mean_pair_synergy
+  # + w * mean_log_lift. Starting value 0.05 = smallest grid value whose validation recall beat
+  # popular fill on SYNTHETIC data. Re-tune on real data (notebook 06, evaluate.tune_cooccurrence).
+  cooccurrence_weight: 0.05
+  n_results: 3
+  min_diff_cards: 2       # returned decks differ by at least this many cards
+  min_card_games: 50      # candidate cards need this many train appearances
+  top_swaps: 3
+  require_win_condition: false   # hard filter toggle (off by default, spec 7.4)
+
+archetype:
+  uncertain_threshold: 0.5
+  C: 1.0
+  n_clusters: 12
+  per_cluster: 8
+
+warnings:
+  elixir_min: 2.6
+  elixir_max: 4.5
+  narrow_roles: [big_spell, tank, building]
