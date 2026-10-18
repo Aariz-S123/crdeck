@@ -103,3 +103,13 @@ def test_search_is_deterministic(small_ctx):
     a = Searcher(small_ctx).complete(seeds)
     b = Searcher(small_ctx).complete(seeds)
     assert [d.key for d in a] == [d.key for d in b]
+
+
+def test_full_eight_card_seed_returns_itself(small_ctx):
+    s = Searcher(small_ctx)
+    deck = s.complete([parse_seed("Hog Rider", small_ctx.cards)])[0]
+    res = s.complete(deck.entries)
+    assert len(res) == 1 and res[0].key == deck.key
+    extra = next(c for c in s.candidates if c.card_id not in {e.card_id for e in deck.entries})
+    with pytest.raises(SeedError, match="a deck has 8"):
+        s.complete(deck.entries + [extra])

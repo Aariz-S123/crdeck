@@ -59,3 +59,25 @@ def test_explanation_has_every_required_part(small_ctx):
     assert states <= {"INSUFFICIENT_SAMPLE", "UNKNOWN_CARD", "FORM_UNKNOWN", "LOW_CARD_DATA", "UNSEEN_DECK"}
     text = render_text(x)
     assert "Est. win rate" in text and "Legal: True" in text
+
+
+def test_top_and_bottom_pairs_never_overlap_and_seen_deck_is_not_unseen(small_ctx):
+    from crdeck.rules import parse_deck_key
+    k = max(small_ctx.deck_appearances, key=small_ctx.deck_appearances.get)
+    x = build_explanation(parse_deck_key(k), small_ctx)
+    top = {p["pair"] for p in x.synergy_top}
+    assert not top & {p["pair"] for p in x.synergy_bottom}
+    assert "UNSEEN_DECK" not in {d["state"] for d in x.data_quality}
+
+
+def test_hero_form_deck_found_under_observed_key(small_ctx, C):
+    from crdeck.rules import parse_deck_key, DeckCard
+    k = next(k for k in small_ctx.deck_appearances
+             if any(e.form == "base" and small_ctx.cards[e.card_id].has_hero for e in parse_deck_key(k))
+             and not any(e.form == "evo" for e in parse_deck_key(k)))
+    entries = parse_deck_key(k)
+    i = next(i for i, e in enumerate(entries) if small_ctx.cards[e.card_id].has_hero)
+    entries[i] = DeckCard(entries[i].card_id, "hero")
+    x = build_explanation(entries, small_ctx)
+    states = {d["state"] for d in x.data_quality}
+    assert "UNSEEN_DECK" not in states and "FORM_UNKNOWN" in states

@@ -145,7 +145,11 @@ def build_explanation(entries: list[DeckCard], ctx, objective: dict | None = Non
 
     ds = ctx.scorer.score(entries)
     key = deck_key(entries)
-    exact = ctx.test_deck_records.get(key, (0, 0))
+    # Battle data records hero cards as base when hero form is not observable,
+    # so look the deck up under that observed key.
+    obs_key = key if ctx.hero_observable else deck_key(
+        [DeckCard(e.card_id, "base") if e.form == "hero" else e for e in entries])
+    exact = ctx.test_deck_records.get(obs_key, (0, 0))
     score = {
         "meta_win_prob": round(ds.win_prob, 4),
         "interval": [round(ds.lo, 4), round(ds.hi, 4)],
@@ -163,7 +167,7 @@ def build_explanation(entries: list[DeckCard], ctx, objective: dict | None = Non
     pairs = ctx.synergy.deck_pairs([e.card_id for e in entries])
     scored = pairs[pairs["status"] == "OK"].sort_values("synergy", ascending=False)
     top = [_pair_row(p, cards) for p in scored.head(3).to_dict("records")]
-    bottom = [_pair_row(p, cards) for p in scored.tail(3).iloc[::-1].to_dict("records")] if len(scored) > 3 else []
+    bottom = [_pair_row(p, cards) for p in scored.iloc[3:].tail(3).iloc[::-1].to_dict("records")]  # never overlaps top
     n_insuff = int((pairs["status"] != "OK").sum())
 
     ws = structural_warnings(entries, cards, ctx.cfg["warnings"])
@@ -174,10 +178,10 @@ def build_explanation(entries: list[DeckCard], ctx, objective: dict | None = Non
     if unknown:
         dq.append({"state": UNKNOWN_CARD, "detail": f"card ids {unknown} not in card table"})
     fu = [describe_entry(e, cards) for e in entries
-          if not ctx.hero_observable and (e.form == "hero" or (e.form == "base" and cards[e.card_id].has_hero))]
+          if not ctx.hero_observable and e.card_id in cards and (e.form == "hero" or (e.form == "base" and cards[e.card_id].has_hero))]
     if fu:
         dq.append({"state": FORM_UNKNOWN, "detail": "hero vs base form not distinguishable in battle data; strength for these uses combined data: " + ", ".join(fu)})
-    seen_any = ctx.deck_appearances.get(key, 0)
+    seen_any = ctx.deck_appearances.get(obs_key, 0)
     if seen_any == 0:
         dq.append({"state": UNSEEN_DECK, "detail": "this exact deck never appears in the collected battles; the score is a model extrapolation from its cards"})
     low = [describe_entry(e, cards) for e in entries if not ctx.strength.known(e)]

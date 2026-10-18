@@ -225,10 +225,14 @@ def _fingerprint(paths: Paths) -> str:
 
 
 def load_context(source: str | None = None, verbose: bool = False, paths: Paths | None = None,
-                 cache: bool = True) -> Context:
+                 cache: bool | None = None) -> Context:
     """Train (or load cached) models. The cache in processed/context_cache.pkl is reused only
-    when the fingerprint of data, labels, configs and code is unchanged."""
+    when the fingerprint of data, labels, configs and code is unchanged.
+    cache=None reads CRDECK_NO_CACHE=1 from the environment to disable it."""
+    import os
     import pickle
+    if cache is None:
+        cache = os.environ.get("CRDECK_NO_CACHE") != "1"
     paths = paths or Paths.for_source(source)
     cache_file = paths.processed / "context_cache.pkl"
     fp = _fingerprint(paths) if cache else ""
@@ -262,6 +266,10 @@ def _train_context(paths: Paths, verbose: bool) -> Context:
     if len(mb) < 100:
         raise NoDataError(f"only {len(mb)} usable battles; collect more before modeling")
     split = time_split(mb, ccfg["split"]["train_frac"], ccfg["split"]["valid_frac"])
+    for part in ("train", "valid", "test"):
+        if len(getattr(split, part)) < 30:
+            raise NoDataError(f"time split leaves only {len(getattr(split, part))} battles in {part}; "
+                              "collect battles over a longer period before modeling")
     hero_obs = FormConfig.from_collection(ccfg).hero_observable
 
     sy = cfg["synergy"]

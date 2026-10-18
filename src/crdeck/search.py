@@ -107,7 +107,7 @@ class Searcher:
         # beam keeps several lineages instead of 50 near-copies of one deck.
         per_parent = max(2, width // int(self.cfg.get("beam_parents_min", 10)))
         beam = [self.evaluate(seeds)] if seeds else [ScoredDeck([], 0.0, 0.0, 0.0, 0)]
-        nxt: list[ScoredDeck] = []
+        nxt: list[ScoredDeck] = list(beam) if len(seeds) == size else []  # a full seed deck is its own result
         for _ in range(size - len(seeds)):
             seen: set[str] = set()
             children: list[tuple[int, ScoredDeck]] = []
@@ -151,8 +151,9 @@ class Searcher:
                 chosen.append(d)
             if len(chosen) == n_results:
                 break
-        for d in chosen:  # invariant: never output an illegal deck
-            assert check_deck(d.entries, self.cards, self.rules).legal, d.entries
+        for d in chosen:  # invariant: never output an illegal deck (explicit, survives python -O)
+            if not check_deck(d.entries, self.cards, self.rules).legal:
+                raise RuntimeError(f"search produced an illegal deck: {d.entries}")
         return chosen
 
     def swaps(self, entries: list[DeckCard], top: int | None = None, locked: list[DeckCard] | None = None) -> list[dict]:

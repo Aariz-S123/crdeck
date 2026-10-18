@@ -12,6 +12,10 @@ What it does:
   written by an assistant, not ground truth: review every row, then bump
   label_version.
 
+History: this produced v0-draft on 2026-10-18. The table has since been reviewed
+(v1, docs/card-label-review.md); the DRAFT dict below is the original draft, kept for
+the record. Do not re-run with --force unless you want to discard that review.
+
 card_id and rarity stay empty here: they come from the API /cards response
 (crdeck.cards.attach_api), never from names typed by hand.
 """

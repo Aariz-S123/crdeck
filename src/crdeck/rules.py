@@ -53,7 +53,7 @@ class DeckCard:
 @dataclass(frozen=True)
 class SpecialSlot:
     name: str
-    accepts: frozenset[str]
+    accepts: tuple[str, ...]  # sorted, so printing is stable across processes
 
 
 @dataclass(frozen=True)
@@ -64,7 +64,7 @@ class DeckRules:
 
     @classmethod
     def from_dict(cls, d: dict) -> "DeckRules":
-        slots = tuple(SpecialSlot(s["name"], frozenset(s["accepts"])) for s in d["special_slots"])
+        slots = tuple(SpecialSlot(s["name"], tuple(sorted(set(s["accepts"])))) for s in d["special_slots"])
         return cls(deck_size=int(d["deck_size"]), special_slots=slots, max_champions=int(d["max_champions"]))
 
     @classmethod
