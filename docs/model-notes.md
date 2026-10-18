@@ -6,7 +6,7 @@ Each item says what changed, why, and how to undo it. Evidence so far comes only
 
 - **Spec (7.1):** `expected_wr` combines the two cards' individual shrunk win rates in log-odds.
 - **Problem:** with the cards' *overall* rates (`expected_from: marginal`), a pair that nearly always appears together gets its effect counted twice: once inside each card's own rate, then again when the rates are combined. On synthetic data, the planted Hog Rider + Earthquake bonus (+0.12 log-odds) scored −0.05, and deck-level synergy *anti*-predicted held-out wins (AUC 0.468).
-- **Change:** default `expected_from: without_partner`, so each card's rate is taken over its games *without* the other card. That is the literal meaning of "better together than separately." On the same data, 6 of 8 planted pairs now score positive with intervals above zero, and synergy predicts held-out winners better than lift or popularity (AUC 0.562 vs 0.484 vs 0.502).
+- **Change:** default `expected_from: without_partner`, so each card's rate is taken over its games *without* the other card. That is the literal meaning of "better together than separately." On the same data, 6 of 8 planted pairs now score positive with intervals above zero. Across the two synthetic draws so far, synergy predicts held-out winners better than lift or popularity (AUC 0.51–0.56, vs 0.48–0.49 for lift and 0.50 for popularity); the marginal version stays below chance (0.47).
 - **Undo:** set `synergy.expected_from: marginal` in `config/model.yaml`. Notebook 05 and `evaluate.synergy_eval` always report both variants.
 - **Still true:** pairs that live in the same popular deck share credit; plenty of unplanted pairs score high. Synergy here is not proof of a combo.
 - **Noise:** individual pair estimates are noisy when each deck is played by few players, because player skill (a spec-named confounder) is mixed into deck results. On synthetic data with 400 players and 16k battles, 4 to 8 of the 8 planted pairs came out positive, depending on the seed. What held in every run is that planted pairs average above the median pair. Read single pair scores together with their interval and games, and expect real-data results to be at least this noisy.
@@ -15,13 +15,13 @@ Each item says what changed, why, and how to undo it. Evidence so far comes only
 
 - **Spec (7.4):** score full decks by strength plus a small synergy term.
 - **Problem:** strength plus synergy alone stacks cards with high individual weights into decks nobody plays. Completion recall@10 was 0.18–0.31, against 0.52 for popular-card fill.
-- **Change:** `objective = meta_win_prob + synergy_weight · mean_pair_synergy + cooccurrence_weight · mean_log_lift`. The new term is the mean smoothed log-lift over all pairs in the deck, i.e. "do players actually pair these cards?" Its weight is the smallest grid value whose **validation-window** recall beats popular fill (`evaluate.choose_cooccurrence`). That was 0.05 on synthetic data, which gave test recall 0.655 vs 0.515.
+- **Change:** `objective = meta_win_prob + synergy_weight · mean_pair_synergy + cooccurrence_weight · mean_log_lift`. The new term is the mean smoothed log-lift over all pairs in the deck, i.e. "do players actually pair these cards?" Its weight is the smallest grid value whose **validation-window** recall beats popular fill (`evaluate.choose_cooccurrence`). That was 0.05 on both synthetic draws, which gave test recall 0.66–0.71 vs 0.46–0.52 for popular fill.
 - **Undo:** `search.cooccurrence_weight: 0`.
 - **Trade-off:** a higher weight gives more conventional decks with lower predicted strength. Notebook 06 shows the grid.
 
 ## 3. Strength: L2 strength chosen on validation
 
-- `C` is picked from `strength.C_grid` by validation log loss, separately for the card and card+pairs models. With the fixed `C = 1`, search exploited rarely seen cards and claimed a 95.7% win rate for a deck nobody had played. Tuned (`C = 0.01` on synthetic), the top deck sits around 73%. That is still optimistic: see item 4.
+- `C` is picked from `strength.C_grid` by validation log loss, separately for the card and card+pairs models. With the fixed `C = 1`, search exploited rarely seen cards and claimed a 95.7% win rate for a deck nobody had played. Tuned (`C = 0.01` on synthetic), the top Hog Rider deck sits around 70–73%. That is still optimistic: see item 4.
 
 ## 4. Deck score interval
 

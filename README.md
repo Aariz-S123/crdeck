@@ -16,7 +16,7 @@ Learning project; not affiliated with Supercell. It does not find "the best deck
 | 6. Search | Done: completion, swaps, explanations |
 | 7. Demo | Done: all 7 notebooks run restart-and-run-all clean, with identical outputs across two fresh runs (synthetic data) |
 
-92 tests pass (`pytest`). Every model result so far comes from **synthetic** data (below). No number in this repo describes the real game yet.
+93 tests pass (`pytest`). Every model result so far comes from **synthetic** data (below). No number in this repo describes the real game yet.
 
 ## Setup
 
@@ -33,7 +33,12 @@ py -3.12 -m venv .venv
 2. `python -m crdeck gate`: fetches `/cards`, the Path of Legends leaderboard and one battle log. It writes [docs/api-notes-observed.md](docs/api-notes-observed.md), covering field inventories, time format, 429s and any unknown card fields (a Hero-form marker would show up here), and suggests config changes. Apply them in `config/collection.yaml` and fill the "observed" column of [docs/api-notes.md](docs/api-notes.md).
 3. Review `data/labels/cards.csv` using the checklist in [docs/card-label-review.md](docs/card-label-review.md), then set your own `label_version`.
 4. `python -m crdeck collect --window auto`: battle logs for the top players under a window named after today's UTC date. Cached and resumable. A log holds only recent battles, so run it once a day for a while to reach tens of thousands of battles; `build` merges every window and deduplicates.
-5. `python -m crdeck build`: rebuilds `data/interim` and `data/processed` from raw data plus labels.
+   To run it daily on Windows, schedule it with Task Scheduler (adjust the path):
+   ```
+   schtasks /Create /SC DAILY /ST 20:00 /TN crdeck-collect /TR "C:\Users\simty\crdeck\.venv\Scripts\python.exe -m crdeck collect --window auto"
+   ```
+   The key only works from the IP it was registered for, so a laptop that changes networks will get 403s on some days. Those show up in the collect summary.
+5. `python -m crdeck build`: rebuilds `data/interim` and `data/processed` from raw data plus labels. It also writes `data/raw_manifest.csv` (tracked in git), which records every raw file's window and fetch time, since `data/raw` itself is not committed.
 6. `python -m crdeck label --interactive`: shows decks spread across k-means clusters and asks for an archetype. The first 20 go to the held-out split (spec §7.3), then 60–80 go to train. Answers are saved as you go; quit and resume any time.
 7. `python -m crdeck evaluate`: prints the held-out report and saves model outputs to `data/processed/` (synergy pairs, card weights, model comparison, evaluation.json). Then open the notebooks.
 

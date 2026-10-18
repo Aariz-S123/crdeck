@@ -20,6 +20,7 @@ INSUFFICIENT_SAMPLE = "INSUFFICIENT_SAMPLE"
 UNKNOWN_CARD = "UNKNOWN_CARD"
 LOW_CARD_DATA = "LOW_CARD_DATA"
 UNSEEN_DECK = "UNSEEN_DECK"
+STALE_AFTER_BALANCE = "STALE_AFTER_BALANCE"  # reserved (spec 8): balance-change handling is deferred
 
 GROUP_TITLES = {
     "win_condition": "No way to pressure towers",

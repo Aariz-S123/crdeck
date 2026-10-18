@@ -85,10 +85,25 @@ def build(source: str | None = None, verbose: bool = True, paths: Paths | None =
     }
     with (paths.interim / "counts.json").open("w", encoding="utf-8") as f:
         json.dump(counts, f, indent=2, default=str)
+    write_raw_manifest(paths)
     if verbose:
         print(paths.banner())
         print(json.dumps({k: v for k, v in counts.items() if k != "card_attach_report"}, indent=2, default=str))
     return counts
+
+
+def write_raw_manifest(paths: Paths) -> Path:
+    """data/raw stays out of git (spec 9.7), so record what was fetched and when in a
+    small tracked CSV: one row per raw file (window, kind, file, HTTP status, fetched_at)."""
+    rows = []
+    for f in sorted(paths.raw.glob("*/*/*.json")):
+        with f.open(encoding="utf-8") as fh:
+            w = json.load(fh)
+        rows.append({"window_id": f.parts[-3], "kind": f.parts[-2], "file": f.name,
+                     "status": w.get("status"), "fetched_at": w.get("fetched_at")})
+    out = paths.root / "raw_manifest.csv"
+    pd.DataFrame(rows, columns=["window_id", "kind", "file", "status", "fetched_at"]).to_csv(out, index=False)
+    return out
 
 
 def leaderboard_ranks(paths: Paths) -> dict[str, float]:

@@ -65,3 +65,10 @@ def test_planted_synergy_scores_above_typical_pairs(tmp_path):
     scored = ctx.synergy.pairs.query("status == 'OK'")["synergy"]
     assert len(planted) == 8
     assert np.mean(planted) > scored.median()
+
+
+def test_build_writes_raw_manifest(small_ctx):
+    import pandas as pd
+    m = pd.read_csv(small_ctx.paths.root / "raw_manifest.csv")
+    assert {"cards", "battlelog", "leaderboard"} <= set(m["kind"])
+    assert m["fetched_at"].notna().all() and (m["status"] == 200).all()
