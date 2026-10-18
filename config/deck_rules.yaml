@@ -1,5 +1,17 @@
 # Slot rules (spec section 2). Supercell changes these often: edit here, never in code.
-# Source: mid-March 2026 update. Unresolved items are marked VERIFY.
+#
+# Evidence gathered 2026-10-18 (documented sources only; NOT verified in-game):
+# - Supercell, "Upcoming changes to Clash Royale": "1 Evo Slot, 1 Hero Slot, 1 Wild Slot
+#   (can include either a Hero or an Evo)", applying to Trophy Road, Ranked and Challenges.
+#   It does not mention Champions or a Champion limit.
+#   https://supercell.com/en/games/clashroyale/blog/news/upcoming-changes-to-clash-royale
+# - Alviran guide: Hero slot "Holds Heroes and Champions"; Wild slot "Holds an Evolution, a Hero
+#   or a Champion"; lists "1 Evolution + 2 Heroes or Champions" as valid. Two Champions is the
+#   guide's inference, not a quoted Supercell rule.
+#   https://alviran.net/blog/clash-royale-evolutions-heroes-champions-card-types-guide/
+# Both open questions below are still unresolved. Check in the in-game deck editor:
+#   1. Put a Champion in the Hero slot and a second Champion in the Wild slot. Allowed?
+#   2. Can a Champion go in the Wild slot at all?
 deck_size: 8
 
 # Special slots. A card in a special form (evo / hero) or a champion must occupy
@@ -11,9 +23,9 @@ special_slots:
   - name: hero
     accepts: [hero, champion]
   - name: wild
-    # VERIFY: sources disagree; the official post says "any special form".
+    # Supercell's text says "a Hero or an Evo"; Champions follow Heroes here per the guide above.
+    # If the in-game check says Champions cannot go Wild, remove `champion`.
     accepts: [evo, hero, champion]
 
-# VERIFY in-game: can the Hero slot and the Wild slot both hold champions?
-# Old rule was one champion. Keep 1 until confirmed.
+# Old rule: one Champion per deck. No 2026 source confirms or rescinds it. Keep 1 until checked in-game.
 max_champions: 1

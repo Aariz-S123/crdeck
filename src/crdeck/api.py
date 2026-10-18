@@ -79,19 +79,22 @@ class ApiClient:
         session: requests.Session | None = None,
         key: str | None = None,
         sleep: Callable[[float], None] = time.sleep,
+        window_id: str | None = None,
     ):
         self.paths = paths or Paths.for_source("real")
         if self.paths.is_synthetic:
             raise ApiError("ApiClient never writes into the synthetic data root")
         full = cfg or collection_config()
         self.cfg = full["api"]
-        self.window_id = str(full["window"]["id"])
+        self.window_id = str(window_id or full["window"]["id"])
         self.session = session or requests.Session()
         self._key = key
         self._key_env = self.cfg.get("key_env", "CR_API_KEY")
         self._sleep = sleep
         self._last = 0.0
         self.requests_sent = 0
+        self.throttled = 0      # 429 responses seen
+        self.server_errors = 0  # 5xx responses seen
 
     @property
     def window_dir(self) -> Path:
@@ -128,6 +131,10 @@ class ApiClient:
                 self._sleep(float(self.cfg["backoff_base_s"]) * 2**attempt)
                 continue
             self.requests_sent += 1
+            if resp.status_code == 429:
+                self.throttled += 1
+            elif resp.status_code >= 500:
+                self.server_errors += 1
             if resp.status_code == 429 or resp.status_code >= 500:
                 if attempt == retries:
                     raise ApiError(f"{endpoint}: HTTP {resp.status_code} after {retries} retries")

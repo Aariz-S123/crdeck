@@ -38,6 +38,7 @@ archetype:
   C: 1.0
   n_clusters: 12
   per_cluster: 8
+  heldout_target: 20      # first 20 labels go to the held-out split (label them before fitting anything)
 
 warnings:
   elixir_min: 2.6

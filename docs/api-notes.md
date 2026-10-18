@@ -20,7 +20,8 @@ Two kinds of evidence, kept separate:
 | --- | --- | --- | --- |
 | `/cards` shape | `{"items": [...], "supportItems": [...]}`; items have `id`, `name`, `elixirCost`, `rarity`, `maxLevel`, `iconUrls`, and `maxEvolutionLevel` on cards with an Evolution | _fill in_ | `cards.attach_api` |
 | Rarity values | `common`, `rare`, `epic`, `legendary`, `champion` (case may differ) | _fill in_ | `is_champion` comes from `rarity == champion` |
-| Hero availability in `/cards` | Unknown. Heroes arrived with the 2026 slot rework; no field known | _fill in_ | `has_hero` stays a hand label until a field is found |
+| Hero availability in `/cards` | Unknown. Heroes arrived in December 2025; no public source documents an API field (searched 2026-10-18) | _fill in_ | `has_hero` stays a hand label until a field is found |
+| Tower troops (Cannoneer, Tower Princess, …) | Not deck cards. Pre-2026 they appeared as `supportItems` in `/cards` and `supportCards` in battle sides | _fill in_ | the parser reads only `cards`, so tower troops never enter deck keys |
 | Leaderboard endpoint | `/locations/global/pathoflegend/players` or `/locations/global/pathoflegend/{seasonId}/rankings/players` | _fill in_ | `api.ApiClient.pol_leaderboard`, `config/collection.yaml: leaderboard` |
 | Leaderboard item fields | `tag`, `name`, `rank`, `eloRating` / `trophies`, `clan` | _fill in_ | only `tag` is used |
 | Battle log endpoint | `/players/%23TAG/battlelog` (tag `#` URL-encoded) | _fill in_ | `api.encode_tag` |
@@ -34,9 +35,16 @@ Two kinds of evidence, kept separate:
 | Slot position recorded? | Card order in the deck array; pre-2026 the first slot(s) were the evolution slot(s). Unknown after the rework | _fill in_ | `parse` records `position`; `slot` is `unknown` |
 | Champions in battle data | Appear as normal cards with rarity `champion` | _fill in_ | champion status comes from the card table |
 | Crowns / winner | `crowns` on each side; more crowns wins; equal is a draw | _fill in_ | `parse` |
-| Trophies / rank | `startingTrophies` on each side (may be absent in Path of Legends) | _fill in_ | stored as `trophies_or_rank` |
+| Trophies / rank | `startingTrophies` on each side (may be absent in Path of Legends) | _fill in_ | stored as `trophies_or_rank`; when absent, filled from the leaderboard rank of that player |
+| Card levels | Pre-2023 rarity-relative scale: `level` and `maxLevel` are per rarity (a community thread adds an offset per rarity to get the unified level) | _fill in_ | level gap uses `maxLevel - level`, which stays consistent within a rarity |
 | Rate limits | HTTP 429 when throttled; documented limits not published precisely | _fill in_ | fixed delay + exponential backoff (`config: api`) |
 | Errors | 403 for wrong IP or bad key (`reason: accessDenied` / `accessDenied.invalidIp`), 404 for unknown player | _fill in_ | `api.ApiClient.get` |
+
+## Research notes (2026-10-18, public sources, not API calls)
+
+- No public document or sample response was found showing how a Hero-form card is marked in battle-log JSON. RoyaleAPI notes that card form information "isn't maintained when copying decks", which suggests form data is easy to lose. Treat hero form as unknown until the gate shows a field.
+- Sources on how the API represents levels: [RoyaleAPI forum, data issues](https://discuss.royaleapi.com/t/clash-royale-api-data-issues/30651), [Fandom on Champion levels](https://clashroyale.fandom.com/wiki/Cards).
+- `python -m crdeck gate` now writes `docs/api-notes-observed.md` automatically. It lists every card field it saw, so a new hero marker stands out.
 
 ## Known limitation until observed: Hero form
 

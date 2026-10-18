@@ -37,7 +37,7 @@ def test_attach_api_joins_on_name_once_and_reports():
     labels = load_labels(CARD_LABELS)
     body = {"items": [
         {"name": "Hog Rider", "id": 26000021, "elixirCost": 4, "rarity": "Rare", "maxLevel": 14},
-        {"name": "Archer Queen", "id": 26000072, "elixirCost": 5, "rarity": "Champion", "maxLevel": 6},
+        {"name": "Archer Queen", "id": 26000072, "elixirCost": 6, "rarity": "Champion", "maxLevel": 6},
         {"name": "Knight", "id": 26000000, "elixirCost": 3, "rarity": "Common", "maxLevel": 16, "maxEvolutionLevel": 1},
         {"name": "Brand New Card", "id": 26999999, "elixirCost": 3, "rarity": "Epic"},
     ]}
@@ -46,7 +46,7 @@ def test_attach_api_joins_on_name_once_and_reports():
     assert "Brand New Card" in rep.api_without_labels
     assert any("Archer Queen" in x for x in rep.elixir_overrides)
     t = CardTable(table)
-    assert t[26000072].is_champion and t[26000072].elixir == 5
+    assert t[26000072].is_champion and t[26000072].elixir == 6
     assert t[26000000].has_evolution and t[26000000].rarity == "common"
     assert t.by_name("hog rider").card_id == 26000021
     assert len(rep.labels_without_api) == len(labels) - 3

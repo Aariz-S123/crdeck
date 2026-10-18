@@ -9,6 +9,7 @@ Each item says what changed, why, and how to undo it. Evidence so far comes only
 - **Change:** default `expected_from: without_partner`, so each card's rate is taken over its games *without* the other card. That is the literal meaning of "better together than separately." On the same data, 6 of 8 planted pairs now score positive with intervals above zero, and synergy predicts held-out winners better than lift or popularity (AUC 0.562 vs 0.484 vs 0.502).
 - **Undo:** set `synergy.expected_from: marginal` in `config/model.yaml`. Notebook 05 and `evaluate.synergy_eval` always report both variants.
 - **Still true:** pairs that live in the same popular deck share credit; plenty of unplanted pairs score high. Synergy here is not proof of a combo.
+- **Noise:** individual pair estimates are noisy when each deck is played by few players, because player skill (a spec-named confounder) is mixed into deck results. On synthetic data with 400 players and 16k battles, 4 to 8 of the 8 planted pairs came out positive, depending on the seed. What held in every run is that planted pairs average above the median pair. Read single pair scores together with their interval and games, and expect real-data results to be at least this noisy.
 
 ## 2. Completion objective: an extra co-occurrence term
 

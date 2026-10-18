@@ -141,10 +141,14 @@ def suggest_decks_to_label(decks: pd.DataFrame, cards: CardTable, n_clusters: in
     k = min(n_clusters, len(d))
     km = KMeans(n_clusters=k, random_state=seed, n_init=10).fit(X)
     d = d.assign(cluster=km.labels_)
-    picks = d.groupby("cluster", group_keys=False).head(per_cluster)
+    picks = d.groupby("cluster", group_keys=False).head(per_cluster).copy()
+    # Round-robin across clusters (most frequent deck of each cluster first), so any
+    # prefix of the worklist, e.g. the first 20 held-out labels, spans all clusters.
+    picks["rank_in_cluster"] = picks.groupby("cluster").cumcount()
+    picks = picks.sort_values(["rank_in_cluster", "cluster"], kind="mergesort")
     out = picks[["cluster", "appearances", "deck_key"]].copy()
     out["cards"] = out["deck_key"].map(lambda k: ", ".join(
         cards.name(e.card_id) + ("" if e.form == "base" else f" ({e.form})") for e in parse_deck_key(k)))
     for c in LABEL_COLUMNS[1:]:
         out[c] = ""
-    return out.sort_values(["cluster", "appearances"], ascending=[True, False]).reset_index(drop=True)
+    return out.reset_index(drop=True)
