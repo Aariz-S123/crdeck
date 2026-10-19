@@ -17,3 +17,6 @@ data/notebooks_out/
 data/*.log
 web/model.json
 web/golden.json
+web/models/
+web/golden/
+web/modes.json

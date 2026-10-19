@@ -1,12 +1,20 @@
-"""Export the trained model for the website, plus golden test vectors.
+"""Export the trained models for the website, plus golden test vectors.
 
     python scripts/export_web.py            # real data (default)
     python scripts/export_web.py synthetic  # synthetic data
 
+Refresh order: collect -> build -> evaluate -> export -> check -> sweep.
+This export re-runs the evaluation for any mode whose saved evaluation does not match the
+current data, labels, configs and code (data fingerprint), so the site never shows a stale
+report card.
+
 Writes:
-  web/model.json   everything web/engine.js needs to score, search and explain decks
-  web/golden.json  Python's own answers for a set of seeds and random decks, which
-                   scripts/check_web_engine.mjs compares against the JS port
+  web/modes.json            every mode (Ranked, Trophy Road, All, Trophy Road per arena) with
+                            status (exported / not enough data), meta history and forecast,
+                            and the run log for the Model log page
+  web/models/<slug>.json    everything web/engine.js needs for one mode
+  web/golden/<slug>.json    Python's own answers for that mode, which
+                            scripts/check_web_engine.mjs compares against the JS port
 
 Python stays the source of truth: the website is a port, and the golden check is
 what keeps its legality decisions and scores identical to crdeck.rules / search.
@@ -24,8 +32,13 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from crdeck import runlog  # noqa: E402
+from crdeck.config import Paths, collection_config, model_config  # noqa: E402
+from crdeck.evaluate import full_report  # noqa: E402
 from crdeck.explain import build_explanation  # noqa: E402
-from crdeck.pipeline import load_context  # noqa: E402
+from crdeck.forecast import meta_report  # noqa: E402
+from crdeck.parse import mode_label, mode_slug  # noqa: E402
+from crdeck.pipeline import NoDataError, _fingerprint, load_context, save_model_outputs  # noqa: E402
 from crdeck.rules import DeckCard, check_deck, check_partial, deck_key  # noqa: E402
 from crdeck.search import Searcher, SeedError, parse_seed  # noqa: E402
 
@@ -121,10 +134,41 @@ def export_model(ctx) -> dict:
     model["archetype"]["roles"] = ROLE_LIST
     model["form_stats"] = form_stats(ctx)
     model["csv_rows"] = csv_rows(ctx, model["form_stats"])
-    ev = ctx.paths.processed / "evaluation.json"
-    if ev.exists():
-        model["evaluation"] = json.loads(ev.read_text(encoding="utf-8")).get("evaluation")
+    model["evaluation"] = fresh_evaluation(ctx)
+    model["meta"].update({"mode": ctx.mode, "arena": ctx.arena, "mode_label": ctx.mode_label, "slug": ctx.slug})
+    model["forms"] = forms_list(ctx, model["form_stats"])
     return model
+
+
+def fresh_evaluation(ctx) -> dict:
+    """The saved evaluation for this mode if it matches the current data fingerprint and test
+    window; otherwise run the evaluation now (Step 0: never export a stale report card)."""
+    f = ctx.paths.processed / f"evaluation_{ctx.slug}.json"
+    want_fp, want_win = _fingerprint(ctx.paths), list(ctx.split.window("test"))
+    if f.exists():
+        ev = json.loads(f.read_text(encoding="utf-8")).get("evaluation") or {}
+        if ev.get("data_fingerprint") == want_fp and ev.get("test_window") == want_win:
+            print(f"  evaluation for {ctx.slug}: up to date")
+            return ev
+        print(f"  evaluation for {ctx.slug}: STALE (saved for {ev.get('test_window')}, data now {want_win}); re-running")
+    else:
+        print(f"  evaluation for {ctx.slug}: missing; running")
+    rep = full_report(ctx)
+    save_model_outputs(ctx, rep)
+    return runlog._jsonable(rep)
+
+
+def forms_list(ctx, fstats) -> list[dict]:
+    """Every playable card form (base, Evolution, Hero) as its own entry, from the API bitmask,
+    with this mode's battle counts. Forms with no battles in this mode are kept (games 0)."""
+    out = []
+    for cid in ctx.cards.ids:
+        c = ctx.cards[cid]
+        for f in c.allowed_forms():
+            k = f"{cid}:{f}"
+            g, w = fstats["by_key"].get(k, [0, 0])
+            out.append({"key": k, "card_id": cid, "form": f, "games": g, "wins": w})
+    return out
 
 
 def form_stats(ctx) -> dict:
@@ -226,15 +270,60 @@ def golden(ctx) -> dict:
     return out
 
 
+def candidate_modes(paths: Paths) -> list[tuple[str, str | None]]:
+    """Ranked, Trophy Road, All, then Trophy Road per arena (every arena seen, largest first)."""
+    counts = json.loads((paths.interim / "counts.json").read_text(encoding="utf-8"))
+    arenas = sorted(((k.split("|", 1)[1], n) for k, n in counts.get("ok_by_mode_arena", {}).items()
+                     if k.startswith("trophy_road|")), key=lambda t: -t[1])
+    return [("ranked", None), ("trophy_road", None), ("all", None)] + [("trophy_road", a) for a, _ in arenas]
+
+
+def dump(path: Path, obj) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(clean(obj), separators=(",", ":"), allow_nan=False), encoding="utf-8")
+
+
 def main() -> None:
+    from datetime import datetime, timezone
     source = sys.argv[1] if len(sys.argv) > 1 else "real"
-    ctx = load_context(source)
-    OUT.mkdir(exist_ok=True)
-    model = export_model(ctx)
-    (OUT / "model.json").write_text(json.dumps(clean(model), separators=(",", ":"), allow_nan=False), encoding="utf-8")
-    (OUT / "golden.json").write_text(json.dumps(clean(golden(ctx)), separators=(",", ":"), allow_nan=False), encoding="utf-8")
-    print("wrote", OUT / "model.json", f"{(OUT / 'model.json').stat().st_size / 1e6:.2f} MB")
-    print("wrote", OUT / "golden.json")
+    paths = Paths.for_source(source)
+    ccfg, mcfg = collection_config(), model_config()
+    counts = json.loads((paths.interim / "counts.json").read_text(encoding="utf-8"))
+    modes, ranked_ctx = [], None
+    for mode, arena in candidate_modes(paths):
+        slug, label = mode_slug(mode, arena), mode_label(ccfg, mode, arena)
+        n_ok = (counts["ok_by_mode_arena"].get(f"trophy_road|{arena}", 0) if arena else
+                sum(v.get("OK", 0) for k, v in counts["modes"].items() if k in (["ranked", "trophy_road"] if mode == "all" else [mode])))
+        entry = {"slug": slug, "mode": mode, "arena": arena, "label": label, "ok_battles": n_ok}
+        print(f"{label}: {n_ok} usable battles")
+        try:
+            ctx = load_context(source, mode=mode, arena=arena)
+        except NoDataError as e:
+            modes.append({**entry, "status": "not_enough_data", "reason": str(e)})
+            print("  not enough data:", e)
+            continue
+        model = export_model(ctx)
+        dump(OUT / "models" / f"{slug}.json", model)
+        dump(OUT / "golden" / f"{slug}.json", golden(ctx))
+        modes.append({**entry, "status": "exported", "file": f"models/{slug}.json",
+                      "test_window": list(ctx.split.window("test")), "train_window": list(ctx.split.window("train"))})
+        print(f"  wrote models/{slug}.json ({(OUT / 'models' / f'{slug}.json').stat().st_size / 1e6:.2f} MB)")
+        if mode == "ranked" and arena is None:
+            ranked_ctx = ctx
+    labels = json.loads(json.dumps(sorted(set(ranked_ctx.cards.df["label_version"])))) if ranked_ctx is not None else []
+    runlog.write_section(paths, "export", {
+        "exported_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "code": runlog.git_version(), "label_versions": labels,
+        "config": {"collection": ccfg, "model": mcfg},
+        "modes": [{k: m.get(k) for k in ("slug", "label", "status", "ok_battles", "reason")} for m in modes]})
+    index = {
+        "default": "ranked", "modes": modes,
+        "meta": meta_report(paths, ranked_ctx, mcfg) if ranked_ctx is not None else None,
+        "log": runlog.read(paths),
+        "caveats": runlog.model_notes_caveats(),
+    }
+    dump(OUT / "modes.json", index)
+    print("wrote", OUT / "modes.json", f"{(OUT / 'modes.json').stat().st_size / 1e6:.2f} MB")
 
 
 if __name__ == "__main__":

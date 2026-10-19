@@ -9,14 +9,19 @@ import { dirname, join } from "node:path";
 const require = createRequire(import.meta.url);
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const { Engine, parseKey, SeedError } = require(join(root, "web", "engine.js"));
-const model = JSON.parse(readFileSync(join(root, "web", "model.json"), "utf8"));
-const golden = JSON.parse(readFileSync(join(root, "web", "golden.json"), "utf8"));
-const eng = new Engine(model);
+const index = JSON.parse(readFileSync(join(root, "web", "modes.json"), "utf8"));
 
 let failures = 0, checks = 0;
 const fail = (msg) => { failures++; if (failures <= 25) console.log("FAIL", msg); };
 const close = (a, b, tol) => Math.abs(a - b) <= tol;
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+// every exported mode has its own model and golden file
+for (const entry of index.modes.filter((m) => m.status === "exported")) {
+console.log(`\n=== ${entry.label} (${entry.slug}) ===`);
+const model = JSON.parse(readFileSync(join(root, "web", entry.file), "utf8"));
+const golden = JSON.parse(readFileSync(join(root, "web", "golden", `${entry.slug}.json`), "utf8"));
+const eng = new Engine(model);
 
 // 1. legality on random decks
 for (const g of golden.legality) {
@@ -86,6 +91,8 @@ console.log(`explanations: ${golden.explanations.length} checked`);
   for (let i = 1; i < cal.bins.length; i++) if (cal.bins[i].u < cal.bins[i - 1].u) fail("calibration bins not ordered by strength");
   console.log(`calibration: ${cal.bins.length} bins over ${cal.total} test deck appearances (${cal.decks} decks)`);
   console.log(cal.bins.map((b) => `  u ${b.u.toFixed(3)}  real ${(100 * b.win).toFixed(1)}%  model ${(100 * b.model).toFixed(1)}%  n ${b.battles}`).join("\n"));
+}
+
 }
 
 console.log(failures ? `\n${failures} disagreement(s) in ${checks} checks` : `\nall ${checks} checks agree with Python`);

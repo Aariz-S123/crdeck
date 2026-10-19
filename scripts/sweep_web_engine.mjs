@@ -10,8 +10,9 @@ import { dirname, join } from "node:path";
 const require = createRequire(import.meta.url);
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const { Engine, SeedError, parseDeckKey, keyOf } = require(join(root, "web", "engine.js"));
-const model = JSON.parse(readFileSync(join(root, "web", "model.json"), "utf8"));
-const E = new Engine(model);
+const index = JSON.parse(readFileSync(join(root, "web", "modes.json"), "utf8"));
+const onlySlug = process.argv[2]; // optional: sweep one mode only
+let model, E;
 
 const problems = [];
 const bad = (m) => { problems.push(m); if (problems.length <= 30) console.log("PROBLEM", m); };
@@ -66,6 +67,10 @@ function run(seeds, label, expectRefusal) {
 }
 
 const t0 = Date.now();
+for (const entry of index.modes.filter((m) => m.status === "exported" && (!onlySlug || m.slug === onlySlug))) {
+model = JSON.parse(readFileSync(join(root, "web", entry.file), "utf8"));
+E = new Engine(model);
+const before = { searches, refused, swapsChecked, problems: problems.length };
 // 1. every card form alone
 for (const c of model.cards) for (const f of E.allowedForms(c)) run([{ id: c.id, form: f }], `${c.name}@${f}`, false);
 // 2. forms that do not exist must be refused
@@ -87,6 +92,11 @@ run([], "no seeds", false);
 const cal = E.calibration(8);
 if (cal.total !== model.meta.test_battles_total * 2) bad(`calibration total ${cal.total}`);
 if (!cal.bins.every((b) => [b.u, b.win, b.lo, b.hi, b.model].every(finite) && b.lo <= b.win && b.win <= b.hi)) bad("calibration bin values");
+// 5. every playable form has its own entry in the forms list (API bitmask)
+const nForms = model.cards.reduce((t, c) => t + E.allowedForms(c).length, 0);
+if (model.forms.length !== nForms) bad(`${entry.slug}: forms list has ${model.forms.length} entries, card table has ${nForms} forms`);
+console.log(`${entry.label}: ${searches - before.searches} searches (${refused - before.refused} refused), ${swapsChecked - before.swapsChecked} swaps, ${problems.length - before.problems} problems`);
+}
 
 console.log(`\n${searches} searches (${refused} correctly refused), ${swapsChecked} swaps checked, ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 console.log(problems.length ? `${problems.length} problem(s)` : "no problems found");
