@@ -1,0 +1,73 @@
+// Golden check: web/engine.js must agree with the Python package on web/golden.json.
+//   node scripts/check_web_engine.mjs
+// Exits 1 on any disagreement in legality, slots, searches, scores, explanations or swaps.
+import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const require = createRequire(import.meta.url);
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const { Engine, parseKey, SeedError } = require(join(root, "web", "engine.js"));
+const model = JSON.parse(readFileSync(join(root, "web", "model.json"), "utf8"));
+const golden = JSON.parse(readFileSync(join(root, "web", "golden.json"), "utf8"));
+const eng = new Engine(model);
+
+let failures = 0, checks = 0;
+const fail = (msg) => { failures++; if (failures <= 25) console.log("FAIL", msg); };
+const close = (a, b, tol) => Math.abs(a - b) <= tol;
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+// 1. legality on random decks
+for (const g of golden.legality) {
+  const deck = g.deck.map(parseKey);
+  const r = eng.checkDeck(deck);
+  checks++;
+  if (r.legal !== g.legal || !same(r.reasons, g.reasons)) fail(`legality ${g.deck.join("|")}: js ${r.legal} ${r.reasons} vs py ${g.legal} ${g.reasons}`);
+  if (!same(Object.entries(r.slots).sort(), Object.entries(g.slots).sort())) fail(`slots ${g.deck.join("|")}: ${JSON.stringify(r.slots)} vs ${JSON.stringify(g.slots)}`);
+  const n = g.deck.length, rp = eng.checkPartial(deck.slice(0, Math.max(1, n - 3)));
+  if (rp.legal !== g.partial_legal) fail(`partial ${g.deck.join("|")}: js ${rp.legal} vs py ${g.partial_legal}`);
+}
+console.log(`legality: ${golden.legality.length} random decks checked`);
+
+// 2. searches, swaps
+for (const s of golden.searches) {
+  const seeds = s.seeds.map(parseKey);
+  checks++;
+  let res;
+  try { res = eng.complete(seeds); } catch (e) {
+    if (!(e instanceof SeedError)) throw e;
+    if (!s.error) fail(`search ${s.seeds}: js error ${e.message}, py succeeded`);
+    else console.log(`search ${s.seeds.join(",") || "(none)"}: both refuse (${e.message.slice(0, 60)}…)`);
+    continue;
+  }
+  if (s.error) { fail(`search ${s.seeds}: js succeeded, py error ${s.error}`); continue; }
+  const keysJs = res.map((d) => d.key), keysPy = s.decks.map((d) => d.key);
+  if (!same(keysJs, keysPy)) fail(`search ${s.seeds}: decks differ\n  js ${keysJs.join("\n     ")}\n  py ${keysPy.join("\n     ")}`);
+  res.forEach((d, i) => {
+    const p = s.decks[i]; if (!p) return;
+    if (!close(d.objective, p.objective, 1e-9) || !close(d.win_prob, p.win_prob, 1e-9)) fail(`score ${d.key}: obj ${d.objective} vs ${p.objective}, wp ${d.win_prob} vs ${p.win_prob}`);
+  });
+  const sw = eng.swaps(res[0].entries, { locked: seeds });
+  const a = sw.map((w) => [w.replace, w.with, w.new_deck_key]), b = s.swaps.map((w) => [w.replace, w.with, w.new_deck_key]);
+  if (!same(a, b)) fail(`swaps ${s.seeds}: differ (js ${a.length}, py ${b.length}); first js ${JSON.stringify(a[0])} py ${JSON.stringify(b[0])}`);
+  sw.forEach((w, i) => { if (s.swaps[i] && !close(w.delta_objective, s.swaps[i].delta_objective, 1e-5)) fail(`swap delta ${w.new_deck_key}: ${w.delta_objective} vs ${s.swaps[i].delta_objective}`); });
+  console.log(`search ${s.seeds.join(",") || "(none)"}: ${res.length} decks and ${sw.length} swaps match`);
+}
+
+// 3. explanations of each search's top deck
+for (const x of golden.explanations) {
+  const e = eng.explain(x.key.split("|").map(parseKey));
+  checks++;
+  if (!close(e.score.meta_win_prob, x.win_prob, 5e-5)) fail(`explain ${x.key}: win ${e.score.meta_win_prob} vs ${x.win_prob}`);
+  if (!close(e.score.interval[0], x.interval[0], 5e-5) || !close(e.score.interval[1], x.interval[1], 5e-5)) fail(`explain ${x.key}: interval ${e.score.interval} vs ${x.interval}`);
+  if (e.archetype.label !== x.archetype || (x.probability !== null && !close(e.archetype.probability, x.probability, 1e-6))) fail(`explain ${x.key}: archetype ${e.archetype.label} ${e.archetype.probability} vs ${x.archetype} ${x.probability}`);
+  const codes = e.warnings.flatMap((g) => g.warnings.map((w) => w.code));
+  if (!same(codes, x.warnings)) fail(`explain ${x.key}: warnings ${codes} vs ${x.warnings}`);
+  if (!same(e.data_quality.map((d) => d.state), x.data_quality)) fail(`explain ${x.key}: data quality ${e.data_quality.map((d) => d.state)} vs ${x.data_quality}`);
+  if (!same(e.synergy_top.map((p) => p.pair), x.synergy_top) || !same(e.synergy_bottom.map((p) => p.pair), x.synergy_bottom)) fail(`explain ${x.key}: synergy pairs differ`);
+}
+console.log(`explanations: ${golden.explanations.length} checked`);
+
+console.log(failures ? `\n${failures} disagreement(s) in ${checks} checks` : `\nall ${checks} checks agree with Python`);
+process.exit(failures ? 1 : 0);

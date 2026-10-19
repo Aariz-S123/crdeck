@@ -229,21 +229,22 @@ class MetaScorer:
         self.opp_u = self.opp_X @ model.coef
         self.model = model
         self.interval = interval
-        self.boot_idx = rng.integers(0, len(self.opp_u), size=(n_bootstrap, len(self.opp_u)))
 
     def win_prob_from_u(self, u: float) -> float:
         return float(sigmoid(u - self.opp_u).mean())
 
     def score(self, entries: list[DeckCard]) -> DeckScore:
         """Win prob vs the opponent sample, with an approximate interval combining
-        model uncertainty (Laplace, delta method) and opponent sampling (bootstrap).
+        model uncertainty (Laplace, delta method) and opponent sampling (standard error
+        of the mean over the opponent sample; the analytic form of the bootstrap SE, so the
+        web port reproduces it exactly).
         It does not cover selection effects: the top result of a search is the
         maximum of noisy estimates and is likely optimistic."""
         from scipy.stats import norm
         u = self.model.utility(entries)
         p = sigmoid(u - self.opp_u)
         mean = float(p.mean())
-        sd_opp = float(p[self.boot_idx].mean(axis=1).std())
+        sd_opp = float(p.std() / np.sqrt(len(p)))
         w = p * (1 - p)
         grad = self.model.vector(entries) * w.mean() - np.asarray(self.opp_X.multiply(w[:, None]).mean(axis=0)).ravel()
         sd_model = float(np.sqrt(max(grad @ self.model.cov @ grad, 0.0)))

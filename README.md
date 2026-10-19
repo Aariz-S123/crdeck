@@ -40,6 +40,17 @@ py -3.12 -m venv .venv
 .venv/Scripts/python -m pytest
 ```
 
+## Website
+
+The deck builder also runs as a web page: pick up to three cards and get legal decks with archetype, estimated win rate and interval, synergy evidence, warnings and one-click swaps. The page runs the trained model in the browser.
+
+- `web/index.html` is the page and `web/engine.js` is a JavaScript port of the scoring, search, legality, warnings, archetype and explanation code.
+- `python scripts/export_web.py` writes `web/model.json` (the trained model) and `web/golden.json` (Python's own answers for test cases).
+- `node scripts/check_web_engine.mjs` checks that the port agrees with Python on 3,000 random decks (legality and slots) plus searches, swaps and explanations. Python remains the source of truth; re-run the export and the check after retraining.
+- To view it locally, serve the folder (`python -m http.server -d web`) and open http://localhost:8000.
+
+The spec (section 3) listed a web UI as deferred; it was built on request after the core results were in.
+
 ## Using it
 
 ```bash

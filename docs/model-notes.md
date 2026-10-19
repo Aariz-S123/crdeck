@@ -74,7 +74,13 @@ What this says about the game, at this level: deck composition barely moves win 
 
 - `python -m crdeck synthetic` writes to `data/synthetic/` only, labels every output SYNTHETIC, and never stands in for real data. The default source is `real`; missing real data raises an error. It now uses the observed API format (form bitmask, `evolutionLevel` 1/2, slot positions).
 
-## 9. Archetype labels
+## 9. Website
+
+- The spec deferred a web UI (section 3); one was built on request after the core phases were done.
+- `web/engine.js` re-implements legality, scoring, search, warnings, archetype prediction and explanations in JavaScript, so the spec's "only rules.py decides legality" now has a second implementation.
+- The guard is `scripts/check_web_engine.mjs`: it compares the port with Python on 3,000 random decks (legality, reasons, slot assignment, partial checks) and on full searches, swaps and explanations. It must pass after every export.
+
+## 10. Archetype labels
 
 - Spec 7.3 asks for 60–100 hand-labeled real decks, with 20 held out and labeled before any fitting.
 - `data/labels/archetype_labels.csv` holds 108 real decks from the k-means worklist (round-robin across 12 clusters): 20 held out, 88 train. **The assistant labeled them** from the card lists, before any archetype model was fit, and every row's notes say so.

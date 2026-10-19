@@ -15,3 +15,5 @@ data/processed/*
 data/synthetic/
 data/notebooks_out/
 data/*.log
+web/model.json
+web/golden.json
