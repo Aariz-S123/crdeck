@@ -71,13 +71,21 @@ def test_top_and_bottom_pairs_never_overlap_and_seen_deck_is_not_unseen(small_ct
 
 
 def test_hero_form_deck_found_under_observed_key(small_ctx, C):
+    """When hero form is not observable, battle data records hero cards as base, so a hero
+    deck must be looked up under its base key (and carries FORM_UNKNOWN)."""
+    import copy
     from crdeck.rules import parse_deck_key, DeckCard
-    k = next(k for k in small_ctx.deck_appearances
-             if any(e.form == "base" and small_ctx.cards[e.card_id].has_hero for e in parse_deck_key(k))
-             and not any(e.form == "evo" for e in parse_deck_key(k)))
+    ctx = copy.copy(small_ctx)
+    ctx.hero_observable = False
+    k = next(k for k in ctx.deck_appearances
+             if any(e.form == "base" and ctx.cards[e.card_id].has_hero for e in parse_deck_key(k))
+             and not any(e.form in ("evo", "hero") for e in parse_deck_key(k)))
     entries = parse_deck_key(k)
-    i = next(i for i, e in enumerate(entries) if small_ctx.cards[e.card_id].has_hero)
+    i = next(i for i, e in enumerate(entries) if ctx.cards[e.card_id].has_hero)
     entries[i] = DeckCard(entries[i].card_id, "hero")
-    x = build_explanation(entries, small_ctx)
+    x = build_explanation(entries, ctx)
     states = {d["state"] for d in x.data_quality}
     assert "UNSEEN_DECK" not in states and "FORM_UNKNOWN" in states
+    ctx.hero_observable = True  # observed encoding: no FORM_UNKNOWN for hero decks
+    states = {d["state"] for d in build_explanation(entries, ctx).data_quality}
+    assert "FORM_UNKNOWN" not in states

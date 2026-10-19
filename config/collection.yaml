@@ -15,19 +15,37 @@ window:
   end: null
 
 leaderboard:
-  # VERIFY: endpoint shape is from pre-2026 docs (see docs/api-notes.md).
+  # Observed working 2026-10-18: /locations/{id}/pathoflegend/players (global and country ids).
   location_id: global
   season_id: null              # null -> /locations/{id}/pathoflegend/players
   limit: 1000
+  # Extra regional Path of Legends leaderboards (location id: how many top players).
+  # Players already on the global list are skipped. Ids from GET /locations.
+  extra_locations:
+    57000249: 200   # United States
+    57000038: 200   # Brazil
+    57000153: 200   # Mexico
+    57000218: 200   # Spain
+    57000094: 200   # Germany
+    57000087: 200   # France
+    57000120: 200   # Italy
+    57000122: 200   # Japan
+    57000193: 200   # Russia
+    57000239: 200   # Turkey
+    57000248: 200   # United Kingdom
+    57000113: 200   # India
 
 battles:
   battle_types: [pathOfLegend] # VERIFY the exact `type` string in a real battle log
 
 form_resolution:
-  # Set these only after docs/api-notes.md records an observed field.
-  evo_field: evolutionLevel    # battle card field whose value > 0 means Evolution form
-  hero_field: null             # e.g. "heroLevel" once observed; null = hero/base indistinguishable
-  slot_position_observable: false
+  # Observed in real calls on 2026-10-18 (docs/api-notes-observed.md, docs/api-notes.md):
+  # battle-deck cards carry evolutionLevel 1 = Evolution form, 2 = Hero form, absent = base.
+  form_field: evolutionLevel
+  form_values: {1: evo, 2: hero}
+  # Observed: deck position 0 = Evolution slot, 1 = Hero slot, 2 = Wild slot, 3-7 normal.
+  # Set to {} if a future API change breaks this; slots are then recorded as "unknown".
+  slot_positions: {0: evo, 1: hero, 2: wild}
 
 split:
   train_frac: 0.70

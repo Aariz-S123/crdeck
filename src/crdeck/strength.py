@@ -9,6 +9,14 @@ P(A beats B) = sigmoid(u(A) - u(B))):
 
 Feature keys: card_id:form. When hero form is not observable in battle data,
 hero entries map onto the base key (and explanations carry FORM_UNKNOWN).
+
+Skill control (spec 7.2 names skill as a confounder): with skill_control=True the
+regression also gets the players' rating difference (Path of Legends rating at
+battle start, per 100 points) as a separate covariate. Card weights are then
+estimated at equal rating, and deck utilities / deck scores exclude the rating
+term, i.e. they describe a deck in the hands of an equally rated player.
+RatingBaseline (rating difference only) shows how much of any predictive power
+is skill rather than deck.
 """
 
 from __future__ import annotations
@@ -35,11 +43,37 @@ def deck_feature_keys(entries: list[DeckCard], hero_observable: bool) -> list[st
     return [feature_key(e, hero_observable) for e in entries]
 
 
+RATING_SCALE = 100.0
+
+
+def rating_diff(df: pd.DataFrame) -> np.ndarray:
+    """A-minus-B rating difference per 100 points; 0 where unknown."""
+    if "rating_diff" not in df:
+        return np.zeros(len(df))
+    return (pd.to_numeric(df["rating_diff"], errors="coerce").fillna(0.0) / RATING_SCALE).to_numpy()
+
+
 class ConstantBaseline:
     name = "constant_0.5"
 
     def predict_proba(self, deck_a: pd.Series, deck_b: pd.Series) -> np.ndarray:
         return np.full(len(deck_a), 0.5)
+
+    def predict_df(self, df: pd.DataFrame) -> np.ndarray:
+        return np.full(len(df), 0.5)
+
+
+class RatingBaseline:
+    """Skill only: logistic regression on the rating difference (no deck information)."""
+    name = "rating_only"
+
+    def fit(self, df: pd.DataFrame) -> "RatingBaseline":
+        self.lr = LogisticRegression(fit_intercept=False, C=1e6, max_iter=1000)
+        self.lr.fit(rating_diff(df).reshape(-1, 1), df["a_won"].astype(int))
+        return self
+
+    def predict_df(self, df: pd.DataFrame) -> np.ndarray:
+        return self.lr.predict_proba(rating_diff(df).reshape(-1, 1))[:, 1]
 
 
 class PopularityBaseline:
@@ -64,6 +98,9 @@ class PopularityBaseline:
         x = (self._pop(deck_a) - self._pop(deck_b)).reshape(-1, 1)
         return self.lr.predict_proba(x)[:, 1]
 
+    def predict_df(self, df: pd.DataFrame) -> np.ndarray:
+        return self.predict_proba(df["deck_a"], df["deck_b"])
+
 
 @dataclass
 class CardModel:
@@ -73,6 +110,7 @@ class CardModel:
     min_feature_games: int = 20
     pairs: list[tuple[int, int]] = field(default_factory=list)
     name: str = "card_lr"
+    skill_control: bool = False
 
     def _vector_rows(self, decks: pd.Series) -> sparse.csr_matrix:
         rows, cols = [], []
@@ -102,14 +140,22 @@ class CardModel:
         self.index = {k: i for i, k in enumerate(keys)}
         self.n_card_features = len(keys)
         X = self._vector_rows(df["deck_a"]) - self._vector_rows(df["deck_b"])
+        if self.skill_control:
+            # Scale the rating column up so the L2 penalty on its coefficient is negligible:
+            # coefficient g on (s * x) means effect g * s, penalised as g^2 = effect^2 / s^2.
+            self._skill_scale = 100.0 / np.sqrt(self.C)
+            X = sparse.hstack([X, sparse.csr_matrix(self._skill_scale * rating_diff(df).reshape(-1, 1))]).tocsr()
         y = df["a_won"].astype(int).to_numpy()
         self.lr = LogisticRegression(fit_intercept=False, C=self.C, max_iter=self.max_iter, solver="lbfgs")
         self.lr.fit(X, y)
-        self.coef = self.lr.coef_.ravel()
-        # Laplace approximation of coefficient uncertainty: (X' W X + I / C)^-1
-        p = sigmoid(X @ self.coef)
+        full = self.lr.coef_.ravel()
+        n_deck = self.n_card_features + len(self.pairs)
+        self.coef = full[:n_deck]  # deck-only weights: utilities and deck scores never include skill
+        self.skill_coef = float(full[n_deck]) * self._skill_scale if self.skill_control else 0.0  # per 100 rating
+        # Laplace approximation of coefficient uncertainty: (X' W X + I / C)^-1, marginal over the skill term
+        p = sigmoid(X @ full)
         H = (X.T @ sparse.diags(p * (1 - p)) @ X).toarray() + np.eye(X.shape[1]) / self.C
-        self.cov = np.linalg.pinv(H)
+        self.cov = np.linalg.pinv(H)[:n_deck, :n_deck]
         self.card_weights = dict(zip(keys, self.coef[: self.n_card_features]))
         self.pair_weights = dict(zip(self.pairs, self.coef[self.n_card_features:]))
         return self
@@ -129,7 +175,13 @@ class CardModel:
         return self._vector_rows(pd.Series([deck_key(entries)])).toarray().ravel()
 
     def predict_proba(self, deck_a: pd.Series, deck_b: pd.Series) -> np.ndarray:
+        """Deck-only prediction (equal rating)."""
         return sigmoid(self.utilities(deck_a) - self.utilities(deck_b))
+
+    def predict_df(self, df: pd.DataFrame) -> np.ndarray:
+        """Prediction for real battles: deck utilities plus the rating term when skill-controlled."""
+        z = self.utilities(df["deck_a"]) - self.utilities(df["deck_b"])
+        return sigmoid(z + self.skill_coef * rating_diff(df))
 
     def known(self, e: DeckCard) -> bool:
         return feature_key(e, self.hero_observable) in self.index
@@ -146,7 +198,7 @@ def top_pairs(syn: SynergyTable, n: int) -> list[tuple[int, int]]:
 
 
 def evaluate(model, df: pd.DataFrame) -> dict:
-    p = model.predict_proba(df["deck_a"], df["deck_b"])
+    p = model.predict_df(df)
     y = df["a_won"].astype(int).to_numpy()
     out = {"model": model.name, "battles": len(df), "log_loss": float(log_loss(y, p, labels=[0, 1]))}
     out["auc"] = float(roc_auc_score(y, p)) if len(set(y)) > 1 and np.ptp(p) > 0 else 0.5

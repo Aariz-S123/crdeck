@@ -179,13 +179,26 @@ def collect(n_players: int | None = None, client: ApiClient | None = None, progr
         window_id = auto_window_id()
     client = client or ApiClient(cfg=cfg, window_id=window_id)
     lb_cfg = cfg["leaderboard"]
-    lb = client.pol_leaderboard(lb_cfg["location_id"], lb_cfg.get("season_id"), limit=int(lb_cfg["limit"]))
-    players = _leaderboard_items(lb.body)
+    boards = [(str(lb_cfg["location_id"]), int(lb_cfg["limit"]))]
+    boards += [(str(k), int(v)) for k, v in (lb_cfg.get("extra_locations") or {}).items()]
+    players, seen, per_board = [], set(), {}
+    for loc, limit in boards:
+        try:
+            lb = client.pol_leaderboard(loc, lb_cfg.get("season_id") if loc == str(lb_cfg["location_id"]) else None, limit=limit)
+        except ApiError as e:
+            per_board[loc] = f"error: {e}"
+            continue
+        items = _leaderboard_items(lb.body)
+        new = [p for p in items if p.get("tag") and p["tag"] not in seen]
+        seen.update(p["tag"] for p in new)
+        players += new
+        per_board[loc] = f"{len(items)} listed, {len(new)} new"
     if not players:
-        raise ApiError("leaderboard returned no players")
+        raise ApiError("leaderboards returned no players")
     if n_players:
         players = players[:n_players]
-    summary = {"window_id": client.window_id, "players": len(players), "fetched": 0, "cached": 0, "not_found": 0, "errors": []}
+    summary = {"window_id": client.window_id, "leaderboards": per_board, "players": len(players),
+               "fetched": 0, "cached": 0, "not_found": 0, "errors": []}
     for i, p in enumerate(players):
         try:
             r = client.battlelog(p["tag"])

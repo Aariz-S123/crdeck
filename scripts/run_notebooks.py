@@ -44,15 +44,19 @@ def execute(name: str) -> tuple[nbformat.NotebookNode, str]:
 
 
 def outputs(nb) -> list[str]:
+    """One normalized string per code cell. Stream text is joined first: Jupyter may split
+    consecutive prints into one or several stream messages, which is not a content change."""
     out = []
     for i, c in enumerate(nb.cells):
         if c.cell_type != "code":
             continue
+        parts = []
         for o in c.get("outputs", []):
-            txt = o.get("text") or o.get("data", {}).get("text/plain", "") or o.get("evalue", "")
-            for v in VOLATILE:
-                txt = v.sub("<v>", str(txt))
-            out.append(f"[cell {i}] {txt}")
+            parts.append(str(o.get("text") or o.get("data", {}).get("text/plain", "") or o.get("evalue", "")))
+        txt = "".join(parts)
+        for v in VOLATILE:
+            txt = v.sub("<v>", txt)
+        out.append(f"[cell {i}] {txt}")
     return out
 
 

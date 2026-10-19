@@ -33,7 +33,8 @@ def flip(b):
     return {**b, "team": b["opponent"], "opponent": b["team"]}
 
 
-FC = FormConfig(evo_field="evolutionLevel", hero_field=None)
+FC = FormConfig()  # observed encoding: evolutionLevel 1 = evo, 2 = hero; positions 0/1/2 = evo/hero/wild
+FC_NO_HERO = FormConfig(form_values=((1, "evo"),))  # as if hero form were not observable
 
 
 def run(cards, logs):
@@ -96,17 +97,34 @@ def test_deck_key_ignores_card_order_and_detects_evo(cards):
     assert f"{cards.by_name('Knight').card_id}:evo" in keys[0]
 
 
-def test_form_unknown_flag_for_hero_capable_cards(cards):
-    parsed = run(cards, [("#AAA", [battle(cards)])])
-    d = parsed.decks_in_battle.set_index("player_tag")
-    assert bool(d.loc["#AAA", "form_unknown"])  # Knight and Musketeer have hero forms
-
-
-def test_hero_field_when_observable(cards):
+def test_form_unknown_flag_only_when_hero_not_observable(cards):
     b = battle(cards)
-    b["team"][0]["cards"][-1]["heroLevel"] = 1  # Knight
-    bb, d, _ = parse_battlelog([b], "#AAA", "", cards, FormConfig("evolutionLevel", "heroLevel"))
-    assert any(k.endswith(":hero") for k in d[0]["deck_key"].split("|"))
+    _, d, _ = parse_battlelog([b], "#AAA", "", cards, FC_NO_HERO)
+    assert d[0]["form_unknown"] or d[1]["form_unknown"]  # Knight and Musketeer have hero forms
+    _, d, _ = parse_battlelog([b], "#AAA", "", cards, FC)
+    assert not d[0]["form_unknown"] and not d[1]["form_unknown"]
+
+
+def test_observed_form_encoding_and_slots(cards):
+    b = battle(cards)
+    team = b["team"][0]["cards"]
+    knight = next(i for i, c in enumerate(team) if c["name"] == "Knight")
+    musk = next(i for i, c in enumerate(team) if c["name"] == "Musketeer")
+    team[knight]["evolutionLevel"] = 2  # Hero Knight
+    team[musk]["evolutionLevel"] = 1    # Evolved Musketeer
+    team.insert(0, team.pop(musk))      # evo at position 0
+    team.insert(1, team.pop(knight))    # hero at position 1
+    _, d, s = parse_battlelog([b], "#AAA", "", cards, FC)
+    keys = next(x["deck_key"] for x in d if x["player_tag"] == "#AAA").split("|")
+    assert f"{cards.by_name('Knight').card_id}:hero" in keys
+    assert f"{cards.by_name('Musketeer').card_id}:evo" in keys
+    slot = {(r["card_id"], r["deck_key"]): r["slot"] for r in s}
+    k = next(x["deck_key"] for x in d if x["player_tag"] == "#AAA")
+    assert slot[(cards.by_name("Musketeer").card_id, k)] == "evo"
+    assert slot[(cards.by_name("Knight").card_id, k)] == "hero"
+    assert sorted(set(r["slot"] for r in s if r["deck_key"] == k)) == ["evo", "hero", "normal", "wild"]
+    _, _, s2 = parse_battlelog([b], "#AAA", "", cards, FormConfig(slot_positions=()))
+    assert {r["slot"] for r in s2} == {"unknown"}
 
 
 def test_other_statuses(cards):

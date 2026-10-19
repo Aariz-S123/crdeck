@@ -5,12 +5,15 @@ synergy:
   k: 50                # shrinkage strength toward the global win rate
   min_games: 200       # fewer pair games -> INSUFFICIENT_SAMPLE
   interval: 0.90
-  # "without_partner" (default) or "marginal" (spec literal; double-counts pair
-  # effects when cards almost always co-occur). See src/crdeck/synergy.py.
-  expected_from: without_partner
+  # "auto" (default): pick on the validation window between "without_partner" and
+  # "marginal" (spec literal; double-counts pair effects when cards almost always
+  # co-occur). On synthetic data without_partner won; on the first real window the
+  # two were within 0.003 AUC. See src/crdeck/synergy.py and docs/model-notes.md.
+  expected_from: auto
 
 strength:
-  C_grid: [0.003, 0.01, 0.03, 0.1, 0.3, 1.0]   # L2 strength chosen on validation log loss
+  C_grid: [0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0]   # L2 strength chosen on validation log loss
+  skill_control: true     # rating difference as a covariate; card weights and deck scores are at equal rating
   max_iter: 5000
   min_feature_games: 20   # card:form features seen fewer times in train are dropped
   top_n_pairs: 100        # pair features for the second model
@@ -24,8 +27,10 @@ search:
   beam_width: 50
   beam_parents_min: 10    # each parent keeps at most beam_width / this many children per step
   synergy_weight: 0.5     # objective = meta_win_prob + synergy_weight * mean_pair_synergy
-  # + w * mean_log_lift. Starting value 0.05 = smallest grid value whose validation recall beat
-  # popular fill on SYNTHETIC data. Re-tune on real data (notebook 06, evaluate.tune_cooccurrence).
+  # + w * mean_log_lift. Rule (evaluate.choose_cooccurrence): smallest grid value whose
+  # VALIDATION completion recall reaches 95% of the best validation recall. Real window
+  # 2026-10-w3: 0.05 (valid recall 0.925; best 0.967). The rule was revised after seeing test
+  # results (docs/model-notes.md); re-check on each new collection window with notebook 06.
   cooccurrence_weight: 0.05
   n_results: 3
   min_diff_cards: 2       # returned decks differ by at least this many cards

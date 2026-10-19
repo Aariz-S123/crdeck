@@ -50,8 +50,9 @@ def synthetic_cards_body(labels) -> dict:
     for i, r in enumerate(labels.sort_values("name").itertuples()):
         item = {"name": r.name, "id": 90_000_000 + i, "elixirCost": int(r.elixir) if r.elixir == r.elixir else 0,
                 "rarity": "champion" if r.is_champion else "synthetic", "maxLevel": 16}
-        if r.has_evolution:
-            item["maxEvolutionLevel"] = 1
+        forms = (1 if r.has_evolution else 0) | (2 if r.has_hero else 0)  # observed bitmask
+        if forms:
+            item["maxEvolutionLevel"] = forms
         items.append(item)
     return {"items": items, "synthetic": True}
 
@@ -140,6 +141,10 @@ def generate(cfg: SynthConfig | None = None, paths: Paths | None = None, overwri
                     n_evo = 2
             for i in evo_capable[:n_evo]:
                 entries[i] = DeckCard(entries[i].card_id, "evo")
+            hero_capable = [i for i, e in enumerate(entries) if e.form == "base" and cards[e.card_id].has_hero]
+            if hero_capable and rng.random() < 0.6:
+                i = hero_capable[int(rng.integers(len(hero_capable)))]
+                entries[i] = DeckCard(entries[i].card_id, "hero")
             if check_deck(entries, cards, rules).legal:
                 return entries
         raise RuntimeError("could not build a legal synthetic deck")
@@ -185,13 +190,22 @@ def generate(cfg: SynthConfig | None = None, paths: Paths | None = None, overwri
         n_unknown += unknown
 
         def side(pl, deck, crowns, inject_unknown=False):
-            ordered = sorted(deck, key=lambda e: (e.form == "base", e.card_id))
+            # Observed layout: position 0 = evo slot, 1 = hero slot, 2 = wild slot, then normal cards.
+            placed = check_deck(deck, cards, rules).slots
+            pos_of = {"evo": 0, "hero": 1, "wild": 2}
+            ordered: list = [None, None, None]
+            rest = []
+            for e in sorted(deck):
+                if e.key in placed:
+                    ordered[pos_of[placed[e.key]]] = e
+                else:
+                    rest.append(e)
+            ordered = [e if e is not None else rest.pop(0) for e in ordered] + rest
             cs = []
             for e in ordered:
                 c = {"name": cards[e.card_id].name, "id": e.card_id, "level": int(rng.integers(14, 17)), "maxLevel": 16}
-                if e.form == "evo":
-                    c["evolutionLevel"] = 1
-                    c["maxEvolutionLevel"] = 1
+                if e.form in ("evo", "hero"):
+                    c["evolutionLevel"] = 1 if e.form == "evo" else 2
                 cs.append(c)
             if inject_unknown:
                 cs[-1] = {"name": "Synthetic Unknown", "id": UNKNOWN_SYNTHETIC_CARD_ID, "level": 15, "maxLevel": 16}
@@ -208,7 +222,7 @@ def generate(cfg: SynthConfig | None = None, paths: Paths | None = None, overwri
         with (raw / "battlelog" / f"{tag.lstrip('#')}.json").open("w", encoding="utf-8") as f:
             json.dump(wrap(f"/players/%23{tag.lstrip('#')}/battlelog", battles), f, separators=(",", ":"))
 
-    with (raw / "leaderboard" / "global.json").open("w", encoding="utf-8") as f:
+    with (raw / "leaderboard" / "global_limit1000.json").open("w", encoding="utf-8") as f:
         json.dump(wrap("/locations/global/pathoflegend/players",
                        {"items": [{"tag": p["tag"], "name": p["name"], "rank": r + 1} for r, p in enumerate(players)]}), f)
 

@@ -106,6 +106,20 @@ pd.DataFrame(rows)'''),
         code('''d = examples["two champions"]
 print("max_champions=1:", check_deck(d, cards, rules).legal, "| max_champions=2:", check_deck(d, cards, rules.with_max_champions(2)).legal)
 print(check_partial([C("Archer Queen"), C("Golden Knight"), C("Mighty Miner")], cards, rules).details)'''),
+        md("## Do the rules match real play?\nThe slot rules are checked against every deck played in usable battles. "
+           "Slots come from deck positions (observed: 0 = Evolution, 1 = Hero, 2 = Wild). "
+           "Any deck the validator rejects means `config/deck_rules.yaml` disagrees with the game."),
+        code('''from crdeck.evaluate import observed_deck_audit
+try:
+    audit = observed_deck_audit(paths, cards, rules)
+except FileNotFoundError as e:
+    audit = None
+    print("No collected battles yet:", e)
+if audit:
+    print("distinct decks:", audit["distinct_decks"], "| rejected by validator:", audit["rejected_by_validator"] or "none")
+    print("champion slots:", audit["champion_slots"], "| evo slots:", audit["evo_slots"], "| hero slots:", audit["hero_slots"])
+    print("base cards in special slots:", audit["base_cards_in_special_slots"])
+    display(audit["combinations"])'''),
         md("## Legality tests"),
         code('''import subprocess, sys
 from crdeck.config import PROJECT_ROOT
@@ -168,7 +182,10 @@ scored = p[p.status == "OK"].sort_values("synergy", ascending=False)
 pd.concat([scored.head(10), scored.tail(5)])[cols].round(4)'''),
         md("### Which \"expected win rate\"?\nThe spec's literal reading (`marginal`) uses each card's overall win rate. When two cards nearly always appear together, "
            "that rate already contains the pair's effect, so the bonus is counted twice and real synergies look negative. "
-           "`without_partner` compares against games where each card appears *without* the other. The held-out comparison:"),
+           "`without_partner` compares against games where each card appears *without* the other. "
+           "With `expected_from: auto` the variant is chosen on the validation window:"),
+        code('''ctx.synergy_choice'''),
+        md("Held-out comparison on the test window (the variant was fixed before this was computed):"),
         code('''from crdeck.evaluate import synergy_eval
 synergy_eval(ctx)'''),
         code('''if ctx.paths.is_synthetic:
@@ -182,8 +199,14 @@ synergy_eval(ctx)'''),
 else:
     print("Real data: no planted truth to compare against.")'''),
         md("## Deck strength (spec §7.2)\nLogistic regression on card:form one-hot differences; L2 strength picked on validation log loss. "
-           "The pair-feature model is kept only if it beats the card model on validation."),
+           "The pair-feature model is kept only if it beats the card model on validation. With `skill_control`, the players' "
+           "rating difference is a separate covariate, so card weights are estimated at equal rating. `rating_only` shows how much "
+           "is skill rather than deck."),
         code('''ctx.model_comparison.round(4)'''),
+        md("Is each difference from a baseline more than resampling noise? Paired bootstrap over test battles "
+           "(negative delta = model better):"),
+        code('''from crdeck.evaluate import strength_significance
+strength_significance(ctx).round(5)'''),
         code('''w = pd.Series(ctx.strength.card_weights)
 games = pd.Series({k: ctx.strength.feature_games[k] for k in w.index})
 def label(k):

@@ -93,6 +93,7 @@ class AttachReport:
     elixir_overrides: list[str] = field(default_factory=list)
     champion_overrides: list[str] = field(default_factory=list)
     evolution_overrides: list[str] = field(default_factory=list)
+    hero_overrides: list[str] = field(default_factory=list)
 
     def lines(self) -> list[str]:
         out = []
@@ -102,6 +103,7 @@ class AttachReport:
             ("Elixir taken from API instead of label", self.elixir_overrides),
             ("is_champion taken from API rarity", self.champion_overrides),
             ("has_evolution taken from API maxEvolutionLevel", self.evolution_overrides),
+            ("has_hero taken from API maxEvolutionLevel", self.hero_overrides),
         ]:
             out.append(f"{title}: {len(items)}")
             out.extend(f"  - {x}" for x in items)
@@ -111,9 +113,10 @@ class AttachReport:
 def attach_api(labels: pd.DataFrame, cards_body: dict[str, Any]) -> tuple[pd.DataFrame, AttachReport]:
     """Join hand labels to the API /cards body ({"items": [...]}) by normalized name.
 
-    API fields win for card_id, name, elixir, rarity, champion status, and evolution
-    availability when present. Hero availability is not known to be exposed by /cards
-    (see docs/api-notes.md), so the label value is kept.
+    API fields win for card_id, name, elixir, rarity, champion status, and form
+    availability. Observed 2026-10-18: /cards `maxEvolutionLevel` is a bitmask
+    (1 = Evolution form, 2 = Hero form, 3 = both; absent = neither), and every deck
+    card is listed, so its absence means the card has no special form.
     """
     items = cards_body.get("items", [])
     api = {normalize_name(c["name"]): c for c in items}
@@ -138,11 +141,13 @@ def attach_api(labels: pd.DataFrame, cards_body: dict[str, Any]) -> tuple[pd.Dat
             if api_champ != r["is_champion"]:
                 rep.champion_overrides.append(f"{c['name']}: label {r['is_champion']} -> API {api_champ}")
             row["is_champion"] = api_champ
-        if "maxEvolutionLevel" in c:
-            api_evo = int(c.get("maxEvolutionLevel") or 0) > 0
-            if api_evo != r["has_evolution"]:
-                rep.evolution_overrides.append(f"{c['name']}: label {r['has_evolution']} -> API {api_evo}")
-            row["has_evolution"] = api_evo
+        forms = int(c.get("maxEvolutionLevel") or 0)
+        api_evo, api_hero = bool(forms & 1), bool(forms & 2)
+        if api_evo != r["has_evolution"]:
+            rep.evolution_overrides.append(f"{c['name']}: label {r['has_evolution']} -> API {api_evo}")
+        if api_hero != r["has_hero"]:
+            rep.hero_overrides.append(f"{c['name']}: label {r['has_hero']} -> API {api_hero}")
+        row["has_evolution"], row["has_hero"] = api_evo, api_hero
         rows.append(row)
     labeled = {normalize_name(n) for n in labels["name"]}
     rep.api_without_labels = sorted(c["name"] for k, c in api.items() if k not in labeled)
@@ -233,7 +238,8 @@ def save_card_table(df: pd.DataFrame, path: Path) -> None:
     df.drop(columns=["roles_list"], errors="ignore").to_parquet(path, index=False)
 
 
-def load_card_table(path: Path) -> CardTable:
+def load_card_table(path: str | Path) -> CardTable:
+    path = Path(path)
     if not path.exists():
         raise FileNotFoundError(
             f"{path} not found. Build it with `python -m crdeck build` after the API gate "

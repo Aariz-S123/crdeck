@@ -21,6 +21,8 @@ def model_battles(battles: pd.DataFrame, dib: pd.DataFrame) -> pd.DataFrame:
     df["deck_b"] = b["deck_key"]
     df["a_won"] = a["won"].astype(bool)
     df["level_gap"] = a["level_deficit"].astype(float) - b["level_deficit"].astype(float)
+    # Skill proxy: Path of Legends rating at battle start (startingTrophies), A minus B.
+    df["rating_diff"] = pd.to_numeric(a["trophies_or_rank"], errors="coerce") - pd.to_numeric(b["trophies_or_rank"], errors="coerce")
     df["form_unknown"] = a["form_unknown"].astype(bool) | b["form_unknown"].astype(bool)
     df = df.reset_index().sort_values(["battle_time", "battle_key"], kind="mergesort").reset_index(drop=True)
     return df

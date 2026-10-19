@@ -163,6 +163,8 @@ def build_explanation(entries: list[DeckCard], ctx, objective: dict | None = Non
         "test_battles_exact_deck": exact[0],
         "test_wins_exact_deck": exact[1],
         "model": ctx.strength.name,
+        "assumes": "an equally rated opponent (skill-controlled model)" if getattr(ctx.strength, "skill_control", False)
+                   else "no skill adjustment",
     }
 
     pairs = ctx.synergy.deck_pairs([e.card_id for e in entries])

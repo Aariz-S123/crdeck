@@ -9,9 +9,15 @@
 #   or a Champion"; lists "1 Evolution + 2 Heroes or Champions" as valid. Two Champions is the
 #   guide's inference, not a quoted Supercell rule.
 #   https://alviran.net/blog/clash-royale-evolutions-heroes-champions-card-types-guide/
-# Both open questions below are still unresolved. Check in the in-game deck editor:
-#   1. Put a Champion in the Hero slot and a second Champion in the Wild slot. Allowed?
-#   2. Can a Champion go in the Wild slot at all?
+# Resolved 2026-10-18 from real ranked battles (window 2026-10-w3, 2,613 distinct decks in
+# Ranked1v1 battles of the top 1000 Path of Legends players; slots read from deck positions):
+#   - 26 decks held an Evolution plus TWO Champions (Hero slot + Wild slot)  -> max_champions: 2
+#   - 77 decks had a Champion in the Wild slot                               -> wild accepts champion
+#   - 91 base (non-champion) cards sat in an otherwise empty special slot    -> allowed
+#   - no deck had 3 Evolutions or 2 Evolutions + 2 Heroes                    -> 3 special slots
+#   - every observed deck passes these rules
+# This is observed play, not an in-game check. Re-run notebook 02's observed-deck check
+# after collecting new windows; a balance or rule change would show up there.
 deck_size: 8
 
 # Special slots. A card in a special form (evo / hero) or a champion must occupy
@@ -23,9 +29,8 @@ special_slots:
   - name: hero
     accepts: [hero, champion]
   - name: wild
-    # Supercell's text says "a Hero or an Evo"; Champions follow Heroes here per the guide above.
-    # If the in-game check says Champions cannot go Wild, remove `champion`.
+    # Supercell's text says "a Hero or an Evo"; observed decks also put Champions here (77 decks).
     accepts: [evo, hero, champion]
 
-# Old rule: one Champion per deck. No 2026 source confirms or rescinds it. Keep 1 until checked in-game.
-max_champions: 1
+# Old rule was one Champion per deck. Observed ranked decks run two (Hero + Wild slot).
+max_champions: 2

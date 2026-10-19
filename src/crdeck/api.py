@@ -181,10 +181,10 @@ class ApiClient:
     def pol_leaderboard(self, location_id: str = "global", season_id: str | None = None, limit: int = 1000) -> CachedResponse:
         if season_id:
             endpoint = f"/locations/{location_id}/pathoflegend/{season_id}/rankings/players"
-            rel = f"leaderboard/{location_id}_{season_id}.json"
+            rel = f"leaderboard/{location_id}_{season_id}_limit{limit}.json"
         else:
             endpoint = f"/locations/{location_id}/pathoflegend/players"
-            rel = f"leaderboard/{location_id}.json"
+            rel = f"leaderboard/{location_id}_limit{limit}.json"  # limit in the name: a 50-player gate fetch must not satisfy a 1000-player collect
         return self.get(endpoint, rel, params={"limit": limit})
 
     def battlelog(self, tag: str) -> CachedResponse:

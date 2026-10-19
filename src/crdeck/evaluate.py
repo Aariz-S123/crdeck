@@ -17,8 +17,71 @@ from .strength import evaluate
 from .synergy import compute_synergy
 
 
+def observed_deck_audit(paths, cards, rules) -> dict:
+    """Check the slot rules against decks actually played in OK battles.
+
+    Counts special-card combinations, where champions / evos / heroes sat (from deck
+    positions), and how many observed decks the validator rejects. A rejection here
+    means config/deck_rules.yaml disagrees with real play.
+    """
+    from collections import Counter
+    from .pipeline import load_interim
+    from .rules import check_deck
+    battles, dib, _, _ = load_interim(paths)
+    slots = pd.read_parquet(paths.interim / "slot_cards.parquet")
+    keys = sorted(set(dib.loc[dib["battle_key"].isin(battles.loc[battles["status"] == "OK", "battle_key"]), "deck_key"]))
+    combos, rejected = Counter(), Counter()
+    for k in keys:
+        entries = parse_deck_key(k)
+        combos[(sum(e.form == "evo" for e in entries), sum(e.form == "hero" for e in entries),
+                sum(cards[e.card_id].is_champion for e in entries if e.card_id in cards))] += 1
+        r = check_deck(entries, cards, rules)
+        if not r.legal:
+            rejected["; ".join(r.reasons)] += 1
+    sc = slots[slots["deck_key"].isin(keys)].copy()
+    sc["champion"] = sc["card_id"].map(lambda c: c in cards and cards[c].is_champion)
+    combo_df = pd.DataFrame([{"evos": a, "heroes": b, "champions": c, "decks": n} for (a, b, c), n in sorted(combos.items())])
+    return {
+        "distinct_decks": len(keys),
+        "combinations": combo_df,
+        "champion_slots": sc.loc[sc["champion"], "slot"].value_counts().to_dict(),
+        "evo_slots": sc.loc[sc["form"] == "evo", "slot"].value_counts().to_dict(),
+        "hero_slots": sc.loc[sc["form"] == "hero", "slot"].value_counts().to_dict(),
+        "base_cards_in_special_slots": sc.loc[(sc["form"] == "base") & ~sc["champion"] & sc["slot"].isin(["evo", "hero", "wild"]), "slot"].value_counts().to_dict(),
+        "rejected_by_validator": dict(rejected),
+    }
+
+
 def strength_report(ctx) -> pd.DataFrame:
     return ctx.model_comparison.copy()
+
+
+def strength_significance(ctx, n_boot: int = 2000, seed: int | None = None) -> pd.DataFrame:
+    """Paired bootstrap over test battles of log-loss(selected model) - log-loss(baseline).
+
+    Negative = the model is better. The interval says whether a small difference is
+    distinguishable from resampling noise on this test window.
+    """
+    from .strength import ConstantBaseline, PopularityBaseline, RatingBaseline
+    seed = ctx.cfg["seed"] if seed is None else seed
+    t, tv = ctx.split.test, ctx.split.train_valid
+    y = t["a_won"].astype(int).to_numpy()
+
+    def ll(p):
+        p = np.clip(p, 1e-12, 1 - 1e-12)
+        return -(y * np.log(p) + (1 - y) * np.log(1 - p))
+
+    model_ll = ll(ctx.strength.predict_df(t))
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, len(t), size=(n_boot, len(t)))
+    rows = []
+    for base in (ConstantBaseline(), PopularityBaseline().fit(tv), RatingBaseline().fit(tv)):
+        d = model_ll - ll(base.predict_df(t))
+        boots = d[idx].mean(axis=1)
+        rows.append({"model": ctx.strength.name, "vs": base.name, "delta_log_loss": float(d.mean()),
+                     "ci90_lo": float(np.quantile(boots, 0.05)), "ci90_hi": float(np.quantile(boots, 0.95)),
+                     "share_boot_better": float((boots < 0).mean()), "test_battles": len(t)})
+    return pd.DataFrame(rows)
 
 
 def completion_recall(ctx, n_decks: int = 100, mask: int = 2, k: int = 10, beam_width: int = 10, seed: int | None = None,
@@ -82,10 +145,15 @@ def completion_recall(ctx, n_decks: int = 100, mask: int = 2, k: int = 10, beam_
     }
 
 
-def choose_cooccurrence(table: pd.DataFrame) -> float | None:
-    """Smallest weight whose validation recall beats popular fill (keeps strength dominant)."""
-    beat = table[table["valid_recall_model"] > table["valid_recall_popular_fill"]]
-    return float(beat["cooccurrence_weight"].min()) if len(beat) else None
+def choose_cooccurrence(table: pd.DataFrame, plateau: float = 0.95) -> float | None:
+    """Smallest weight whose validation recall reaches `plateau` x the best validation recall
+    and beats popular fill. (Revised 2026-10-18 from "smallest weight that beats popular fill",
+    after real data showed the strength model barely beats a coin flip; see docs/model-notes.md.)"""
+    ok = table[table["valid_recall_model"] > table["valid_recall_popular_fill"]]
+    if ok.empty:
+        return None
+    ok = ok[ok["valid_recall_model"] >= plateau * table["valid_recall_model"].max()]
+    return float(ok["cooccurrence_weight"].min()) if len(ok) else None
 
 
 def tune_cooccurrence(ctx, grid=(0.0, 0.01, 0.02, 0.05, 0.1, 0.2), n_decks: int = 60) -> pd.DataFrame:
@@ -164,7 +232,9 @@ def full_report(ctx, completion_decks: int = 100) -> dict:
         "source": ctx.paths.banner(),
         "described_as": f"held-out top-player battles from {s} to {e}",
         "strength": strength_report(ctx),
+        "strength_significance": strength_significance(ctx),
         "completion": completion_recall(ctx, n_decks=completion_decks),
+        "synergy_variant_choice (validation)": ctx.synergy_choice,
         "synergy": synergy_eval(ctx),
         "archetype": archetype_eval(ctx),
         "level_gap": level_gap_check(ctx),

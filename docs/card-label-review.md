@@ -1,4 +1,19 @@
-# Card label review (v1, 2026-10-18)
+# Card label review (v2, 2026-10-18)
+
+## v2: confirmed against the real API
+
+The `/cards` response (2026-10-18) was joined to the labels:
+
+- All 123 labeled cards matched an API card, and no API deck card was unlabeled.
+- No battle in 58,179 had an unknown card.
+- All 8 champions matched API rarity `champion`.
+- All evolution and hero flags matched the API bitmask except one: **Barbarians has no Hero form** (`maxEvolutionLevel: 1`), so the source CSV's "Hero Barbarians" row is wrong.
+- Every v1 correction (Minion Giant 4, Rune Giant 4, Ronin 5, Void 5, Suspicious Bush 2, Goblin Machine 5, Boss Bandit 6, Berserker 2, Archer Queen 5, Royal Hogs 5) agreed with the API.
+- The API corrected 4 more costs the review hadn't touched: Barbarian Hut 6, Electro Dragon 5, Goblin Hut 4, Little Prince 3.
+
+The label file now carries these values (`label_version: v2-api-confirmed`). Roles, targets and win-condition flags remain judgment calls. Review them and set your own `label_version`.
+
+## v1
 
 `data/labels/cards.csv` moved from `v0-draft` to `v1-assistant-reviewed`. This is an assistant's review against public sources. It is still not your sign-off: roles are judgment calls (spec §5). When you have checked the table, set `label_version` to your own version (e.g. `v2`).
 

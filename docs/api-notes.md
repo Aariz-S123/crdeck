@@ -2,62 +2,44 @@
 
 Two kinds of evidence, kept separate:
 
-- **Documented / assumed**: from the public Clash Royale API documentation as it stood before 2026, recalled by the assistant that wrote this project. **None of it has been checked against the current API.** The code is written against these assumptions and marks each one VERIFY.
-- **Observed in my calls**: fill this in from `python -m crdeck gate` output. Until it is filled in, treat every row below as unverified.
+- **Documented / assumed**: pre-2026 public API documentation as recalled by the assistant that wrote this project, used to write the code before any call was made.
+- **Observed in my calls**: real responses fetched on 2026-10-18 (window `2026-10-w3`), saved under `data/raw/` and summarized in [api-notes-observed.md](api-notes-observed.md), which `python -m crdeck gate` regenerates.
 
 ## Setup record
 
 | Item | Value |
 | --- | --- |
-| Key created at | developer.clashroyale.com |
-| IP registered for the key | _fill in_ (keys are IP-bound; home vs campus Wi-Fi differ) |
-| Gate run date (UTC) | _fill in_ |
-| Raw files | `data/raw/<window id>/cards/cards.json`, `leaderboard/global.json`, `battlelog/<TAG>.json` |
+| Key created at | developer.clashroyale.com (tier `developer/silver`) |
+| IP registered for the key | 128.227.5.165 (keys are IP-bound; another network needs another key or IP entry) |
+| Gate run (UTC) | 2026-10-18 |
+| Collection | 2026-10-18: top 1000 global + top 200 of 12 countries = 2,894 players, 2,894 battle logs, 0 errors, 0 HTTP 429 |
+| Raw files | `data/raw/2026-10-w3/` (git-ignored); every file's fetch time is in `data/raw_manifest.csv` (tracked) |
 
 ## Checklist
 
-| Question | Documented / assumed (unverified) | Observed in my calls | Where the code depends on it |
+| Question | Documented / assumed | Observed in my calls | Where the code depends on it |
 | --- | --- | --- | --- |
-| `/cards` shape | `{"items": [...], "supportItems": [...]}`; items have `id`, `name`, `elixirCost`, `rarity`, `maxLevel`, `iconUrls`, and `maxEvolutionLevel` on cards with an Evolution | _fill in_ | `cards.attach_api` |
-| Rarity values | `common`, `rare`, `epic`, `legendary`, `champion` (case may differ) | _fill in_ | `is_champion` comes from `rarity == champion` |
-| Hero availability in `/cards` | Unknown. Heroes arrived in December 2025; no public source documents an API field (searched 2026-10-18) | _fill in_ | `has_hero` stays a hand label until a field is found |
-| Tower troops (Cannoneer, Tower Princess, …) | Not deck cards. Pre-2026 they appeared as `supportItems` in `/cards` and `supportCards` in battle sides | _fill in_ | the parser reads only `cards`, so tower troops never enter deck keys |
-| Leaderboard endpoint | `/locations/global/pathoflegend/players` or `/locations/global/pathoflegend/{seasonId}/rankings/players` | _fill in_ | `api.ApiClient.pol_leaderboard`, `config/collection.yaml: leaderboard` |
-| Leaderboard item fields | `tag`, `name`, `rank`, `eloRating` / `trophies`, `clan` | _fill in_ | only `tag` is used |
-| Battle log endpoint | `/players/%23TAG/battlelog` (tag `#` URL-encoded) | _fill in_ | `api.encode_tag` |
-| Battles per log | About 25–30 most recent battles | _fill in_ | collection depth: collect repeatedly across a window for more battles |
-| Battle `type` for ranked | `pathOfLegend` | _fill in_ | `config/collection.yaml: battles.battle_types` |
-| `battleTime` format | `20261018T120000.000Z` (UTC) | _fill in_ | `parse.TIME_FORMATS` |
-| Sides | `team` and `opponent`, one player each in 1v1 | _fill in_ | `parse.NOT_1V1` otherwise |
-| Deck card fields | `name`, `id`, `level`, `maxLevel`, `rarity`, `elixirCost`, `evolutionLevel` (present when the Evolution form is used), `maxEvolutionLevel`, `iconUrls` | _fill in_ | `parse.card_form` |
-| How Evolution form appears | `evolutionLevel > 0` on the card in the battle deck | _fill in_ | `config: form_resolution.evo_field` |
-| How Hero form appears | **Unknown** | _fill in_ | `config: form_resolution.hero_field` (null = indistinguishable; see below) |
-| Slot position recorded? | Card order in the deck array; pre-2026 the first slot(s) were the evolution slot(s). Unknown after the rework | _fill in_ | `parse` records `position`; `slot` is `unknown` |
-| Champions in battle data | Appear as normal cards with rarity `champion` | _fill in_ | champion status comes from the card table |
-| Crowns / winner | `crowns` on each side; more crowns wins; equal is a draw | _fill in_ | `parse` |
-| Trophies / rank | `startingTrophies` on each side (may be absent in Path of Legends) | _fill in_ | stored as `trophies_or_rank`; when absent, filled from the leaderboard rank of that player |
-| Card levels | Pre-2023 rarity-relative scale: `level` and `maxLevel` are per rarity (a community thread adds an offset per rarity to get the unified level) | _fill in_ | level gap uses `maxLevel - level`, which stays consistent within a rarity |
-| Rate limits | HTTP 429 when throttled; documented limits not published precisely | _fill in_ | fixed delay + exponential backoff (`config: api`) |
-| Errors | 403 for wrong IP or bad key (`reason: accessDenied` / `accessDenied.invalidIp`), 404 for unknown player | _fill in_ | `api.ApiClient.get` |
+| `/cards` shape | `{"items": [...], "supportItems": [...]}` | Same. 123 `items` (deck cards) and 4 `supportItems` (tower troops: Tower Princess, Cannoneer, Dagger Duchess, Royal Chef) | `cards.attach_api` reads `items` only |
+| Card fields | `id`, `name`, `elixirCost`, `rarity`, `maxLevel`, `iconUrls`, `maxEvolutionLevel` | Same. `elixirCost` is missing only on Mirror (variable cost) | label flag `elixir_variable` |
+| Rarity values | common / rare / epic / legendary / champion | Same, lowercase: 29 / 31 / 33 / 22 / 8 | `is_champion = rarity == "champion"` |
+| Form availability | `maxEvolutionLevel` present on cards with an Evolution | **Bitmask**: 1 = Evolution only (39 cards), 2 = Hero only (14), 3 = both (4: Knight, Valkyrie, Musketeer, Wizard); absent = neither. `iconUrls` gains `evolutionMedium` / `heroMedium` to match | `attach_api` sets `has_evolution` / `has_hero` from the bits |
+| Leaderboard endpoint | `/locations/{id}/pathoflegend/players` | Works for `global` and country ids (e.g. 57000249 US). Items: `tag`, `name`, `rank`, `eloRating`, `expLevel`, `clan` | `api.pol_leaderboard`, `config/collection.yaml: leaderboard` |
+| Battle log endpoint | `/players/%23TAG/battlelog` | Works | `api.encode_tag` |
+| Battles per log | about 25–30 | **30** | collect daily to accumulate history |
+| Ranked battle `type` | `pathOfLegend` | `pathOfLegend` (game mode `Ranked1v1_NewArena`). Other types seen: trail, tournament, friendly, clanMate, boatBattle, riverRacePvP, riverRaceDuel, clanMate2v2, PvP, unknown | `battles.battle_types` |
+| `battleTime` format | `20261018T120000.000Z` | Same | `parse.TIME_FORMATS` |
+| Sides | `team`, `opponent`, one player each in 1v1 | Same; 2v2 modes have two (status `NOT_1V1`) | `parse` |
+| Side fields | `tag`, `crowns`, `startingTrophies`, `cards` | Also `globalRank` (top 500 only), `trophyChange`, `elixirLeaked`, `kingTowerHitPoints`, `princessTowersHitPoints`, `supportCards`, `clan` | `startingTrophies` = Path of Legends rating, used as the skill covariate |
+| Deck card fields | `name`, `id`, `level`, `maxLevel`, `rarity`, `elixirCost`, `evolutionLevel` | Same plus `starLevel`, `maxEvolutionLevel`, `iconUrls`. Exactly 8 cards per side | `parse._side` |
+| How Evolution form appears | `evolutionLevel > 0` | **`evolutionLevel: 1`** | `form_resolution.form_values` |
+| How Hero form appears | unknown | **`evolutionLevel: 2`**. Hero form is observable | `form_resolution.form_values` |
+| Slot position | unknown after the rework | **Position 0 = Evolution slot, 1 = Hero slot, 2 = Wild slot**, 3–7 normal. Base cards appear in empty special slots | `form_resolution.slot_positions`; `slot_cards.slot` |
+| Card levels | rarity-relative | Rarity-relative (e.g. legendary `level 8 / maxLevel 8`). Top players are maxed: 0.01% of test battles had a gap over 1 level | level gap = mean(`maxLevel - level`) |
+| Rate limits | 429 when throttled | None hit at a 0.15 s delay over ~2,900 requests | fixed delay plus backoff |
+| Errors | 403 for wrong IP, 404 for unknown player | 403 without a key. No 404s among leaderboard players | `api.ApiClient.get` |
 
-## Research notes (2026-10-18, public sources, not API calls)
+## Consequences applied
 
-- No public document or sample response was found showing how a Hero-form card is marked in battle-log JSON. RoyaleAPI notes that card form information "isn't maintained when copying decks", which suggests form data is easy to lose. Treat hero form as unknown until the gate shows a field.
-- Sources on how the API represents levels: [RoyaleAPI forum, data issues](https://discuss.royaleapi.com/t/clash-royale-api-data-issues/30651), [Fandom on Champion levels](https://clashroyale.fandom.com/wiki/Cards).
-- `python -m crdeck gate` now writes `docs/api-notes-observed.md` automatically. It lists every card field it saw, so a new hero marker stands out.
-
-## Known limitation until observed: Hero form
-
-If Hero form can't be told apart from base form in battle data, then:
-
-- `form_resolution.hero_field` stays `null`;
-- every hero-capable card is recorded as `base`, and decks containing one carry `form_unknown`;
-- the strength model maps any `hero` entry onto the base feature;
-- search does not propose Hero forms on its own (you can still seed one with `Card@hero`);
-- explanations show `FORM_UNKNOWN` for these cards.
-
-Once a distinguishing field is observed, set `hero_field` to its name, re-run `python -m crdeck build`, and the hero forms become separate features.
-
-## Observed output from `python -m crdeck gate`
-
-_Paste the JSON summary here (it contains no key and no headers)._
+- `has_hero` now comes from the API bitmask. It corrected one label: the source CSV listed "Hero Barbarians", but Barbarians has `maxEvolutionLevel: 1` (Evolution only).
+- Hero form is a separate feature (`card:hero`). `FORM_UNKNOWN` no longer occurs with the current config.
+- The slot rules were checked against observed decks. See `config/deck_rules.yaml` and notebook 02.

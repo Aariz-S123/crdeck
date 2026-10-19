@@ -134,8 +134,9 @@ def test_two_champions_follows_max_champions(C, cards, rules):
     assert sorted(r2.slots.values()) == ["hero", "wild"]
 
 
-def test_config_default_max_champions_is_one(rules):
-    assert rules.max_champions == 1
+def test_config_max_champions_matches_observed_decks(rules):
+    # 26 observed ranked decks ran two Champions (config/deck_rules.yaml); the slots still cap it at 2.
+    assert rules.max_champions == 2
 
 
 def test_wild_slot_accepts_is_configurable(C, cards):

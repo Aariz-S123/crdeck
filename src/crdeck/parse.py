@@ -52,32 +52,44 @@ def parse_time(s: str | None) -> datetime | None:
 
 @dataclass(frozen=True)
 class FormConfig:
-    evo_field: str | None = "evolutionLevel"
-    hero_field: str | None = None  # None: hero vs base not observable -> FORM_UNKNOWN
+    """How a battle-deck card's form and slot are read (config: form_resolution).
+
+    form_values maps values of form_field to forms; a form missing from the map is
+    not observable (e.g. without 2: hero, hero cards read as base -> FORM_UNKNOWN).
+    slot_positions maps deck positions to special slots; empty = slots unknown.
+    """
+    form_field: str | None = "evolutionLevel"
+    form_values: tuple[tuple[int, str], ...] = ((1, "evo"), (2, "hero"))
+    slot_positions: tuple[tuple[int, str], ...] = ((0, "evo"), (1, "hero"), (2, "wild"))
 
     @classmethod
     def from_collection(cls, cfg: dict) -> "FormConfig":
         fr = cfg.get("form_resolution", {})
-        return cls(evo_field=fr.get("evo_field"), hero_field=fr.get("hero_field"))
+        return cls(
+            form_field=fr.get("form_field"),
+            form_values=tuple(sorted((int(k), str(v)) for k, v in (fr.get("form_values") or {}).items())),
+            slot_positions=tuple(sorted((int(k), str(v)) for k, v in (fr.get("slot_positions") or {}).items())),
+        )
 
     @property
     def hero_observable(self) -> bool:
-        return bool(self.hero_field)
+        return "hero" in dict(self.form_values).values()
+
+    def slot(self, position: int) -> str:
+        if not self.slot_positions:
+            return "unknown"
+        return dict(self.slot_positions).get(position, "normal")
 
 
 def card_form(card: dict, fc: FormConfig) -> str:
-    if fc.hero_field and _positive(card.get(fc.hero_field)):
-        return "hero"
-    if fc.evo_field and _positive(card.get(fc.evo_field)):
-        return "evo"
-    return "base"
-
-
-def _positive(v: Any) -> bool:
+    """Observed: evolutionLevel 1 = evo, 2 = hero, absent = base. Unmapped values read as base."""
+    if not fc.form_field:
+        return "base"
+    v = card.get(fc.form_field)
     try:
-        return v is not None and float(v) > 0
+        return dict(fc.form_values).get(int(v), "base") if v is not None else "base"
     except (TypeError, ValueError):
-        return bool(v)
+        return "base"
 
 
 def battle_key(tag_a: str, tag_b: str, t: datetime) -> str:
@@ -105,6 +117,7 @@ def _side(side: dict, cards: CardTable, fc: FormConfig) -> dict:
         "tag": side.get("tag", ""),
         "crowns": side.get("crowns"),
         "trophies": side.get("startingTrophies"),
+        "global_rank": side.get("globalRank"),
         "entries": entries,
         "deck_key": key,
         "unknown": unknown,
@@ -166,12 +179,12 @@ def parse_battlelog(
             won = None if a["crowns"] == bb["crowns"] or s["crowns"] is None else bool(s["crowns"] > other["crowns"])
             dib.append({
                 "battle_key": key, "side": side_name, "player_tag": s["tag"], "deck_key": s["deck_key"],
-                "won": won, "crowns": s["crowns"], "trophies_or_rank": s["trophies"],
+                "won": won, "crowns": s["crowns"], "trophies_or_rank": s["trophies"], "global_rank": s["global_rank"],
                 "level_deficit": s["level_deficit"], "form_unknown": s["form_unknown"],
             })
             for cid, form, pos in s["entries"]:
                 slots.append({"deck_key": s["deck_key"], "card_id": cid, "form": form,
-                              "slot": "unknown", "position": pos})
+                              "slot": fc.slot(pos), "position": pos})
     return battles, dib, slots
 
 
@@ -220,7 +233,7 @@ def dedupe(battles: list[dict], dib: list[dict], slots: list[dict], extra_counts
     bdf = bdf.sort_values(["battle_key", "fetched_at", "source_player_tag"], kind="mergesort")
     bdf = bdf.drop_duplicates("battle_key", keep="first").reset_index(drop=True)
     ddf = pd.DataFrame(dib, columns=["battle_key", "side", "player_tag", "deck_key", "won", "crowns",
-                                     "trophies_or_rank", "level_deficit", "form_unknown"])
+                                     "trophies_or_rank", "global_rank", "level_deficit", "form_unknown"])
     ddf = ddf.drop_duplicates(["battle_key", "side"], keep="first").reset_index(drop=True)
     sdf = pd.DataFrame(slots, columns=["deck_key", "card_id", "form", "slot", "position"])
     sdf = sdf.drop_duplicates(["deck_key", "card_id"], keep="first").reset_index(drop=True)
