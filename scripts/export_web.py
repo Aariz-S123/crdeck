@@ -119,10 +119,71 @@ def export_model(ctx) -> dict:
     }
     from crdeck.archetype import ROLE_LIST
     model["archetype"]["roles"] = ROLE_LIST
+    model["form_stats"] = form_stats(ctx)
+    model["csv_rows"] = csv_rows(ctx, model["form_stats"])
     ev = ctx.paths.processed / "evaluation.json"
     if ev.exists():
         model["evaluation"] = json.loads(ev.read_text(encoding="utf-8")).get("evaluation")
     return model
+
+
+def form_stats(ctx) -> dict:
+    """Per card form, from train + validation battles: deck appearances, wins, share of appearances."""
+    from crdeck.dataset import side_rows
+    sides = side_rows(ctx.split.train_valid)
+    n_total = len(sides)
+    games, wins = {}, {}
+    for k, won in zip(sides["deck_key"], sides["won"]):
+        for e in k.split("|"):
+            games[e] = games.get(e, 0) + 1
+            wins[e] = wins.get(e, 0) + int(won)
+    return {"appearances": n_total, "by_key": {k: [games[k], wins[k]] for k in sorted(games)}}
+
+
+def csv_rows(ctx, fstats) -> list[dict]:
+    """Every row of the user's source CSV (data/labels/source/cards_meta.csv) with what the
+    project knows about it, so the website can show all of them, including the ones that
+    are not deck cards. Status codes: in_search, seed_only, not_in_game, tower_troop, duplicate."""
+    import csv
+    from crdeck.cards import normalize_name
+    src = ROOT / "data" / "labels" / "source" / "cards_meta.csv"
+    by_name = {normalize_name(ctx.cards[c].name): ctx.cards[c] for c in ctx.cards.ids}
+    support = set()
+    for f in ctx.paths.raw.glob("*/cards/cards.json"):
+        body = json.loads(f.read_text(encoding="utf-8")).get("body", {})
+        support |= {normalize_name(s["name"]) for s in body.get("supportItems", [])}
+    min_games = int(ctx.cfg["search"]["min_card_games"])
+    out, seen = [], set()
+    for i, r in enumerate(csv.DictReader(src.open(encoding="utf-8"))):
+        name = r["card_name"].strip()
+        if name.endswith(" Evolution"):
+            base, form = name[: -len(" Evolution")], "evo"
+        elif name.startswith("Hero "):
+            base, form = name[len("Hero "):], "hero"
+        else:
+            base, form = name, "base"
+        c = by_name.get(normalize_name(base))
+        row = {"row": i + 2, "name": name, "base": base, "form": form, "card_id": c.card_id if c else None,
+               "csv": {k: r[k] for k in ("elixir", "type", "rating", "usage", "win_rate", "cwr")}}
+        key = f"{c.card_id}:{form}" if c else None
+        g = fstats["by_key"].get(key, [0, 0]) if key else [0, 0]
+        row["games"], row["wins"] = g
+        if name in seen:
+            row["status"], row["note"] = "duplicate", "Second row with this name in your CSV; it has different numbers. The first row is used."
+        elif c is None and normalize_name(base) in support:
+            row["status"], row["note"] = "tower_troop", "A tower troop chosen for the king tower, not one of the 8 deck cards."
+        elif c is None:
+            row["status"], row["note"] = "not_in_game", "No card with this name in the official card list."
+        elif form not in c.allowed_forms():
+            row["status"], row["note"] = "not_in_game", f"The official card list has no {'Hero' if form == 'hero' else 'Evolution'} form of {c.name}."
+        elif ctx.strength.known(DeckCard(c.card_id, form)) and ctx.strength.games(DeckCard(c.card_id, form)) >= min_games:
+            row["status"], row["note"] = "in_search", ""
+        else:
+            row["status"], row["note"] = "seed_only", (f"Only {g[0]} training appearances (search needs {min_games}); "
+                                                      "you can still pick it as one of your cards.")
+        seen.add(name)
+        out.append(row)
+    return out
 
 
 def golden(ctx) -> dict:

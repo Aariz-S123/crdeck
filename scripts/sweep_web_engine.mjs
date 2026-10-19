@@ -1,0 +1,93 @@
+// Invariant sweep: seed web/engine.js with every card form (and some pairs) and check
+// every result: legal decks, seeds kept, distinct decks, legal swaps, finite numbers,
+// and explanations that add up. Complements check_web_engine.mjs (parity with Python).
+//   node scripts/sweep_web_engine.mjs
+import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const require = createRequire(import.meta.url);
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const { Engine, SeedError, parseDeckKey, keyOf } = require(join(root, "web", "engine.js"));
+const model = JSON.parse(readFileSync(join(root, "web", "model.json"), "utf8"));
+const E = new Engine(model);
+
+const problems = [];
+const bad = (m) => { problems.push(m); if (problems.length <= 30) console.log("PROBLEM", m); };
+const finite = (x) => typeof x === "number" && Number.isFinite(x);
+let searches = 0, refused = 0, swapsChecked = 0;
+
+function checkResult(seeds, res, label) {
+  if (!res.length) bad(`${label}: no decks returned`);
+  const keys = new Set();
+  for (const d of res) {
+    const r = E.checkDeck(d.entries);
+    if (!r.legal) bad(`${label}: illegal deck ${d.key} ${r.reasons}`);
+    for (const s of seeds) if (!d.entries.some((e) => e.id === s.id && e.form === s.form)) bad(`${label}: seed ${keyOf(s)} missing from ${d.key}`);
+    if (keys.has(d.key)) bad(`${label}: duplicate deck ${d.key}`);
+    keys.add(d.key);
+    if (![d.objective, d.win_prob, d.mean_synergy, d.mean_log_lift].every(finite)) bad(`${label}: non-finite score ${d.key}`);
+    const x = E.explain(d.entries, E.objectiveDict(d));
+    if (!x.legality.legal) bad(`${label}: explanation says illegal ${d.key}`);
+    if (![x.score.meta_win_prob, x.score.interval[0], x.score.interval[1]].every(finite)) bad(`${label}: non-finite explanation ${d.key}`);
+    if (!(x.score.interval[0] <= x.score.meta_win_prob + 1e-12 && x.score.meta_win_prob <= x.score.interval[1] + 1e-12)) bad(`${label}: win prob outside interval ${d.key}`);
+    if (Object.keys(x.legality.slots).length !== d.entries.filter((e) => E.slotKind(e)).length) bad(`${label}: special card without a slot ${d.key}`);
+  }
+  for (let i = 0; i < res.length; i++) for (let j = i + 1; j < res.length; j++) {
+    const a = new Set(res[i].entries.map((e) => e.id));
+    const diff = res[j].entries.filter((e) => !a.has(e.id)).length;
+    if (diff < Number(model.config.search.min_diff_cards)) bad(`${label}: decks ${i} and ${j} differ by only ${diff} cards`);
+  }
+  // swaps on the first deck
+  const sw = E.swaps(res[0].entries, { locked: seeds });
+  for (const s of sw) {
+    swapsChecked++;
+    const nd = parseDeckKey(s.new_deck_key);
+    if (!E.checkDeck(nd).legal) bad(`${label}: illegal swap result ${s.new_deck_key}`);
+    for (const sd of seeds) if (!nd.some((e) => e.id === sd.id && e.form === sd.form)) bad(`${label}: swap removed seed ${keyOf(sd)}`);
+    const x = E.explainSwap(res[0].entries, s.replace_entry, s.with_entry);
+    const sum = x.parts.reduce((t, p) => t + p.value, 0);
+    if (Math.abs(sum - s.delta_objective) > 1e-9) bad(`${label}: swap breakdown does not add up for ${s.new_deck_key}`);
+  }
+}
+
+function run(seeds, label, expectRefusal) {
+  searches++;
+  let res;
+  try { res = E.complete(seeds); } catch (e) {
+    if (!(e instanceof SeedError)) { bad(`${label}: crashed: ${e.stack}`); return; }
+    refused++;
+    if (!expectRefusal) bad(`${label}: refused unexpectedly: ${e.message}`);
+    return;
+  }
+  if (expectRefusal) bad(`${label}: should have been refused`);
+  checkResult(seeds, res, label);
+}
+
+const t0 = Date.now();
+// 1. every card form alone
+for (const c of model.cards) for (const f of E.allowedForms(c)) run([{ id: c.id, form: f }], `${c.name}@${f}`, false);
+// 2. forms that do not exist must be refused
+for (const c of model.cards) {
+  if (!c.evo) run([{ id: c.id, form: "evo" }], `${c.name}@evo (no such form)`, true);
+  if (!c.hero) run([{ id: c.id, form: "hero" }], `${c.name}@hero (no such form)`, true);
+}
+// 3. hard combinations
+const champs = model.cards.filter((c) => c.champion);
+run(champs.slice(0, 2).map((c) => ({ id: c.id, form: "base" })), "two champions", false);
+run(champs.slice(0, 3).map((c) => ({ id: c.id, form: "base" })), "three champions", true);
+const evos = model.cards.filter((c) => c.evo), heroes = model.cards.filter((c) => c.hero && !c.evo);
+run([evos[0], evos[1]].map((c) => ({ id: c.id, form: "evo" })).concat([{ id: heroes[0].id, form: "hero" }]), "2 evo + 1 hero", false);
+run(evos.slice(0, 3).map((c) => ({ id: c.id, form: "evo" })), "three evolutions", true);
+run([{ id: heroes[0].id, form: "hero" }, { id: heroes[1].id, form: "hero" }, { id: champs[0].id, form: "base" }], "2 heroes + champion", true);
+run([{ id: champs[0].id, form: "base" }, { id: heroes[0].id, form: "hero" }, { id: evos[0].id, form: "evo" }], "champion + hero + evo", false);
+run([], "no seeds", false);
+// 4. the regression-line bins
+const cal = E.calibration(8);
+if (cal.total !== model.meta.test_battles_total * 2) bad(`calibration total ${cal.total}`);
+if (!cal.bins.every((b) => [b.u, b.win, b.lo, b.hi, b.model].every(finite) && b.lo <= b.win && b.win <= b.hi)) bad("calibration bin values");
+
+console.log(`\n${searches} searches (${refused} correctly refused), ${swapsChecked} swaps checked, ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+console.log(problems.length ? `${problems.length} problem(s)` : "no problems found");
+process.exit(problems.length ? 1 : 0);

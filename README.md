@@ -46,6 +46,8 @@ The deck builder also runs as a web page: pick up to three cards and get legal d
 
 - `web/index.html` is the page and `web/engine.js` is a JavaScript port of the scoring, search, legality, warnings, archetype and explanation code.
 - `python scripts/export_web.py` writes `web/model.json` (the trained model) and `web/golden.json` (Python's own answers for test cases).
+- The page also has a card guide listing all 187 rows of `data/labels/source/cards_meta.csv`: each row's status (used by search, pick only, tower troop, not in the game, duplicate), stats from the training battles, its regression weight, and your CSV's own numbers.
+- `node scripts/sweep_web_engine.mjs` seeds the engine with every card form and checks every result (legal decks, seeds kept, legal swaps, breakdowns that add up).
 - `node scripts/check_web_engine.mjs` checks that the port agrees with Python on 3,000 random decks (legality and slots) plus searches, swaps and explanations. Python remains the source of truth; re-run the export and the check after retraining.
 - To view it locally, serve the folder (`python -m http.server -d web`) and open http://localhost:8000.
 
