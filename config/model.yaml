@@ -49,3 +49,10 @@ warnings:
   elixir_min: 2.6
   elixir_max: 4.5
   narrow_roles: [big_spell, tank, building]
+
+forecast:
+  # Meta history and Monte Carlo forecast (src/crdeck/forecast.py). Shown only after a backtest.
+  n_boot: 300              # bootstrap resamples of battles per collection period
+  runs: 2000               # Monte Carlo runs
+  min_games: 200           # card forms below this many appearances in a period are not scored
+  first_period_hours: 24   # the first collection has no previous fetch: use the 24 h before it
