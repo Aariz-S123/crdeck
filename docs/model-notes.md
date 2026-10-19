@@ -86,3 +86,24 @@ What this says about the game, at this level: deck composition barely moves win 
 - `data/labels/archetype_labels.csv` holds 108 real decks from the k-means worklist (round-robin across 12 clusters): 20 held out, 88 train. **The assistant labeled them** from the card lists, before any archetype model was fit, and every row's notes say so.
 - The same labeler made the held-out labels, so the 0.95 accuracy measures agreement with that labeler, not ground truth.
 - Relabel with `python -m crdeck label --interactive` (or edit the CSV). The model retrains automatically.
+
+## 11. Modes: Ranked and Trophy Road
+
+- A battle's mode comes from its `type`, `gameMode.name` and `deckSelection` (config `battles.modes`), determined from the collected logs (inventory in docs/api-notes.md). **Ranked** = `pathOfLegend` + `Ranked1v1_NewArena(2)`. **Trophy Road** = `trail`/`PvP` + `Ladder`. Both require `deckSelection = collection` (the player's own deck). **All** = both together.
+- Events (`eventDeck`), draft modes, friendlies, clan war, 2v2 and tournaments are never modeled: their decks are not the player's choice or the rules differ.
+- Each mode, and each Trophy Road arena, gets its own models when it clears the existing thresholds (100 usable battles, 30 per split part). Smaller arenas are listed as "not enough data".
+- **Assumption:** the Trophy Road battles come from the same top Path of Legends players (9,567 to 15,000 trophies), so they describe the top of Trophy Road, not lower arenas. Testing lower arenas needs players sampled by arena (clan search + clan members), at least ~5,000 ladder battles per arena.
+
+## 12. Meta history and forecast
+
+- **Meta:** the share of ranked deck appearances that include a card form (and the share of each predicted archetype).
+- **Periods:** the battles between two collection runs. The first covers the 24 hours before the first run. Periods never overlap.
+- **Assumption:** per-day counts inside one collection are not used. A log holds a player's last 30 battles, so older days over-represent less active players and would look like meta change.
+- **Assumption:** periods of different length or hours mix in different regions (time zones), so part of a change between two periods can be who was playing at those hours. Equal daily collections reduce this. To test: compare periods collected at the same hour on different days.
+- **Forecast model (an assumption):** `logit(share next) = logit(share now) + alpha + beta x (win rate - 0.5)`, fitted on observed period changes. Monte Carlo runs draw shares and win rates from the bootstrap, alpha and beta from a bootstrap of the fit, and binomial noise for the next period's size.
+- **Gate:** the forecast is shown only if, in a backtest on held-out periods, it misses by no more than "no change" (it is also compared with "linear trend"). It needs at least 3 periods (one change to fit, one to test); 5 are recommended. With 2 periods so far it is not shown.
+
+## 13. Model log
+
+- The website's Model log shows `data/processed/run_log.json`: build writes data counts, collection windows and fetch times; evaluate writes splits, every strength candidate (model x C) with validation scores, the synergy variant choice, the co-occurrence grid and rule, and test metrics with 90% bootstrap intervals; export writes the code commit, configs, label versions and time. The caveats section shows this file verbatim.
+- The export re-runs the evaluation for any mode whose saved evaluation does not match the current data fingerprint and test window, so the report card is never stale.

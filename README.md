@@ -71,7 +71,7 @@ Or open `notebooks/07_demo.ipynb`.
    ```
    schtasks /Create /SC DAILY /ST 20:00 /TN crdeck-collect /TR "C:\Users\simty\crdeck\.venv\Scripts\python.exe -m crdeck collect --window auto"
    ```
-4. `python -m crdeck build`, then `evaluate` and the notebooks. Models retrain automatically when data, labels, configs or code change (cache: `data/processed/context_cache.pkl`; `CRDECK_NO_CACHE=1` forces a retrain). `data/raw_manifest.csv` (tracked) records every raw file's fetch time, since `data/raw` itself is not committed.
+4. Refresh order: `collect` → `build` → `evaluate` → `python scripts/export_web.py` → `node scripts/check_web_engine.mjs` → `node scripts/sweep_web_engine.mjs`. The export re-runs the evaluation for any mode whose saved one is stale. Then the notebooks. Models retrain automatically when data, labels, configs or code change (cache: `data/processed/context_cache_<mode>.pkl`; `CRDECK_NO_CACHE=1` forces a retrain). `data/raw_manifest.csv` (tracked) records every raw file's fetch time, since `data/raw` itself is not committed.
 5. Re-check notebook 02's slot audit and notebook 06's co-occurrence tuning after each new window.
 
 ## Synthetic data (pipeline testing only)
