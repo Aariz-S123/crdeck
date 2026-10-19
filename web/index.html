@@ -447,7 +447,9 @@ footer { font-size: 12.5px; color: var(--muted); text-align: center; }
     $("#decks").innerHTML = state.decks.map((d, i) => {
       const x = E.explain(d.entries, E.objectiveDict(E.evaluate(d.entries)));
       const a = x.archetype, unc = a.label === CRDeck.UNCERTAIN || a.label === CRDeck.NO_LABELS;
-      const sw = state.swaps[i];
+      const sw = state.swaps[i] || (state.swaps[i] = E.swaps(d.entries, { locked: state.seeds }));
+      const ws = x.entries.map((e) => Object.assign(E.coefInfo(e), { role: "in" })).sort((p, q) => q.weight - p.weight);
+      const cardSum = ws.reduce((t, w) => t + w.weight, 0), pairSum = E.utility(x.entries) - cardSum;
       const warnHtml = x.warnings.length ? `<div class="warns">${x.warnings.map((g) => `<div class="warn"><b>${esc(g.root_cause)}</b>
           ${g.warnings.map((w) => `<span class="wd">${esc(w.message)} · rule ${esc(w.rule)}</span>`).join("")}</div>`).join("")}</div>`
         : `<div class="okline">No structural warnings: win condition, air defense, spells and elixir all covered.</div>`;
@@ -463,6 +465,11 @@ footer { font-size: 12.5px; color: var(--muted); text-align: center; }
           <div class="avg">avg elixir<b>${x.avg_elixir === null ? "–" : x.avg_elixir.toFixed(2)}</b></div>
           <div class="scale">${scaleSvg(x)}</div>
         </div>
+        <div class="sect"><span class="label">What the regression sees in this deck</span>
+          <div class="key"><span><i style="background:var(--elixir)"></i>Learned weight of each card (log-odds)</span><span>line = 90% interval · right of 0 helps win</span></div>
+          ${coefChart(ws)}
+          <p class="hint">The 8 card weights add up to ${signed(cardSum, 3)} log-odds and the tracked card pairs add ${signed(pairSum, 3)}. Against the sampled opponent decks that gives the ${pct(x.score.meta_win_prob)} estimate above.</p>
+        </div>
         <div class="sect"><span class="label">Best pairs in this deck</span>${x.synergy_top.length ? pairList(x.synergy_top) : `<p class="hint">No pair has enough games for a synergy score.</p>`}</div>
         <div class="sect"><span class="label">Advisory warnings</span>${warnHtml}</div>
         ${x.data_quality.length ? `<div class="dq">${x.data_quality.map((q) => `<span title="${esc(DQ_HELP[q.state] || q.detail)}">${esc(q.state.replace(/_/g, " ").toLowerCase())}</span>`).join("")}</div>` : ""}
@@ -477,26 +484,28 @@ footer { font-size: 12.5px; color: var(--muted); text-align: center; }
               <p class="hint">The co-play term favors card pairs people actually run together.</p></div>
           </div>
         </details>
+        <div class="sect"><span class="label">Swap suggestions · best improvement first</span>${renderSwaps(i, sw)}</div>
         <div class="actions">
-          <button class="btn primary" data-swaps="${i}">${sw ? "Refresh swaps" : "Suggest swaps"}</button>
           <button class="btn" data-copy="${i}">Copy card list</button>
           ${d.history.length ? `<button class="btn" data-undo="${i}">Undo swap</button>` : ""}
         </div>
-        ${sw ? renderSwaps(i, sw) : ""}
       </article>`;
     }).join("");
+    // the best swap group's charts are open from the start
+    document.querySelectorAll("#decks details.why[open]").forEach((det) => { if (!det.dataset.done) { det.dataset.done = "1"; renderWhy(det); } });
   }
   function renderSwaps(i, sw) {
     if (!sw.length) return `<p class="hint">Every card here is a picked card, so there is nothing to swap.</p>`;
     const groups = new Map();
     sw.forEach((s, j) => { if (!groups.has(s.replace)) groups.set(s.replace, []); groups.get(s.replace).push([s, j]); });
-    return `<div class="swaps" aria-label="Swap suggestions">${[...groups.entries()].map(([from, rows]) => `
+    const ordered = [...groups.entries()].sort((a, b) => b[1][0][0].delta_objective - a[1][0][0].delta_objective);
+    return `<div class="swaps" aria-label="Swap suggestions">${ordered.map(([from, rows], gi) => `
       <div class="swapgrp"><span class="from">Replace ${esc(from)}</span>
         ${rows.map(([s, j]) => `<div class="swaprow"><span>${esc(s.with)}</span>
           <span class="d ${s.delta_win_prob >= 0 ? "pos" : "neg"}" title="Change in estimated win rate">${s.delta_win_prob >= 0 ? "+" : "−"}${(Math.abs(s.delta_win_prob) * 100).toFixed(2)} pts</span>
           <button class="btn" data-apply="${i}:${j}">Swap</button>
           <span class="why">${esc(s.reason)}</span></div>`).join("")}
-        <details class="why" data-why="${i}:${rows.map(([, j]) => j).join(",")}">
+        <details class="why" data-why="${i}:${rows.map(([, j]) => j).join(",")}"${gi === 0 ? " open" : ""}>
           <summary>Why these cards? Show the regression</summary>
           <div class="whybody"></div>
         </details>
