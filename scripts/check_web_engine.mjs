@@ -76,5 +76,17 @@ for (const x of golden.explanations) {
 }
 console.log(`explanations: ${golden.explanations.length} checked`);
 
+// 4. the regression-line chart's held-out bins cover every test-window deck appearance exactly once
+{
+  const cal = eng.calibration(8);
+  const want = model.meta.test_battles_total * 2;
+  checks++;
+  if (cal.total !== want) fail(`calibration covers ${cal.total} deck appearances, test window has ${want}`);
+  if (cal.bins.reduce((t, b) => t + b.battles, 0) !== cal.total) fail("calibration bins do not add up");
+  for (let i = 1; i < cal.bins.length; i++) if (cal.bins[i].u < cal.bins[i - 1].u) fail("calibration bins not ordered by strength");
+  console.log(`calibration: ${cal.bins.length} bins over ${cal.total} test deck appearances (${cal.decks} decks)`);
+  console.log(cal.bins.map((b) => `  u ${b.u.toFixed(3)}  real ${(100 * b.win).toFixed(1)}%  model ${(100 * b.model).toFixed(1)}%  n ${b.battles}`).join("\n"));
+}
+
 console.log(failures ? `\n${failures} disagreement(s) in ${checks} checks` : `\nall ${checks} checks agree with Python`);
 process.exit(failures ? 1 : 0);

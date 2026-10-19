@@ -350,6 +350,30 @@
       return { old: cOld, new: cNew, parts, total: aft.objective - before.objective, d_logodds: uNew - uOld,
                d_card_logodds: dCard, d_pair_logodds: dPair, win_before: wpOld, win_after: wpNew, pair_changes: pairChanges };
     }
+    // Held-out check of the regression: decks played in the test window, grouped into
+    // bins of equal battle count by model strength (sum of weights), with their real win share.
+    calibration(nBins = 8) {
+      const rows = [];
+      for (const [k, [n, w]] of Object.entries(this.m.test_deck_records)) rows.push({ u: this.utility(parseDeckKey(k)), n, w });
+      rows.sort((a, b) => a.u - b.u);
+      const total = rows.reduce((t, r) => t + r.n, 0), per = total / nBins, z = 1.6448536269514722;
+      const bins = [];
+      let cur = { n: 0, w: 0, su: 0, decks: 0, uLo: Infinity, uHi: -Infinity }, seen = 0;
+      const close = () => {
+        if (!cur.n) return;
+        const p = cur.w / cur.n, n = cur.n, den = 1 + z * z / n, c = (p + z * z / (2 * n)) / den;
+        const h = (z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n))) / den;
+        bins.push({ u: cur.su / cur.n, uLo: cur.uLo, uHi: cur.uHi, battles: n, wins: cur.w, decks: cur.decks, win: p, lo: c - h, hi: c + h,
+                    model: this.winProbFromU(cur.su / cur.n) });
+        cur = { n: 0, w: 0, su: 0, decks: 0, uLo: Infinity, uHi: -Infinity };
+      };
+      for (const r of rows) {
+        cur.n += r.n; cur.w += r.w; cur.su += r.u * r.n; cur.decks++; cur.uLo = Math.min(cur.uLo, r.u); cur.uHi = Math.max(cur.uHi, r.u);
+        if (bins.length < nBins - 1 && seen + cur.n >= per * (bins.length + 1)) { seen += cur.n; close(); }
+      }
+      close();
+      return { bins, total, decks: rows.length };
+    }
     _pairReason(old, nw, rest) {
       const gained = [], lost = [];
       for (const e of rest) for (const [card, bucket] of [[nw, gained], [old, lost]]) {
