@@ -52,6 +52,13 @@ for (const s of golden.searches) {
   const a = sw.map((w) => [w.replace, w.with, w.new_deck_key]), b = s.swaps.map((w) => [w.replace, w.with, w.new_deck_key]);
   if (!same(a, b)) fail(`swaps ${s.seeds}: differ (js ${a.length}, py ${b.length}); first js ${JSON.stringify(a[0])} py ${JSON.stringify(b[0])}`);
   sw.forEach((w, i) => { if (s.swaps[i] && !close(w.delta_objective, s.swaps[i].delta_objective, 1e-5)) fail(`swap delta ${w.new_deck_key}: ${w.delta_objective} vs ${s.swaps[i].delta_objective}`); });
+  // the "why this swap" breakdown must add up to the same objective change the ranking used
+  sw.forEach((w) => {
+    const x = eng.explainSwap(res[0].entries, w.replace_entry, w.with_entry);
+    const sum = x.parts.reduce((a, p) => a + p.value, 0);
+    checks++;
+    if (!close(sum, w.delta_objective, 1e-9) || !close(x.total, w.delta_objective, 1e-9)) fail(`swap breakdown ${w.new_deck_key}: parts ${sum} total ${x.total} vs ${w.delta_objective}`);
+  });
   console.log(`search ${s.seeds.join(",") || "(none)"}: ${res.length} decks and ${sw.length} swaps match`);
 }
 

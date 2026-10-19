@@ -318,6 +318,38 @@
       });
       return out;
     }
+    // Why a swap ranks where it does: its exact objective change, split into the
+    // regression's card weights, its pair weights, and the two ranking terms.
+    // The parts sum to evaluate(new).objective - evaluate(old).objective.
+    coefInfo(e) {
+      const j = this.index.get(this.featureKey(e));
+      return { name: this.describe(e), key: keyOf(e), known: j !== undefined, weight: j === undefined ? 0 : this.coef[j],
+               se: j === undefined ? null : Math.sqrt(Math.max(this.cov[j][j], 0)), games: this.games(e) };
+    }
+    explainSwap(entries, oldE, newE) {
+      entries = sortedEntries(entries);
+      const rest = entries.filter((e) => !(e.id === oldE.id && e.form === oldE.form));
+      const after = sortedEntries(rest.concat([newE]));
+      const before = this.evaluate(entries), aft = this.evaluate(after);
+      const uOld = this.utility(entries), uNew = this.utility(after);
+      const cOld = this.coefInfo(oldE), cNew = this.coefInfo(newE);
+      const dCard = cNew.weight - cOld.weight, dPair = uNew - uOld - dCard;
+      const wpOld = this.winProbFromU(uOld), wpMid = this.winProbFromU(uOld + dCard), wpNew = this.winProbFromU(uNew);
+      const idsB = new Set(entries.map((e) => e.id)), idsA = new Set(after.map((e) => e.id));
+      const pairChanges = [];
+      this.pairs.forEach(([a, b], p) => {
+        const inB = idsB.has(a) && idsB.has(b), inA = idsA.has(a) && idsA.has(b);
+        if (inB !== inA) pairChanges.push({ pair: `${this.name(a)} + ${this.name(b)}`, weight: this.coef[this.nCard + p], gained: inA });
+      });
+      const parts = [
+        { key: "card", label: "Card weight", value: wpMid - wpOld, detail: `coefficient ${fmtSigned(cNew.weight, 4)} vs ${fmtSigned(cOld.weight, 4)} log-odds` },
+        { key: "pairs", label: "Pair weights", value: wpNew - wpMid, detail: pairChanges.length ? `${pairChanges.length} tracked pair(s) change` : "no tracked pair changes" },
+        { key: "synergy", label: `Synergy ×${this.weight}`, value: this.weight * (aft.mean_synergy - before.mean_synergy), detail: `mean pair synergy ${fmtSigned(before.mean_synergy, 4)} → ${fmtSigned(aft.mean_synergy, 4)}` },
+        { key: "coplay", label: `Co-play ×${this.coWeight}`, value: this.coWeight * (aft.mean_log_lift - before.mean_log_lift), detail: `mean log-lift ${before.mean_log_lift.toFixed(3)} → ${aft.mean_log_lift.toFixed(3)}` },
+      ];
+      return { old: cOld, new: cNew, parts, total: aft.objective - before.objective, d_logodds: uNew - uOld,
+               d_card_logodds: dCard, d_pair_logodds: dPair, win_before: wpOld, win_after: wpNew, pair_changes: pairChanges };
+    }
     _pairReason(old, nw, rest) {
       const gained = [], lost = [];
       for (const e of rest) for (const [card, bucket] of [[nw, gained], [old, lost]]) {
