@@ -98,7 +98,7 @@ def test_context_cache_reused_and_invalidated(small_ctx, tmp_path):
     paths = Paths(source="synthetic", root=root)
     a = load_context(paths=paths)
     b = load_context(paths=paths)
-    assert (paths.processed / "context_cache.pkl").exists()
+    assert (paths.processed / "context_cache_ranked.pkl").exists()
     assert list(a.strength.coef) == list(b.strength.coef)
     with paths.archetype_labels.open("a", encoding="utf-8") as f:  # change an input -> retrain
         f.write("")
@@ -115,7 +115,7 @@ def test_save_model_outputs(small_ctx, tmp_path):
     ctx.paths = Paths(source="synthetic", root=tmp_path)
     files = save_model_outputs(ctx, {"note": "x", "table": pd.DataFrame([{"a": 1}])})
     assert all(f.exists() for f in files)
-    pairs = pd.read_csv(tmp_path / "processed" / "synergy_pairs.csv")
+    pairs = pd.read_csv(tmp_path / "processed" / "synergy_pairs_ranked.csv")
     assert {"name_i", "name_j", "synergy", "games", "status"} <= set(pairs.columns)
-    ev = json.loads((tmp_path / "processed" / "evaluation.json").read_text())
+    ev = json.loads((tmp_path / "processed" / "evaluation_ranked.json").read_text())
     assert ev["source"] == "synthetic" and ev["evaluation"]["table"] == [{"a": 1}]

@@ -164,7 +164,7 @@ def generate(cfg: SynthConfig | None = None, paths: Paths | None = None, overwri
 
     logs: dict[str, list] = {p["tag"]: [] for p in players}
     span = cfg.days * 86400
-    n_mirror = n_unknown = n_draw = n_other_type = 0
+    n_mirror = n_unknown = n_draw = n_other_type = n_trophy = 0
     for _ in range(cfg.n_battles):
         i, j = rng.choice(len(players), 2, replace=False)
         pa, pb = players[i], players[j]
@@ -183,9 +183,13 @@ def generate(cfg: SynthConfig | None = None, paths: Paths | None = None, overwri
         else:
             cb = int(rng.integers(1, 4)); ca = int(rng.integers(0, cb))
         btype = "pathOfLegend"
-        if rng.random() < 0.02:
+        r_type = rng.random()
+        if r_type < 0.02:
             btype = "friendly"
             n_other_type += 1
+        elif r_type < 0.12:
+            btype = "trail"  # Trophy Road ladder
+            n_trophy += 1
         unknown = rng.random() < 0.003
         n_unknown += unknown
 
@@ -212,8 +216,11 @@ def generate(cfg: SynthConfig | None = None, paths: Paths | None = None, overwri
             return {"tag": pl["tag"], "name": pl["name"], "crowns": crowns, "startingTrophies": pl["trophies"], "cards": cs}
 
         sa, sb = side(pa, da, ca), side(pb, db, cb, unknown)
-        game = {"battleTime": t.strftime("%Y%m%dT%H%M%S.000Z"), "type": btype,
-                "gameMode": {"id": 0, "name": "Synthetic_Ranked1v1"}}
+        # observed format (docs/api-notes.md): mode is type + gameMode + deckSelection
+        gm, arena = {"pathOfLegend": ("Ranked1v1_NewArena", "Legendary Arena"), "trail": ("Ladder", "Seasonal Arena I"),
+                     "friendly": ("Friendly", "Spirit Square")}[btype]
+        game = {"battleTime": t.strftime("%Y%m%dT%H%M%S.000Z"), "type": btype, "deckSelection": "collection",
+                "gameMode": {"id": 0, "name": gm}, "arena": {"id": 0, "name": arena}}
         logs[pa["tag"]].append({**game, "team": [sa], "opponent": [sb]})
         logs[pb["tag"]].append({**game, "team": [sb], "opponent": [sa]})
 
@@ -249,7 +256,7 @@ def generate(cfg: SynthConfig | None = None, paths: Paths | None = None, overwri
         "synthetic": True,
         "card_strength": strength,
         "planted_synergy": [{"a": a, "b": b, "a_id": name_id[a], "b_id": name_id[b], "bonus": v} for a, b, v in PLANTED_SYNERGY],
-        "injected": {"mirrors": n_mirror, "draws": n_draw, "unknown_card_battles": int(n_unknown), "non_ranked_type": n_other_type},
+        "injected": {"mirrors": n_mirror, "draws": n_draw, "unknown_card_battles": int(n_unknown), "non_ranked_type": n_other_type, "trophy_road": n_trophy},
         "config": {"n_players": cfg.n_players, "n_battles": cfg.n_battles, "days": cfg.days, "seed": cfg.seed},
     }
     with (paths.root / "truth.json").open("w", encoding="utf-8") as f:

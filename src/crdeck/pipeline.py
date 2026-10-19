@@ -20,7 +20,7 @@ from . import archetype as arch
 from .cards import CardTable, attach_api, load_card_table, load_labels, save_card_table
 from .config import CARD_LABELS, Paths, collection_config, model_config
 from .dataset import Split, model_battles, side_rows, time_split
-from .parse import FormConfig, parse_files, parse_time
+from .parse import FormConfig, ModeRules, mode_label, mode_slug, modes_for, parse_files, parse_time
 from .rules import DeckRules
 from .strength import CardModel, ConstantBaseline, MetaScorer, PopularityBaseline, RatingBaseline, evaluate, top_pairs
 from .synergy import SynergyTable, compute_synergy
@@ -62,8 +62,8 @@ def build(source: str | None = None, verbose: bool = True, paths: Paths | None =
         raise NoDataError(f"No battle logs under {paths.raw}. Run `python -m crdeck collect`.")
     win = ccfg.get("window", {})
     window = (parse_time_iso(win.get("start")), parse_time_iso(win.get("end")))
-    parsed = parse_files(logs, cards, FormConfig.from_collection(ccfg), ccfg["battles"]["battle_types"],
-                         rules.deck_size, window)
+    parsed = parse_files(logs, cards, FormConfig.from_collection(ccfg), None, rules.deck_size, window,
+                         ModeRules.from_collection(ccfg))
     ranks = leaderboard_ranks(paths)
     if ranks:
         dib = parsed.decks_in_battle
@@ -87,6 +87,8 @@ def build(source: str | None = None, verbose: bool = True, paths: Paths | None =
     with (paths.interim / "counts.json").open("w", encoding="utf-8") as f:
         json.dump(counts, f, indent=2, default=str)
     write_raw_manifest(paths)
+    from . import runlog
+    runlog.write_section(paths, "build", runlog.build_section(paths, counts))
     if verbose:
         print(paths.banner())
         print(json.dumps({k: v for k, v in counts.items() if k != "card_attach_report"}, indent=2, default=str))
@@ -122,29 +124,35 @@ def leaderboard_ranks(paths: Paths) -> dict[str, float]:
 
 
 def save_model_outputs(ctx: "Context", report: dict | None = None) -> list[Path]:
-    """Model outputs to data/processed (spec 4: 'feature tables, model outputs')."""
+    """Model outputs to data/processed (spec 4: 'feature tables, model outputs'), one set per
+    mode (file suffix = mode slug), plus the evaluate:<slug> section of the run log."""
+    from . import runlog
     out = ctx.paths.processed
     out.mkdir(parents=True, exist_ok=True)
+    sfx = ctx.slug
     name = ctx.cards.name
     pairs = ctx.synergy.pairs.copy()
     pairs.insert(2, "name_i", pairs["card_i"].map(name))
     pairs.insert(3, "name_j", pairs["card_j"].map(name))
-    pairs.to_csv(out / "synergy_pairs.csv", index=False)
+    pairs.to_csv(out / f"synergy_pairs_{sfx}.csv", index=False)
     cards = ctx.synergy.cards.copy()
     cards.insert(1, "name", cards["card_id"].map(name))
-    cards.to_csv(out / "card_stats.csv", index=False)
+    cards.to_csv(out / f"card_stats_{sfx}.csv", index=False)
     w = pd.DataFrame([{"feature": k, "card_id": int(k.split(":")[0]), "form": k.split(":")[1],
                        "name": name(int(k.split(":")[0])), "weight": v,
                        "train_games": ctx.strength.feature_games.get(k, 0)} for k, v in ctx.strength.card_weights.items()])
-    w.sort_values("weight", ascending=False).to_csv(out / "card_weights.csv", index=False)
-    ctx.model_comparison.to_csv(out / "model_comparison.csv", index=False)
-    meta = {"source": ctx.paths.source, "banner": ctx.paths.banner(), "split": ctx.split.describe().to_dict("records"),
+    w.sort_values("weight", ascending=False).to_csv(out / f"card_weights_{sfx}.csv", index=False)
+    ctx.model_comparison.to_csv(out / f"model_comparison_{sfx}.csv", index=False)
+    meta = {"source": ctx.paths.source, "banner": ctx.paths.banner(), "mode": ctx.mode, "arena": ctx.arena,
+            "mode_label": ctx.mode_label, "split": ctx.split.describe().to_dict("records"),
             "strength_model": ctx.strength.name, "C": ctx.strength.C, "synergy_expected_from": ctx.synergy.expected_from}
     if report is not None:
-        meta["evaluation"] = {k: (v.to_dict("records") if isinstance(v, pd.DataFrame) else v) for k, v in report.items()}
-    with (out / "evaluation.json").open("w", encoding="utf-8") as f:
+        meta["evaluation"] = runlog._jsonable(report)
+        runlog.write_section(ctx.paths, f"evaluate:{sfx}", meta["evaluation"])
+    with (out / f"evaluation_{sfx}.json").open("w", encoding="utf-8") as f:
         json.dump(meta, f, indent=2, default=str)
-    return [out / n for n in ("synergy_pairs.csv", "card_stats.csv", "card_weights.csv", "model_comparison.csv", "evaluation.json")]
+    return [out / f"{n}_{sfx}.{e}" for n, e in (("synergy_pairs", "csv"), ("card_stats", "csv"), ("card_weights", "csv"),
+                                                ("model_comparison", "csv"), ("evaluation", "json"))]
 
 
 def parse_time_iso(s: str | None) -> datetime | None:
@@ -174,6 +182,14 @@ class Context:
     test_deck_records: dict[str, tuple[int, int]] = field(default_factory=dict)
     deck_appearances: dict[str, int] = field(default_factory=dict)
     synergy_choice: pd.DataFrame | None = None
+    mode: str = "ranked"
+    arena: str | None = None
+    mode_label: str = "Ranked (Path of Legends)"
+    candidates: pd.DataFrame | None = None  # every strength model and C tried, with validation scores
+
+    @property
+    def slug(self) -> str:
+        return mode_slug(self.mode, self.arena)
     archetype_labels: pd.DataFrame | None = None
 
 
@@ -222,11 +238,14 @@ def train_strength(split: Split, syn_train: SynergyTable, cfg: dict, hero_observ
     suffix = "+skill" if skill else ""
     names = (f"card_lr{suffix}", f"card_lr+pairs{suffix}")
     best: dict[str, tuple[float, float, CardModel]] = {}
+    tried = []
     for C in s["C_grid"]:
         for name, pl in ((names[0], []), (names[1], pair_list)):
             m = CardModel(hero_observable, C, s["max_iter"], s["min_feature_games"], pairs=pl, name=name,
                           skill_control=skill).fit(split.train)
-            ll_ = evaluate(m, split.valid)["log_loss"]
+            ev_ = evaluate(m, split.valid)
+            ll_ = ev_["log_loss"]
+            tried.append({"model": name, "C": C, "valid_log_loss": ll_, "valid_auc": ev_["auc"]})
             if name not in best or ll_ < best[name][0]:
                 best[name] = (ll_, C, m)
     pop = PopularityBaseline().fit(split.train)
@@ -251,6 +270,10 @@ def train_strength(split: Split, syn_train: SynergyTable, cfg: dict, hero_observ
     comp = pd.concat([valid, pd.DataFrame(test_rows)], ignore_index=True)
     comp["selected"] = comp["model"] == chosen
     final = final_pairs if chosen == names[1] else final_base
+    cand = pd.DataFrame(tried)
+    cand["best_C_for_model"] = [best[r["model"]][1] == r["C"] for _, r in cand.iterrows()]
+    cand["selected"] = cand["best_C_for_model"] & (cand["model"] == chosen)
+    comp.attrs["candidates"] = cand
     return final, comp, syn_tv
 
 
@@ -269,16 +292,17 @@ def _fingerprint(paths: Paths) -> str:
 
 
 def load_context(source: str | None = None, verbose: bool = False, paths: Paths | None = None,
-                 cache: bool | None = None) -> Context:
-    """Train (or load cached) models. The cache in processed/context_cache.pkl is reused only
-    when the fingerprint of data, labels, configs and code is unchanged.
-    cache=None reads CRDECK_NO_CACHE=1 from the environment to disable it."""
+                 cache: bool | None = None, mode: str = "ranked", arena: str | None = None) -> Context:
+    """Train (or load cached) models for one mode (and optionally one arena).
+    mode: a key of config battles.modes (e.g. 'ranked', 'trophy_road') or of battles.combined ('all').
+    The cache in processed/context_cache_<slug>.pkl is reused only when the fingerprint of data,
+    labels, configs and code is unchanged. cache=None reads CRDECK_NO_CACHE=1 to disable it."""
     import os
     import pickle
     if cache is None:
         cache = os.environ.get("CRDECK_NO_CACHE") != "1"
     paths = paths or Paths.for_source(source)
-    cache_file = paths.processed / "context_cache.pkl"
+    cache_file = paths.processed / f"context_cache_{mode_slug(mode, arena)}.pkl"
     fp = _fingerprint(paths) if cache else ""
     if cache and cache_file.exists():
         try:
@@ -292,7 +316,7 @@ def load_context(source: str | None = None, verbose: bool = False, paths: Paths 
                 return ctx
         except Exception:  # stale or unreadable cache: retrain
             pass
-    ctx = _train_context(paths, verbose)
+    ctx = _train_context(paths, verbose, mode, arena)
     if cache:
         paths.processed.mkdir(parents=True, exist_ok=True)
         with cache_file.open("wb") as f:
@@ -300,19 +324,22 @@ def load_context(source: str | None = None, verbose: bool = False, paths: Paths 
     return ctx
 
 
-def _train_context(paths: Paths, verbose: bool) -> Context:
+def _train_context(paths: Paths, verbose: bool, mode: str = "ranked", arena: str | None = None) -> Context:
     cfg = model_config()
     ccfg = collection_config()
     rules = DeckRules.load()
     cards = load_card_table(paths.processed / "cards.parquet")
     battles, dib, decks, counts = load_interim(paths)
-    mb = model_battles(battles, dib)
+    if "mode" not in battles:
+        raise NoDataError("interim tables predate modes; run `python -m crdeck build` again")
+    mb = model_battles(battles, dib, modes_for(ccfg, mode), arena)
+    label = mode_label(ccfg, mode, arena)
     if len(mb) < 100:
-        raise NoDataError(f"only {len(mb)} usable battles; collect more before modeling")
+        raise NoDataError(f"not enough data for {label}: only {len(mb)} usable battles (minimum 100)")
     split = time_split(mb, ccfg["split"]["train_frac"], ccfg["split"]["valid_frac"])
     for part in ("train", "valid", "test"):
         if len(getattr(split, part)) < 30:
-            raise NoDataError(f"time split leaves only {len(getattr(split, part))} battles in {part}; "
+            raise NoDataError(f"not enough data for {label}: the time split leaves only {len(getattr(split, part))} battles in {part}; "
                               "collect battles over a longer period before modeling")
     hero_obs = FormConfig.from_collection(ccfg).hero_observable
 
@@ -320,6 +347,7 @@ def _train_context(paths: Paths, verbose: bool) -> Context:
     syn_train, syn_choice = choose_synergy(split, sy)
     cfg = {**cfg, "synergy": {**sy, "expected_from": syn_train.expected_from}}
     strength, comp, syn_tv = train_strength(split, syn_train, cfg, hero_obs)
+    candidates = comp.attrs.pop("candidates", None)
 
     ds = cfg["deck_score"]
     opp = pd.concat([split.test["deck_a"], split.test["deck_b"]], ignore_index=True)
@@ -339,7 +367,7 @@ def _train_context(paths: Paths, verbose: bool) -> Context:
     appearances = all_sides["deck_key"].value_counts().to_dict()
     ctx = Context(paths, cfg, rules, cards, split, syn_tv, strength, scorer, am, hero_obs, comp, decks, counts,
                   test_deck_records=test_records, deck_appearances=appearances, archetype_labels=labels,
-                  synergy_choice=syn_choice)
+                  synergy_choice=syn_choice, mode=mode, arena=arena, mode_label=label, candidates=candidates)
     if verbose:
         print(paths.banner())
         print(split.describe().to_string(index=False))

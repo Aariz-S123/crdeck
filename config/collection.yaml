@@ -36,7 +36,22 @@ leaderboard:
     57000113: 200   # India
 
 battles:
-  battle_types: [pathOfLegend] # VERIFY the exact `type` string in a real battle log
+  # Modes, matched on battle `type` + `gameMode.name` + `deckSelection`. Determined from the
+  # collected logs on 2026-10-19 (inventory in docs/api-notes.md). Battles that match no mode
+  # (events, draft, friendlies, clan war, 2v2, tournaments) get status FILTERED_TYPE and are
+  # never modeled: their decks are not the player's own choice or the rules differ.
+  modes:
+    ranked:
+      label: "Ranked (Path of Legends)"
+      types: [pathOfLegend]
+      game_modes: [Ranked1v1_NewArena, Ranked1v1_NewArena2]
+    trophy_road:
+      label: "Trophy Road ladder"
+      types: [trail, PvP]
+      game_modes: [Ladder]
+  deck_selection: [collection]   # the player's own deck
+  combined:
+    all: [ranked, trophy_road]   # "All" = every modeled mode together
 
 form_resolution:
   # Observed in real calls on 2026-10-18 (docs/api-notes-observed.md, docs/api-notes.md):

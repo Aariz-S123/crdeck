@@ -8,7 +8,7 @@ Statuses (per battle):
   NOT_1V1       team/opponent not exactly one player each
   BAD_DECK      a side without exactly deck_size cards
   BAD_TIME      unparseable battleTime
-  FILTERED_TYPE battle type not in config battles.battle_types
+  FILTERED_TYPE battle matches no mode in config battles.modes (or, legacy, not in battle_types)
   OUT_OF_WINDOW battle_time outside config window start/end
 The battle key is (sorted tags, battle_time), so a battle seen in both players'
 logs is the same record; dedupe() keeps one row per key.
@@ -48,6 +48,48 @@ def parse_time(s: str | None) -> datetime | None:
         except ValueError:
             continue
     return None
+
+
+@dataclass(frozen=True)
+class ModeRules:
+    """Assigns each battle a mode from config `battles.modes` (type + gameMode + deckSelection).
+    Battles matching no mode are "other" and are never modeled."""
+    rules: tuple[tuple[str, frozenset, frozenset], ...]
+    deck_selection: frozenset
+
+    @classmethod
+    def from_collection(cls, cfg: dict) -> "ModeRules":
+        b = cfg.get("battles", {})
+        rules = tuple((k, frozenset(v.get("types", [])), frozenset(v.get("game_modes", [])))
+                      for k, v in (b.get("modes") or {}).items())
+        return cls(rules, frozenset(b.get("deck_selection", ["collection"])))
+
+    def assign(self, battle: dict) -> str:
+        if battle.get("deckSelection") not in self.deck_selection:
+            return "other"
+        t, gm = battle.get("type"), (battle.get("gameMode") or {}).get("name")
+        for key, types, modes in self.rules:
+            if t in types and gm in modes:
+                return key
+        return "other"
+
+
+def mode_slug(mode: str, arena: str | None = None) -> str:
+    """File-safe id: 'ranked', 'trophy_road__seasonal_arena_ii'."""
+    import re
+    return mode if not arena else f"{mode}__{re.sub(r'[^a-z0-9]+', '_', arena.lower()).strip('_')}"
+
+
+def mode_label(cfg: dict, mode: str, arena: str | None = None) -> str:
+    modes = cfg.get("battles", {}).get("modes") or {}
+    base = modes.get(mode, {}).get("label") or ("All modes" if mode == "all" else mode)
+    return f"{base}: {arena}" if arena else base
+
+
+def modes_for(cfg: dict, mode: str) -> list[str]:
+    """'ranked' -> ['ranked']; a combined name like 'all' -> its member modes."""
+    combined = (cfg.get("battles", {}).get("combined") or {})
+    return list(combined[mode]) if mode in combined else [mode]
 
 
 @dataclass(frozen=True)
@@ -135,16 +177,27 @@ def parse_battlelog(
     battle_types: Iterable[str] | None = None,
     deck_size: int = 8,
     window: tuple[datetime | None, datetime | None] = (None, None),
+    modes: ModeRules | None = None,
 ) -> tuple[list[dict], list[dict], list[dict]]:
-    """Return (battles, decks_in_battle, slot_cards) rows for one log."""
+    """Return (battles, decks_in_battle, slot_cards) rows for one log.
+
+    With `modes`, each battle gets a mode and FILTERED_TYPE means "matches no mode".
+    Without it (legacy), `battle_types` filters on `type` and accepted battles are "ranked"."""
     types = set(battle_types) if battle_types else None
     battles, dib, slots = [], [], []
     for b in body:
         t = parse_time(b.get("battleTime"))
         team, opp = b.get("team", []), b.get("opponent", [])
+        if modes is not None:
+            mode = modes.assign(b)
+        else:
+            mode = "ranked" if (types is None or b.get("type") in types) else "other"
         base = {
             "battle_type": b.get("type"),
             "game_mode": (b.get("gameMode") or {}).get("name"),
+            "mode": mode,
+            "arena": (b.get("arena") or {}).get("name"),
+            "deck_selection": b.get("deckSelection"),
             "source_player_tag": source_tag,
             "fetched_at": fetched_at,
         }
@@ -159,7 +212,7 @@ def parse_battlelog(
         a, bb = sorted([s1, s2], key=lambda s: s["tag"])
         key = battle_key(a["tag"], bb["tag"], t)
         unknown = sorted(set(a["unknown"] + bb["unknown"]))
-        if types is not None and b.get("type") not in types:
+        if mode == "other":
             status = FILTERED_TYPE
         elif (window[0] and t < window[0]) or (window[1] and t >= window[1]):
             status = OUT_OF_WINDOW
@@ -209,6 +262,7 @@ def parse_files(
     battle_types: Iterable[str] | None = None,
     deck_size: int = 8,
     window: tuple[datetime | None, datetime | None] = (None, None),
+    modes: ModeRules | None = None,
 ) -> Parsed:
     all_b, all_d, all_s = [], [], []
     n_files = n_404 = 0
@@ -219,7 +273,7 @@ def parse_files(
             n_404 += 1
             continue
         tag = "#" + p.stem
-        b, d, s = parse_battlelog(w["body"], tag, w.get("fetched_at", ""), cards, fc, battle_types, deck_size, window)
+        b, d, s = parse_battlelog(w["body"], tag, w.get("fetched_at", ""), cards, fc, battle_types, deck_size, window, modes)
         all_b += b
         all_d += d
         all_s += s
@@ -227,8 +281,8 @@ def parse_files(
 
 
 def dedupe(battles: list[dict], dib: list[dict], slots: list[dict], extra_counts: dict | None = None) -> Parsed:
-    bdf = pd.DataFrame(battles, columns=["battle_key", "battle_time", "battle_type", "game_mode",
-                                         "source_player_tag", "fetched_at", "status", "unknown_card_ids"])
+    bdf = pd.DataFrame(battles, columns=["battle_key", "battle_time", "battle_type", "game_mode", "mode", "arena",
+                                         "deck_selection", "source_player_tag", "fetched_at", "status", "unknown_card_ids"])
     n_raw = len(bdf)
     bdf = bdf.sort_values(["battle_key", "fetched_at", "source_player_tag"], kind="mergesort")
     bdf = bdf.drop_duplicates("battle_key", keep="first").reset_index(drop=True)
@@ -250,6 +304,10 @@ def dedupe(battles: list[dict], dib: list[dict], slots: list[dict], extra_counts
         "battles_after_dedupe": len(bdf),
         "duplicates_removed": n_raw - len(bdf),
         "status": {k: int(v) for k, v in bdf["status"].value_counts().sort_index().items()},
+        "modes": {m: {k: int(v) for k, v in g["status"].value_counts().sort_index().items()}
+                  for m, g in bdf.groupby("mode", dropna=False)},
+        "ok_by_mode_arena": {f"{m}|{a}": int(n) for (m, a), n in
+                             bdf[bdf["status"] == OK].groupby(["mode", "arena"], dropna=False).size().items()},
         "unknown_card_ids": unknown_ids,
         "distinct_decks": int(len(decks)),
     }

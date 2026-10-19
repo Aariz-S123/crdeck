@@ -56,6 +56,31 @@ def strength_report(ctx) -> pd.DataFrame:
     return ctx.model_comparison.copy()
 
 
+def _ci(boots) -> list[float]:
+    return [float(np.quantile(boots, 0.05)), float(np.quantile(boots, 0.95))]
+
+
+def strength_intervals(ctx, n_boot: int = 500, seed: int | None = None) -> pd.DataFrame:
+    """Test log loss and AUC of the selected model and every baseline, each with a 90%
+    bootstrap interval over test battles (same resamples for every model)."""
+    from .strength import ConstantBaseline, PopularityBaseline, RatingBaseline
+    seed = ctx.cfg["seed"] if seed is None else seed
+    t, tv = ctx.split.test, ctx.split.train_valid
+    y = t["a_won"].astype(int).to_numpy()
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, len(t), size=(n_boot, len(t)))
+    rows = []
+    for m in (ctx.strength, ConstantBaseline(), PopularityBaseline().fit(tv), RatingBaseline().fit(tv)):
+        p = np.clip(m.predict_df(t), 1e-12, 1 - 1e-12)
+        ll = -(y * np.log(p) + (1 - y) * np.log(1 - p))
+        lls = ll[idx].mean(axis=1)
+        aucs = [roc_auc_score(y[i], p[i]) if np.ptp(p[i]) > 0 and len(set(y[i])) > 1 else 0.5 for i in idx]
+        auc = float(roc_auc_score(y, p)) if np.ptp(p) > 0 else 0.5
+        rows.append({"model": m.name, "selected": m is ctx.strength, "test_log_loss": float(ll.mean()),
+                     "log_loss_ci90": _ci(lls), "test_auc": auc, "auc_ci90": _ci(aucs), "test_battles": len(t)})
+    return pd.DataFrame(rows)
+
+
 def strength_significance(ctx, n_boot: int = 2000, seed: int | None = None) -> pd.DataFrame:
     """Paired bootstrap over test battles of log-loss(selected model) - log-loss(baseline).
 
@@ -103,6 +128,7 @@ def completion_recall(ctx, n_decks: int = 100, mask: int = 2, k: int = 10, beam_
     pop = pd.Series([e.card_id for d in side_rows(ctx.split.train_valid)["deck_key"] for e in parse_deck_key(d)]).value_counts()
     hits_m = hits_b = total = 0
     skipped = 0
+    per_deck = []  # (model hits, baseline hits, masked cards) per evaluated deck
     for d in decks:
         entries = parse_deck_key(d)
         idx = rng.choice(len(entries), mask, replace=False)
@@ -136,10 +162,18 @@ def completion_recall(ctx, n_decks: int = 100, mask: int = 2, k: int = 10, beam_
         hits_m += len(truth & top_m)
         hits_b += len(truth & set(top_b))
         total += len(truth)
+        per_deck.append((len(truth & top_m), len(truth & set(top_b)), len(truth)))
+    ci = {}
+    if per_deck:
+        arr = np.array(per_deck, float)
+        bidx = np.random.default_rng(seed + 1).integers(0, len(arr), size=(1000, len(arr)))
+        sm, sb, st = arr[:, 0][bidx].sum(1), arr[:, 1][bidx].sum(1), arr[:, 2][bidx].sum(1)
+        ci = {"recall_model_ci90": _ci(sm / st), "recall_popular_fill_ci90": _ci(sb / st), "difference_ci90": _ci((sm - sb) / st)}
     return {
         "decks_evaluated": len(decks) - skipped, "skipped": skipped, "masked_per_deck": mask, "k": k,
         "recall_model": hits_m / total if total else float("nan"),
         "recall_popular_fill": hits_b / total if total else float("nan"),
+        **ci,
         "part": part, "cooccurrence_weight": searcher.co_weight,
         "note": f"{len(cand_ids)} candidate card forms; decks = most frequent {part}-window decks",
     }
@@ -195,9 +229,12 @@ def synergy_eval(ctx) -> pd.DataFrame:
     fb = np.array([feats(k) for k in t["deck_b"]])
     y = t["a_won"].astype(int).to_numpy()
     rows = []
+    bidx = np.random.default_rng(ctx.cfg["seed"] + 2).integers(0, len(y), size=(300, len(y)))
     for i, name in enumerate([f"mean_synergy ({syn.expected_from}, used)", f"mean_synergy ({other})", "mean_lift", "popularity"]):
         d = fa[:, i] - fb[:, i]
-        rows.append({"score": name, "test_auc": float(roc_auc_score(y, d)) if np.ptp(d) > 0 else 0.5})
+        auc = float(roc_auc_score(y, d)) if np.ptp(d) > 0 else 0.5
+        boots = [roc_auc_score(y[j], d[j]) if np.ptp(d[j]) > 0 and len(set(y[j])) > 1 else 0.5 for j in bidx]
+        rows.append({"score": name, "test_auc": auc, "auc_ci90": _ci(boots)})
     return pd.DataFrame(rows)
 
 
@@ -206,7 +243,18 @@ def archetype_eval(ctx) -> dict:
         return {"status": "NO_LABELS", "detail": f"label decks in {ctx.paths.archetype_labels} first"}
     if not ctx.archetype.fitted:
         return {"status": "NOT_FITTED", "detail": "need train labels for at least 2 archetypes"}
-    return ctx.archetype.evaluate_heldout(ctx.archetype_labels)
+    out = ctx.archetype.evaluate_heldout(ctx.archetype_labels)
+    held = ctx.archetype_labels[ctx.archetype_labels["split"] == "heldout"]
+    if len(held):
+        am = ctx.archetype
+        pred = np.array([max(zip(am.lr.predict_proba(am._X([k]))[0], am.classes))[1] for k in held["deck_key"]])
+        truth = held["archetype"].to_numpy()
+        correct, maj = (pred == truth).astype(float), (truth == out["majority_class"]).astype(float)
+        bidx = np.random.default_rng(ctx.cfg["seed"] + 3).integers(0, len(truth), size=(2000, len(truth)))
+        out["accuracy_ci90"] = _ci(correct[bidx].mean(1))
+        out["majority_accuracy_ci90"] = _ci(maj[bidx].mean(1))
+        out["labels_note"] = "labels drafted by the project's assistant; accuracy is agreement with that labeler"
+    return out
 
 
 def level_gap_check(ctx, threshold: float = 1.0) -> dict:
@@ -227,12 +275,26 @@ def level_gap_check(ctx, threshold: float = 1.0) -> dict:
 
 
 def full_report(ctx, completion_decks: int = 100) -> dict:
+    from .pipeline import _fingerprint
     s, e = ctx.split.window("test")
+    tuning = tune_cooccurrence(ctx)
+    chosen = choose_cooccurrence(tuning)
     return {
         "source": ctx.paths.banner(),
-        "described_as": f"held-out top-player battles from {s} to {e}",
+        "mode": ctx.mode, "arena": ctx.arena, "mode_label": ctx.mode_label,
+        "test_window": [s, e],
+        "data_fingerprint": _fingerprint(ctx.paths),
+        "described_as": f"held-out {ctx.mode_label} battles of top players from {s} to {e}",
+        "splits": ctx.split.describe(),
         "strength": strength_report(ctx),
+        "strength_candidates": ctx.candidates if ctx.candidates is not None else pd.DataFrame(),
+        "strength_selection_rule": "lowest validation log loss among the card and card+pairs models, each at its best C",
+        "strength_intervals": strength_intervals(ctx),
         "strength_significance": strength_significance(ctx),
+        "cooccurrence_tuning": tuning,
+        "cooccurrence_choice": {"chosen_on_validation": chosen, "config_value": float(ctx.cfg["search"]["cooccurrence_weight"]),
+                                "rule": "smallest grid weight whose validation recall reaches 95% of the best validation recall and beats popular fill",
+                                "note": "this rule was revised after test results had been seen (docs/model-notes.md, item 2)"},
         "completion": completion_recall(ctx, n_decks=completion_decks),
         "synergy_variant_choice (validation)": ctx.synergy_choice,
         "synergy": synergy_eval(ctx),

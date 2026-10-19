@@ -33,6 +33,9 @@ def main(argv: list[str] | None = None) -> int:
     for name in ("build", "evaluate", "suggest", "label"):
         p = sub.add_parser(name)
         p.add_argument("--source", choices=["real", "synthetic"], default=None)
+        if name in ("evaluate", "suggest"):
+            p.add_argument("--mode", default="ranked", help="ranked, trophy_road or all (config battles.modes / combined)")
+            p.add_argument("--arena", default=None, help="one arena within the mode, e.g. 'Seasonal Arena II'")
         if name == "suggest":
             p.add_argument("seeds", nargs="*")
         if name == "label":
@@ -58,7 +61,7 @@ def main(argv: list[str] | None = None) -> int:
         from .evaluate import full_report
         from .pipeline import load_context
         from .pipeline import save_model_outputs
-        ctx = load_context(args.source, verbose=True)
+        ctx = load_context(args.source, verbose=True, mode=args.mode, arena=args.arena)
         rep = full_report(ctx)
         for f in save_model_outputs(ctx, rep):
             print("wrote", f)
@@ -70,7 +73,7 @@ def main(argv: list[str] | None = None) -> int:
         from .explain import build_explanation, render_text
         from .pipeline import load_context
         from .search import Searcher, parse_seed
-        ctx = load_context(args.source)
+        ctx = load_context(args.source, mode=args.mode, arena=args.arena)
         searcher = Searcher(ctx)
         seeds = [parse_seed(x, ctx.cards) for x in args.seeds]
         for i, d in enumerate(searcher.complete(seeds), 1):
