@@ -58,3 +58,17 @@ Inventory of every battle `type` / `gameMode.name` / `deckSelection` / `arena` i
 | not modeled | friendly, clanMate, boatBattle, riverRacePvP, riverRaceDuel, tournament | Friendly, ClanWar_BoatBattle, CW_Battle_1v1, CW_Duel_1v1 (warDeckPick), Showdown_Friendly, ... | | | |
 
 Other battle fields seen: `isLadderTournament`, `isHostedMatch`, `leagueNumber`, `tournamentTag`, `eventTag`, `boatBattleSide`, `boatBattleWon`, `modifiers`. Exact per-run counts are in the website's Model log (from `data/processed/run_log.json`).
+
+## Arena collector (`collect --arenas`), written 2026-10-20
+
+Endpoints used, from documentation as recalled, **not yet called** (the key was refused for this network's IP when the collector was written):
+
+| Endpoint | Expected | Used for |
+| --- | --- | --- |
+| `GET /clans?locationId=&minMembers=&limit=&after=` | `items` of clans with `tag`; `paging.cursors.after` for the next page | finding clans per country |
+| `GET /clans/%23TAG/members` | `items` with `tag`, `trophies`, `arena {id, name}` | placing players in arenas |
+| `GET /players/%23TAG/battlelog` | as observed above | the arena sample's logs, cached under `battlelog_arena/` |
+
+Already observed in collected battles: `leagueNumber` on every `pathOfLegend` battle (values 4 to 7 among leaderboard players on 2026-10-19), and `arena.name` on ladder battles, with names matching the owner's arena table. After the first run, check the collector's summary (`arena_assigned_by` shows how often the member `arena` field was present) and record what was observed here.
+
+`CR_API_BASE` in `.env` overrides `api.base_url`, for example `https://proxy.royaleapi.dev/v1` (a third-party relay of the official API; the key then has to allow the relay's IP instead of yours).

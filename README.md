@@ -79,6 +79,7 @@ Or open `notebooks/07_demo.ipynb`.
    ```
    schtasks /Create /SC DAILY /ST 20:00 /TN crdeck-collect /TR "C:\Users\simty\crdeck\.venv\Scripts\python.exe -m crdeck collect --window auto"
    ```
+   For lower arenas, also run `python -m crdeck collect --arenas --window auto`: it finds players in every Trophy Road arena through clan search (and their ladder opponents), up to `arena_sample.players_per_arena` each, and prints how many each arena got. Those logs are kept apart (`battlelog_arena/`) and are not used for the meta history.
 4. Refresh order: `collect` → `build` → `evaluate` → `python scripts/export_web.py` → `node scripts/check_web_engine.mjs` → `node scripts/sweep_web_engine.mjs`. The export re-runs the evaluation for any mode whose saved one is stale. Then the notebooks. Models retrain automatically when data, labels, configs or code change (cache: `data/processed/context_cache_<mode>.pkl`; `CRDECK_NO_CACHE=1` forces a retrain). `data/raw_manifest.csv` (tracked) records every raw file's fetch time, since `data/raw` itself is not committed.
 5. Re-check notebook 02's slot audit and notebook 06's co-occurrence tuning after each new window.
 

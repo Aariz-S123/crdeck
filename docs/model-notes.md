@@ -91,10 +91,15 @@ What this says about the game, at this level: deck composition barely moves win 
 
 - A battle's mode comes from its `type`, `gameMode.name` and `deckSelection` (config `battles.modes`), determined from the collected logs (inventory in docs/api-notes.md). **Ranked** = `pathOfLegend` + `Ranked1v1_NewArena(2)`. **Trophy Road** = `trail`/`PvP` + `Ladder`. Both require `deckSelection = collection` (the player's own deck). **All** = both together.
 - Events (`eventDeck`), draft modes, friendlies, clan war, 2v2 and tournaments are never modeled: their decks are not the player's choice or the rules differ.
-- Each mode, and each Trophy Road arena, gets its own models when it clears the existing thresholds (100 usable battles, 30 per split part). Smaller arenas are listed as "not enough data".
-- **Assumption:** the Trophy Road battles come from the same top Path of Legends players (9,567 to 15,000 trophies), so they describe the top of Trophy Road, not lower arenas. Testing lower arenas needs players sampled by arena (clan search + clan members), at least ~5,000 ladder battles per arena.
+- Each mode is split into **groups**: Ranked by league (the battle's `leagueNumber`, named Master I to Ultimate Champion), Trophy Road by arena (the battle's `arena.name`). The group always comes from the battle. The league names, the arena order and the arenas' trophy floors were supplied by the project owner (config `battles.modes`); they only order the site's picker and aim the arena collector.
+- Each mode and each group gets its own models when it clears the existing thresholds (100 usable battles, 30 per split part). Every configured league and arena is listed on the site with its real battle count; ones under the threshold say "too few" and are never filled in.
+- **Two samples of players.** `leaderboard`: top Path of Legends players from the leaderboards. `arena_sample` (`collect --arenas`): players found through clan search and clan member lists, placed in the arena their own member record names (or, when missing, the arena whose trophy floor they reach), plus ladder opponents for arenas still short. A battle collected in both samples counts as `leaderboard`.
+- **Assumption:** the arena sample is the members of clans that clan search returns, and their opponents. It is not a random sample of each arena: players without a clan, or in clans the search does not return, are missing. To test it, compare card usage in an arena between clan-found players and opponent-found players; a large gap means the clan route is skewed.
+- **Assumption:** until `collect --arenas` has run, the Trophy Road battles come from top Path of Legends players only (9,567 to 15,000 trophies), so lower arenas have no data.
 
 ## 12. Meta history and forecast
+
+- The meta history counts battles from the **leaderboard sample only**. Arena-sample players join in later periods, so counting them would look like a meta shift.
 
 - **Meta:** the share of ranked deck appearances that include a card form (and the share of each predicted archetype).
 - **Periods:** the battles between two collection runs. The first covers the 24 hours before the first run. Periods never overlap.
