@@ -1,1115 +1,250 @@
+<meta charset="utf-8">
 <title>crdeck Deck Builder</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Pick up to three Clash Royale cards and get three legal decks built from real top-player battles, with the reasons behind every number.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z' fill='%23a8247f'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="app.css">
 <style>
-/* Layout: a two-pane scouting desk. Card picker on the left, three deck sheets on the right,
-   the model's report card underneath. Slot colors (Evo / Hero / Wild) are the only loud color. */
-:root {
-  --bg: #eef1f6;
-  --surface: #ffffff;
-  --sunken: #e3e8f0;
-  --ink: #18202e;
-  --muted: #5b6577;
-  --line: #d3d9e3;
-  --elixir: #b4248f;
-  --elixir-soft: #f6e3f0;
-  --evo: #6b3fd4;
-  --evo-soft: #ece5fc;
-  --hero: #b86a00;
-  --hero-soft: #fbefd9;
-  --wild: #0d8577;
-  --wild-soft: #dcf2ef;
-  --warn: #a5471a;
-  --warn-soft: #fbe9df;
-  --ok: #2f7d3b;
-  --pos: #2563a8;
-  --neg: #c2571a;
-  --grid: #e3e8f0;
-  --focus: #b4248f;
-  --shadow: 0 1px 2px rgb(24 32 46 / 0.06), 0 4px 16px rgb(24 32 46 / 0.06);
-  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
-  --body: "Figtree", "Segoe UI", system-ui, sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #111621; --surface: #1a2130; --sunken: #141a26; --ink: #e8ecf4; --muted: #9aa4b6; --line: #2c3547;
-    --elixir: #f06fcd; --elixir-soft: #3a1f36; --evo: #a98bff; --evo-soft: #2a2347; --hero: #f0a640; --hero-soft: #3a2c16;
-    --wild: #3cc8b5; --wild-soft: #15342f; --warn: #f29a6b; --warn-soft: #3b2418; --ok: #6cc77a; --focus: #f06fcd;
-    --pos: #5592d6; --neg: #d9763a; --grid: #262f40;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.25);
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #111621; --surface: #1a2130; --sunken: #141a26; --ink: #e8ecf4; --muted: #9aa4b6; --line: #2c3547;
-  --elixir: #f06fcd; --elixir-soft: #3a1f36; --evo: #a98bff; --evo-soft: #2a2347; --hero: #f0a640; --hero-soft: #3a2c16;
-  --wild: #3cc8b5; --wild-soft: #15342f; --warn: #f29a6b; --warn-soft: #3b2418; --ok: #6cc77a; --focus: #f06fcd;
-    --pos: #5592d6; --neg: #d9763a; --grid: #262f40;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.25);
-  color-scheme: dark;
-}
-
-* { box-sizing: border-box; }
-body {
-  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5;
-  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 24px 48px;
-}
-.wrap { max-width: 1320px; margin: 0 auto; display: grid; gap: 28px; }
-h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
-.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
-button { font: inherit; color: inherit; cursor: pointer; }
-button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-.label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-
-/* header */
-header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px 32px; }
-.brand h1 { font-size: clamp(28px, 4vw, 40px); font-weight: 800; line-height: 1.05; }
-.brand h1 .dot { color: var(--elixir); }
-.brand p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
-.stamp { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; color: var(--muted); }
-.stamp b { color: var(--ink); font-family: var(--mono); font-weight: 600; font-variant-numeric: tabular-nums; }
-
-/* layout */
-.desk { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 24px; align-items: start; }
-@media (max-width: 900px) { .desk { grid-template-columns: minmax(0, 1fr); } }
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
-
-/* picker */
-.picker { padding: 18px; display: grid; gap: 14px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
-@media (max-width: 900px) { .picker { position: static; } }
-.picker h2 { font-size: 20px; }
-.seeds { display: grid; gap: 8px; }
-.seed { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 8px 6px 10px; border-radius: 10px; border: 1px dashed var(--line); background: var(--sunken); }
+.desk { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); gap: var(--space-5); align-items: start; }
+@media (max-width: 920px) { .desk { grid-template-columns: minmax(0, 1fr); } }
+.picker { padding: var(--space-4); display: grid; gap: var(--space-3); position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+@media (max-width: 920px) { .picker { position: static; } }
+.stephead { display: flex; align-items: baseline; gap: var(--space-2); }
+.stephead .n { font-family: var(--display); font-weight: 700; color: var(--elixir); }
+.seeds { display: grid; gap: 6px; }
+.seed { display: flex; align-items: center; gap: var(--space-2); min-height: 48px; padding: 6px 6px 6px 10px; border-radius: 8px; border: 1px dashed var(--line); background: var(--sunken); }
 .seed.filled { border-style: solid; background: var(--surface); }
 .seed .nm { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.seed .empty { color: var(--muted); font-size: 13px; }
+.seed .emp { color: var(--muted); font-size: 0.875rem; }
 .forms { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.forms button { border: 0; background: transparent; padding: 3px 8px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.forms button { border: 0; background: transparent; padding: 0 9px; min-height: 32px; font-size: 0.8125rem; font-weight: 600; color: var(--muted); }
 .forms button[aria-pressed="true"].f-base { background: var(--sunken); color: var(--ink); }
 .forms button[aria-pressed="true"].f-evo { background: var(--evo-soft); color: var(--evo); }
 .forms button[aria-pressed="true"].f-hero { background: var(--hero-soft); color: var(--hero); }
-.x { border: 0; background: transparent; color: var(--muted); width: 28px; height: 28px; border-radius: 6px; font-size: 18px; line-height: 1; }
-.x:hover { background: var(--sunken); color: var(--ink); }
-.hint { font-size: 13px; color: var(--muted); margin: 0; }
-.err { font-size: 13px; color: var(--warn); background: var(--warn-soft); border-radius: 8px; padding: 8px 10px; margin: 0; }
-.filters { display: flex; flex-wrap: wrap; gap: 8px; }
-.search { flex: 1 1 160px; min-width: 0; padding: 9px 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--sunken); color: var(--ink); font: inherit; }
-.chipset { display: inline-flex; gap: 4px; flex-wrap: wrap; }
-.chip { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 4px 10px; font-size: 13px; font-weight: 500; color: var(--muted); }
-.chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
-.cardlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; max-height: 52vh; overflow-y: auto; padding: 2px; margin: -2px; }
-@media (max-width: 900px) { .cardlist { max-height: 40vh; } }
-.pick { display: flex; align-items: center; gap: 8px; text-align: left; padding: 6px 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); min-width: 0; }
+.rm { border: 0; background: transparent; color: var(--muted); width: 36px; height: 36px; border-radius: 8px; font-size: 20px; line-height: 1; }
+.rm:hover { background: var(--sunken); color: var(--ink); }
+.filters { display: grid; gap: var(--space-2); }
+.search { width: 100%; min-height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--sunken); color: var(--ink); font: inherit; }
+.types { display: flex; flex-wrap: wrap; gap: 4px; }
+.cardlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); gap: 6px; max-height: 50vh; overflow-y: auto; padding: 2px; margin: -2px; }
+@media (max-width: 920px) { .cardlist { max-height: 46vh; } }
+.pick { display: flex; align-items: center; gap: var(--space-2); text-align: left; min-height: 48px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); min-width: 0; }
 .pick:hover { border-color: var(--elixir); }
 .pick[aria-pressed="true"] { border-color: var(--elixir); background: var(--elixir-soft); }
-.pick .pn { font-size: 13px; font-weight: 600; line-height: 1.2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pick .pt { font-size: 11px; color: var(--muted); }
-
-/* elixir drop */
-.drop { flex: none; width: 24px; height: 24px; border-radius: 50% 0 50% 50%; transform: rotate(-45deg); background: var(--elixir); display: grid; place-items: center; }
-.drop span { transform: rotate(45deg); color: var(--surface); font: 600 12px/1 var(--mono); }
-.drop.var span { font-size: 10px; }
-
-/* results */
-.results { display: grid; gap: 16px; min-width: 0; }
-.results-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
-.results-head h2 { font-size: 22px; }
-.status { font-size: 13px; color: var(--muted); }
-.decks { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
-.deck { padding: 16px; display: grid; gap: 14px; min-width: 0; align-content: start; }
-.deck-top { display: flex; align-items: start; justify-content: space-between; gap: 10px; }
-.deck-top h3 { font-size: 17px; }
-.arch { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--sunken); font-size: 13px; font-weight: 600; white-space: nowrap; }
-.arch.unc { color: var(--muted); }
-.grid8 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-.tile { position: relative; display: grid; gap: 4px; align-content: start; padding: 8px 6px 7px; min-height: 76px; border-radius: 10px; border: 1px solid var(--line); background: var(--sunken); min-width: 0; }
-.tile .drop { width: 20px; height: 20px; }
-.tile .drop span { font-size: 11px; }
-.tile .tn { font-size: 12.5px; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
-.tile.s-evo { background: var(--evo-soft); border-color: color-mix(in srgb, var(--evo) 45%, transparent); }
-.tile.s-hero { background: var(--hero-soft); border-color: color-mix(in srgb, var(--hero) 45%, transparent); }
-.tile.s-wild { background: var(--wild-soft); border-color: color-mix(in srgb, var(--wild) 45%, transparent); }
-.tag { position: absolute; top: 6px; right: 6px; font: 600 9.5px/1 var(--mono); letter-spacing: 0.06em; padding: 3px 4px; border-radius: 4px; color: var(--surface); }
-.tag.evo { background: var(--evo); } .tag.hero { background: var(--hero); } .tag.wild { background: var(--wild); }
-.form-note { font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
-.s-evo .form-note { color: var(--evo); } .s-hero .form-note { color: var(--hero); } .s-wild .form-note { color: var(--wild); }
-.tile.seedcard { box-shadow: inset 3px 0 0 var(--ink); }
-.tile.changed { outline: 2px solid var(--elixir); outline-offset: -1px; }
-
-.stats { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; }
-.wp { font: 600 26px/1 var(--mono); font-variant-numeric: tabular-nums; }
-.wp small { font-size: 13px; color: var(--muted); font-weight: 500; }
-.avg { text-align: right; font-size: 13px; color: var(--muted); }
-.avg b { display: block; color: var(--ink); font: 600 18px/1.1 var(--mono); }
-.scale { grid-column: 1 / -1; }
-.scale svg { width: 100%; height: 34px; display: block; overflow: visible; }
-
-.sect { display: grid; gap: 6px; }
-.pairs { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
-.pairs li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; font-size: 13px; align-items: baseline; }
-.pairs .pv { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 12.5px; }
-.pairs .pv.pos { color: var(--ok); } .pairs .pv.neg { color: var(--warn); }
-.pairs .ev { grid-column: 1 / -1; font-size: 11.5px; color: var(--muted); font-family: var(--mono); margin-top: -2px; }
-.warns { display: grid; gap: 6px; }
-.warn { font-size: 13px; padding: 7px 10px; border-radius: 8px; background: var(--warn-soft); color: var(--ink); }
-.warn b { color: var(--warn); font-weight: 600; }
-.warn .wd { display: block; color: var(--muted); font-size: 12px; }
-.okline { font-size: 13px; color: var(--ok); }
-.dq { display: flex; flex-wrap: wrap; gap: 6px; }
-.dq span { font: 500 11px/1.3 var(--mono); padding: 3px 6px; border-radius: 5px; background: var(--sunken); color: var(--muted); cursor: help; }
-details.more summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); list-style: none; }
-details.more summary::-webkit-details-marker { display: none; }
-details.more summary::before { content: "+ "; font-family: var(--mono); }
-details.more[open] summary::before { content: "− "; }
-details.more .body { display: grid; gap: 12px; margin-top: 10px; }
-.actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 7px 12px; font-size: 13px; font-weight: 600; }
-.btn:hover { border-color: var(--ink); }
-.btn.primary { background: var(--elixir); border-color: var(--elixir); color: var(--surface); }
-.btn.primary:hover { filter: brightness(1.08); }
-.btn[disabled] { opacity: 0.5; cursor: default; }
-.swaps { display: grid; gap: 10px; }
-.swapgrp { display: grid; gap: 4px; }
-.swapgrp .from { font-size: 12px; font-weight: 600; color: var(--muted); }
-.swaprow { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; font-size: 13px; padding: 5px 8px; border-radius: 8px; background: var(--sunken); }
-.swaprow .why { grid-column: 1 / -1; font-size: 11.5px; color: var(--muted); }
-.swaprow .d { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 12px; }
-.swaprow .d.pos { color: var(--ok); } .swaprow .d.neg { color: var(--warn); }
-.swaprow .btn { padding: 3px 9px; font-size: 12px; }
-.empty-state { padding: 28px; text-align: center; color: var(--muted); }
-
-/* "why these cards" charts */
-details.why { border-top: 1px solid var(--line); padding-top: 6px; margin-top: 2px; }
-details.why summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--elixir); list-style: none; }
-details.why summary::-webkit-details-marker { display: none; }
-details.why summary::before { content: "▸ "; }
-details.why[open] summary::before { content: "▾ "; }
-.whybody { display: grid; gap: 12px; margin-top: 8px; }
-.whybody .cap { font-size: 12px; color: var(--muted); margin: 0; max-width: 62ch; }
-.chart { width: 100%; display: block; overflow: visible; }
-.chart text { font-family: var(--body); font-size: 11px; fill: var(--muted); }
-.chart text.lbl { fill: var(--ink); }
-.chart text.val { font-family: var(--mono); font-variant-numeric: tabular-nums; fill: var(--ink); font-weight: 600; }
-.chart .hit { fill: transparent; cursor: default; }
-.chart .hit:focus-visible { outline: none; stroke: var(--focus); stroke-width: 1.5; }
-.mult { display: grid; gap: 4px; }
-.mult h4 { margin: 0; font-size: 12.5px; font-family: var(--body); display: flex; justify-content: space-between; gap: 8px; }
-.mult h4 span { font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 600; }
-.mult .pc { font-size: 11.5px; color: var(--muted); margin: 0; }
-.key { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11.5px; color: var(--muted); }
-.key i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
-table.nums { border-collapse: collapse; font-size: 12px; width: 100%; }
-table.nums th, table.nums td { text-align: right; padding: 3px 6px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
-table.nums th:first-child, table.nums td:first-child { text-align: left; }
-table.nums td { font-family: var(--mono); }
-table.nums td:first-child { font-family: var(--body); }
-.tblwrap { overflow-x: auto; }
-#tip { position: fixed; z-index: 50; pointer-events: none; max-width: 260px; padding: 8px 10px; border-radius: 8px; background: var(--ink); color: var(--surface);
-  font-size: 12px; line-height: 1.4; box-shadow: var(--shadow); }
-#tip b { display: block; font-weight: 600; }
-#tip span { font-family: var(--mono); font-variant-numeric: tabular-nums; }
-
-/* card guide */
-.guide { padding: 22px; display: grid; gap: 14px; min-width: 0; }
-.guide h2 { font-size: 22px; }
-.guide .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.guide select { padding: 8px 10px; border-radius: 9px; border: 1px solid var(--line); background: var(--sunken); color: var(--ink); font: inherit; font-size: 13px; }
-.gtable { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
-table.cards { border-collapse: collapse; width: 100%; min-width: 980px; font-size: 13px; }
-table.cards th { position: sticky; top: 0; background: var(--sunken); text-align: left; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-table.cards td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
-table.cards tr:last-child td { border-bottom: 0; }
-table.cards td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
-table.cards th.n { text-align: right; }
-table.cards .cn { display: flex; align-items: center; gap: 8px; font-weight: 600; min-width: 170px; }
-table.cards .cn .drop { width: 20px; height: 20px; }
-table.cards .cn .drop span { font-size: 11px; }
-table.cards .roles { color: var(--muted); font-size: 12px; max-width: 180px; }
-table.cards .csvv { color: var(--muted); }
-.fbadge { font: 600 10px/1 var(--mono); letter-spacing: 0.05em; padding: 3px 5px; border-radius: 4px; }
-.fbadge.evo { background: var(--evo-soft); color: var(--evo); } .fbadge.hero { background: var(--hero-soft); color: var(--hero); }
-.st { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
-.st.in_search { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
-.st.seed_only { background: var(--hero-soft); color: var(--hero); }
-.st.tower_troop, .st.not_in_game, .st.duplicate { background: var(--sunken); color: var(--muted); }
-.wbar svg { width: 96px; height: 18px; display: block; }
-.gnote { font-size: 11.5px; color: var(--muted); display: block; margin-top: 2px; max-width: 260px; }
-.pickbtn { border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 3px 9px; font-size: 12px; font-weight: 600; }
-.pickbtn:hover { border-color: var(--elixir); }
-.pickbtn[disabled] { opacity: 0.4; cursor: default; }
-
-/* mode switch */
-.modesel { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.modesel .chip[aria-pressed="true"] { background: var(--elixir); border-color: var(--elixir); color: var(--surface); }
-.modesel details { font-size: 12.5px; color: var(--muted); }
-.modesel details summary { cursor: pointer; }
-.modesel details ul { margin: 6px 0 0; padding-left: 18px; }
-
-/* meta + model log */
-.meta, .log { padding: 22px; display: grid; gap: 16px; min-width: 0; }
-.meta h2, .log h2 { font-size: 22px; }
-.log h3, .meta h3 { font-size: 16px; font-family: var(--body); font-weight: 700; margin: 0; }
-.statebox { border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 6px; }
-.statebox .st { justify-self: start; }
-.st.blocked, .st.not_better { background: var(--hero-soft); color: var(--hero); }
-.st.shown { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
-.multiples { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
-.multiples .mcell { border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 4px; min-width: 0; }
-.multiples .mcell b { font-size: 13px; }
-.twocol { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start; }
-.logsec { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; }
-.logsec .tblwrap { max-height: 360px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
-.logsec table.nums th { position: sticky; top: 0; background: var(--sunken); }
-.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; font-size: 13px; }
-.kv dt { color: var(--muted); } .kv dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.md { font-size: 13.5px; color: var(--ink); max-width: 80ch; }
-.md p { margin: 0 0 8px; } .md ul { margin: 0 0 8px; padding-left: 18px; } .md li { margin-bottom: 4px; }
-.md code { font-family: var(--mono); font-size: 12px; background: var(--sunken); padding: 1px 4px; border-radius: 4px; }
-pre.cfg { font: 12px/1.45 var(--mono); background: var(--sunken); padding: 12px; border-radius: 10px; overflow: auto; max-height: 340px; margin: 0; }
-
-/* report */
-.report { padding: 22px; display: grid; gap: 18px; }
-.report h2 { font-size: 22px; }
-.report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
-.metric { border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 6px; align-content: start; }
-.metric h3 { font-size: 15px; font-family: var(--body); font-weight: 700; }
-.metric .big { font: 600 24px/1.1 var(--mono); font-variant-numeric: tabular-nums; }
-.metric .vs { font-size: 13px; color: var(--muted); }
-.metric p { margin: 0; font-size: 13px; color: var(--muted); }
-.pill { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; width: fit-content; }
-.pill.good { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
-.pill.weak { background: var(--warn-soft); color: var(--warn); }
-.notes { columns: 2 320px; column-gap: 32px; font-size: 14px; color: var(--muted); margin: 0; padding-left: 18px; }
-.notes li { break-inside: avoid; margin-bottom: 8px; }
-.notes b { color: var(--ink); }
-footer { font-size: 12.5px; color: var(--muted); text-align: center; }
-.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-@media (prefers-reduced-motion: no-preference) {
-  .deck { animation: rise 0.35s ease both; }
-  .deck:nth-child(2) { animation-delay: 0.05s; } .deck:nth-child(3) { animation-delay: 0.1s; }
-  @keyframes rise { from { transform: translateY(6px); } to { transform: none; } }
-}
+.pick .pn { display: block; font-size: 0.875rem; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick .pt { display: block; font-size: 0.75rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.results { display: grid; gap: var(--space-4); min-width: 0; }
+.results-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-2) var(--space-4); }
+.status { font-size: 0.875rem; color: var(--muted); }
+.decks { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(310px, 100%), 1fr)); gap: var(--space-4); }
+.deck { padding: var(--space-4); display: grid; gap: var(--space-4); min-width: 0; align-content: start; }
+.deck-top { display: grid; gap: 2px; }
+.deck-top .k { font-size: 0.8125rem; color: var(--muted); font-weight: 600; }
+.win { display: grid; grid-template-columns: 1fr auto; gap: 2px var(--space-3); align-items: end; }
+.win .big { font-family: var(--display); font-weight: 700; font-size: 2rem; line-height: 1; }
+.win .cap { font-size: 0.8125rem; color: var(--muted); }
+.win .elx { text-align: right; }
+.win .elx b { display: block; font-size: 1.25rem; line-height: 1.1; }
+.win .meter, .win .range { grid-column: 1 / -1; }
+.health { display: grid; gap: 6px; font-size: 0.875rem; }
+.health .okline { color: var(--ok); font-weight: 600; }
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 </style>
 
+<a class="skip" href="#main">Skip to the deck builder</a>
 <div class="wrap">
-  <header class="top">
-    <div class="brand">
-      <h1>crdeck<span class="dot">.</span> Deck Builder</h1>
-      <p>Pick up to three Clash Royale cards. It builds legal decks around them from real top-player battles, and shows the evidence behind every number.</p>
+  <header class="site" id="site"></header>
+  <main id="main" class="wrap">
+    <div class="pagehead">
+      <h1>Build a Clash Royale deck</h1>
+      <p class="lede">Pick up to three cards you want to play. The builder fills the other slots with cards that won together in real battles, and each deck links to the reasons behind it.</p>
+      <div class="modebar" id="modebar"></div>
+      <div class="facts" id="facts"><span class="skel" style="width:320px"></span></div>
     </div>
-    <div style="display:grid;gap:10px;justify-items:end">
-      <div class="stamp" id="stamp" aria-label="Data used"><span>Loading model…</span></div>
-      <div class="modesel" id="modesel" role="group" aria-label="Game mode"></div>
+
+    <div class="desk">
+      <section class="panel picker" aria-labelledby="pick-h">
+        <h2 class="stephead" id="pick-h"><span class="n">1</span> Pick your cards</h2>
+        <div class="seeds" id="seeds"></div>
+        <p class="muted small" id="seed-hint">Optional. With no cards picked, it builds the strongest decks it can find.</p>
+        <p class="notice" id="seed-note" role="status" hidden></p>
+        <div class="filters">
+          <label class="sr" for="q">Search cards</label>
+          <input class="search" id="q" type="search" placeholder="Search, for example Hog Rider" autocomplete="off">
+          <div class="types" role="group" aria-label="Card type" id="types"></div>
+        </div>
+        <div class="cardlist" id="cardlist" aria-label="Cards to pick"></div>
+      </section>
+
+      <section class="results" aria-labelledby="res-h">
+        <div class="results-head">
+          <h2 class="stephead" id="res-h"><span class="n">2</span> Your decks</h2>
+          <span class="status" id="status" aria-live="polite"></span>
+        </div>
+        <div id="slotkey"></div>
+        <div class="decks" id="decks">
+          <div class="panel deck" aria-hidden="true"><div class="skel" style="height:22px;width:60%"></div><div class="skel" style="height:170px"></div><div class="skel" style="height:60px"></div></div>
+          <div class="panel deck" aria-hidden="true"><div class="skel" style="height:22px;width:50%"></div><div class="skel" style="height:170px"></div><div class="skel" style="height:60px"></div></div>
+          <div class="panel deck" aria-hidden="true"><div class="skel" style="height:22px;width:55%"></div><div class="skel" style="height:170px"></div><div class="skel" style="height:60px"></div></div>
+        </div>
+      </section>
     </div>
-  </header>
-
-  <div class="desk">
-    <aside class="panel picker" aria-labelledby="pick-h">
-      <h2 id="pick-h">Your cards</h2>
-      <div class="seeds" id="seeds"></div>
-      <p class="hint" id="seed-hint">Pick 0–3 cards. With none picked, it builds the strongest decks it can find.</p>
-      <p class="err" id="seed-err" hidden></p>
-      <div class="filters">
-        <label class="sr" for="q">Search cards</label>
-        <input class="search" id="q" type="search" placeholder="Search card forms" autocomplete="off">
-        <div class="chipset" role="group" aria-label="Card type" id="types"></div>
-      </div>
-      <div class="cardlist" id="cardlist" aria-label="Cards"></div>
-    </aside>
-
-    <section class="results" aria-labelledby="res-h">
-      <div class="results-head">
-        <h2 id="res-h">Suggested decks</h2>
-        <span class="status" id="status" aria-live="polite"></span>
-      </div>
-      <div class="decks" id="decks"><div class="panel empty-state">Loading the trained model…</div></div>
-    </section>
-  </div>
-
-  <section class="panel guide" aria-labelledby="guide-h" id="guide">
-    <h2 id="guide-h">Every card in your list</h2>
-    <p class="hint" id="guide-sum">Loading…</p>
-    <div class="bar">
-      <label class="sr" for="gq">Search the card guide</label>
-      <input class="search" id="gq" type="search" placeholder="Search card forms and CSV rows" autocomplete="off">
-      <label class="sr" for="gstatus">Show</label>
-      <select id="gstatus">
-        <option value="all">All rows</option>
-        <option value="in_search">Used by the search</option>
-        <option value="other">Not used by the search</option>
-        <option value="csv_only">CSV rows that are not deck card forms</option>
-      </select>
-      <label class="sr" for="gsort">Sort by</label>
-      <select id="gsort">
-        <option value="name">Sort: name</option>
-        <option value="weight">Sort: model weight</option>
-        <option value="games">Sort: games played</option>
-        <option value="winrate">Sort: real win rate</option>
-        <option value="elixir">Sort: elixir</option>
-        <option value="rating">Sort: your CSV rating</option>
-      </select>
-    </div>
-    <div class="gtable"><table class="cards" id="gtable"></table></div>
-    <p class="hint">Every playable card form is its own row (base, Evolution and Hero listed separately). Games and real win rate: deck appearances in this mode's training battles (both sides of each battle). Model weight: the card form's learned regression weight in log-odds, with its 90% interval; right of the center line helps win. Rating, usage and win% on the right come from your CSV and are not used by the model.</p>
-  </section>
-
-  <section class="panel meta" aria-labelledby="meta-h" id="meta-sec">
-    <h2 id="meta-h">Meta: what top ranked players are playing</h2>
-    <div id="meta"><p class="hint">Loading…</p></div>
-  </section>
-
-  <section class="panel report" aria-labelledby="rep-h">
-    <h2 id="rep-h">How good is the model?</h2>
-    <p class="hint" id="rep-sub" style="margin:-8px 0 0"></p>
-    <div class="report-grid" id="report"></div>
-    <ul class="notes">
-      <li><b>Win rates describe top players.</b> They are estimates against the opponent decks seen in the test window, at equal player rating. They are not a promise about your games.</li>
-      <li><b>Top results run optimistic.</b> The best of many noisy estimates is biased upward. The interval covers model and sampling uncertainty, not that selection effect.</li>
-      <li><b>Synergy is correlation.</b> A positive score means two cards won together more than expected from each one alone in this data. It is not proof of a combo.</li>
-      <li><b>Unseen decks are extrapolated.</b> “Unseen deck” means nobody in the collected battles played these exact 8 cards; the score comes from the cards and their pairs.</li>
-      <li id="note-rules"><b>Legality is a hard rule.</b></li>
-      <li id="note-arch"><b>Archetype labels</b></li>
-    </ul>
-  </section>
-
-  <section class="panel log" aria-labelledby="log-h" id="log-sec">
-    <h2 id="log-h">Model log</h2>
-    <p class="hint">Everything below is read from the run log the pipeline wrote (data/processed/run_log.json) and from docs/model-notes.md. Nothing is typed in by hand.</p>
-    <div id="log"><p class="hint">Loading…</p></div>
-  </section>
-
-  <footer>Fan-made learning project. Not affiliated with, endorsed by or sponsored by Supercell. Data from the official Clash Royale API.</footer>
+  </main>
+  <footer class="site-foot">
+    <span>A fan-made learning project. Not affiliated with, endorsed by or sponsored by Supercell.</span>
+    <span>Battle data comes from the official Clash Royale API. Win rates describe top players, not a promise about your games.</span>
+  </footer>
 </div>
 
 <script src="engine.js"></script>
+<script src="common.js"></script>
 <script>
 (() => {
   "use strict";
-  const $ = (s) => document.querySelector(s);
-  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const pct = (x, d = 1) => (100 * x).toFixed(d) + "%";
-  const signed = (x, d = 3) => (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(d);
+  const { $, esc, pct, num } = UI;
   const TYPES = [["all", "All"], ["troop", "Troops"], ["spell", "Spells"], ["building", "Buildings"]];
-  const SLOT_NAME = { evo: "EVO", hero: "HERO", wild: "WILD" };
-  const DQ_HELP = {
-    UNSEEN_DECK: "Nobody in the collected battles played these exact 8 cards. The score is extrapolated from the cards and pairs.",
-    INSUFFICIENT_SAMPLE: "Some card pairs have fewer than 200 games together, so they get no synergy score.",
-    LOW_CARD_DATA: "A card form has too few training games to have a learned weight.",
-    FORM_UNKNOWN: "Hero and base forms could not be told apart in the battle data.",
-    UNKNOWN_CARD: "A card is missing from the card table.",
-  };
+  const FORM_ORDER = { base: 0, evo: 1, hero: 2 };
+  const EXAMPLE = [{ id: 26000021, form: "base" }];
+  let ctx = null, E = null, seeds = null, example = false, decks = [];
+  const view = { type: "all", q: "" };
+  let timer = 0;
 
-  let E = null;
-  const state = { seeds: [{ id: 26000021, form: "base" }], type: "all", q: "", decks: [], swaps: {} };
-  let buildTimer = 0;
+  UI.start("index.html", (c) => {
+    ctx = c; E = c.E;
+    if (seeds === null) {
+      // first load: cards from the link, else a marked example so the page opens with decks
+      if (c.hash.seeds !== null) seeds = c.hash.seeds;
+      else { seeds = EXAMPLE.slice(); example = true; }
+    }
+    seeds = seeds.filter((s) => E.card(s.id) && E.allowedForms(E.card(s.id)).includes(s.form));
+    $("#slotkey").innerHTML = UI.SLOT_KEY;
+    renderTypes(); renderSeeds(); renderCards(); build();
+  }, { failTarget: "#decks", onLoading: () => { $("#status").textContent = "Loading this mode…"; } });
 
-  let INDEX = null, currentSlug = null;
-  const getJSON = (u) => fetch(u).then((r) => { if (!r.ok) throw new Error(`${u}: HTTP ${r.status}`); return r.json(); });
-  getJSON("modes.json").then((idx) => { INDEX = idx; return loadMode(idx.default); }).catch((e) => {
-    $("#decks").innerHTML = `<div class="panel empty-state">The model files didn’t load (${esc(e.message)}). Reload the page to try again.</div>`;
-  });
-  async function loadMode(slug) {
-    const entry = INDEX.modes.find((m) => m.slug === slug && m.status === "exported");
-    if (!entry) return;
-    $("#status").textContent = `Loading ${entry.label}…`;
-    const m = await getJSON(entry.file);
-    E = new CRDeck.Engine(m);
-    CAL = E.calibration(8);
-    GROWS = null;
-    currentSlug = slug;
-    // keep picked cards whose form exists in this mode's card table
-    state.seeds = state.seeds.filter((s) => E.card(s.id) && E.allowedForms(E.card(s.id)).includes(s.form));
-    renderModeSel(); renderStamp(m); renderTypes(); renderSeeds(); renderCards(); renderReport(m); renderGuide();
-    renderMeta(); renderLog();
-    build();
-  }
-  function renderModeSel() {
-    const ok = INDEX.modes.filter((m) => m.status === "exported"), no = INDEX.modes.filter((m) => m.status !== "exported");
-    $("#modesel").innerHTML = ok.map((m) => `<button class="chip" data-slug="${esc(m.slug)}" aria-pressed="${m.slug === currentSlug}"
-        title="${m.ok_battles.toLocaleString()} usable battles">${esc(m.label)}</button>`).join("") +
-      (no.length ? `<details><summary>${no.length} without enough data</summary><ul>${no.map((m) =>
-        `<li>${esc(m.label)}: ${m.ok_battles.toLocaleString()} battles</li>`).join("")}</ul></details>` : "");
-  }
-  $("#modesel").addEventListener("click", (ev) => { const b = ev.target.closest("[data-slug]"); if (b && b.dataset.slug !== currentSlug) loadMode(b.dataset.slug); });
+  const slug = () => ctx.entry.slug;
+  function saveLink() { UI.setHash(seeds.length ? UI.token(slug(), null, seeds) : `${slug()}~~`); }
 
-  function renderStamp(m) {
-    const c = m.meta.counts, entry = INDEX.modes.find((x) => x.slug === currentSlug);
-    $("#stamp").innerHTML = `
-      <span><b>${entry.ok_battles.toLocaleString()}</b> ${esc(entry.label)} battles</span>
-      <span><b>${Object.keys(m.deck_appearances || {}).length.toLocaleString()}</b> distinct decks</span>
-      <span>data through <b>${esc(String(c.last_battle).slice(0, 16).replace("T", " "))} UTC</b></span>`;
-  }
-
-  // ---------------------------------------------------------------- picker
+  // ------------------------------------------------------------ picker
   function renderTypes() {
-    $("#types").innerHTML = TYPES.map(([k, l]) => `<button class="chip" data-type="${k}" aria-pressed="${state.type === k}">${l}</button>`).join("");
-    $("#types").onclick = (ev) => { const b = ev.target.closest("[data-type]"); if (!b) return; state.type = b.dataset.type; renderTypes(); renderCards(); };
+    $("#types").innerHTML = TYPES.map(([k, l]) => `<button class="chip" data-type="${k}" aria-pressed="${view.type === k}">${l}</button>`).join("");
   }
-  $("#q").addEventListener("input", (ev) => { state.q = ev.target.value; renderCards(); });
+  $("#types").onclick = (ev) => { const b = ev.target.closest("[data-type]"); if (!b) return; view.type = b.dataset.type; renderTypes(); renderCards(); };
+  $("#q").addEventListener("input", (ev) => { view.q = ev.target.value; renderCards(); });
 
-  function drop(c) {
-    const v = c.elixir_variable ? "?" : (c.elixir === null ? "–" : Math.round(c.elixir));
-    return `<span class="drop${c.elixir_variable ? " var" : ""}" aria-label="${c.elixir_variable ? "variable" : v} elixir"><span>${v}</span></span>`;
-  }
-  function typeLabel(c) {
-    const bits = [c.champion ? "Champion" : c.type[0].toUpperCase() + c.type.slice(1)];
-    if (c.evo) bits.push("Evo"); if (c.hero) bits.push("Hero");
-    return bits.join(" · ");
-  }
-  const FORM_ORDER = { base: 0, evo: 1, hero: 2 }, FORM_WORD = { base: "", evo: "Evolution", hero: "Hero" };
   function renderCards() {
-    // every playable form is its own entry: base, Evolution and Hero listed separately
-    const q = state.q.trim().toLowerCase();
-    const picked = new Set(state.seeds.map((s) => `${s.id}:${s.form}`));
+    // every playable form is its own entry: base, Evolution and Hero are listed separately
+    const q = view.q.trim().toLowerCase(), picked = new Set(seeds.map(CRDeck.keyOf));
     const list = E.m.forms.map((f) => Object.assign({}, f, { c: E.card(f.card_id) }))
-      .filter((f) => (state.type === "all" || f.c.type === state.type) &&
-        (!q || `${f.c.name} ${FORM_WORD[f.form]} ${f.form === "evo" ? "evo" : ""}`.toLowerCase().includes(q)))
+      .filter((f) => (view.type === "all" || f.c.type === view.type) &&
+        (!q || `${f.c.name} ${UI.FORM_WORD[f.form]} ${f.form === "evo" ? "evo" : ""}`.toLowerCase().includes(q)))
       .sort((a, b) => a.c.name.localeCompare(b.c.name) || FORM_ORDER[a.form] - FORM_ORDER[b.form]);
     $("#cardlist").innerHTML = list.length ? list.map((f) => `
       <button class="pick" data-key="${f.key}" aria-pressed="${picked.has(f.key)}" title="${esc(E.describe({ id: f.card_id, form: f.form }))}">
-        ${drop(f.c)}<span style="min-width:0"><span class="pn" style="display:block">${esc(f.c.name)}${f.form !== "base" ? ` <span class="fbadge ${f.form}">${f.form === "evo" ? "EVO" : "HERO"}</span>` : ""}</span>
-        <span class="pt">${f.c.champion ? "Champion" : f.c.type[0].toUpperCase() + f.c.type.slice(1)} · ${f.games ? f.games.toLocaleString() + " games" : "no games"}</span></span>
-      </button>`).join("") : `<p class="hint">No card form matches “${esc(state.q)}”.</p>`;
+        ${UI.drop(f.c)}<span style="min-width:0"><span class="pn">${esc(f.c.name)}${f.form !== "base" ? ` <span class="fbadge ${f.form}">${f.form === "evo" ? "EVO" : "HERO"}</span>` : ""}</span>
+        <span class="pt">${UI.typeName(f.c)} · ${f.games ? num(f.games) + " games" : "not played here"}</span></span>
+      </button>`).join("") : `<p class="muted small">No card matches “${esc(view.q)}”. Check the spelling or clear the search.</p>`;
   }
   $("#cardlist").onclick = (ev) => {
     const b = ev.target.closest("[data-key]"); if (!b) return;
-    const e = CRDeck.parseKey(b.dataset.key), i = state.seeds.findIndex((s) => s.id === e.id);
+    const e = CRDeck.parseKey(b.dataset.key), i = seeds.findIndex((s) => s.id === e.id);
     let note = "";
-    if (i >= 0 && state.seeds[i].form === e.form) state.seeds.splice(i, 1);
-    else if (i >= 0) { note = `${E.card(e.id).name} can be in a deck in one form only, so it now uses ${E.describe(e)}.`; state.seeds[i].form = e.form; }
-    else if (state.seeds.length < 3) state.seeds.push(e);
-    else { showSeedErr("You can pick up to 3 cards. Remove one first."); return; }
-    seedsChanged();
-    if (note) showSeedErr(note);
+    if (i >= 0 && seeds[i].form === e.form) seeds.splice(i, 1);
+    else if (i >= 0) { note = `A deck can hold ${E.card(e.id).name} in one form only, so your pick is now ${E.describe(e)}.`; seeds[i].form = e.form; }
+    else if (seeds.length < 3) seeds.push(e);
+    else { showNote("You already picked 3 cards. Remove one to pick another."); return; }
+    changed(); if (note) showNote(note);
   };
-  function seedsChanged() { showSeedErr(""); renderSeeds(); renderCards(); renderGuide(); scheduleBuild(); }
-  function showSeedErr(msg) { const el = $("#seed-err"); el.textContent = msg; el.hidden = !msg; }
+  function changed() { example = false; showNote(""); renderSeeds(); renderCards(); saveLink(); schedule(); }
+  function showNote(msg) { const el = $("#seed-note"); el.textContent = msg; el.hidden = !msg; }
 
   function renderSeeds() {
     const rows = [];
     for (let i = 0; i < 3; i++) {
-      const s = state.seeds[i];
-      if (!s) { rows.push(`<div class="seed"><span class="empty">Empty — pick a card below</span></div>`); continue; }
+      const s = seeds[i];
+      if (!s) { rows.push(`<div class="seed"><span class="emp">Empty slot</span></div>`); continue; }
       const c = E.card(s.id), forms = E.allowedForms(c);
-      const formBtns = forms.length > 1 ? `<span class="forms" role="group" aria-label="Form of ${esc(c.name)}">${forms.map((f) =>
+      const fb = forms.length > 1 ? `<span class="forms" role="group" aria-label="Form of ${esc(c.name)}">${forms.map((f) =>
         `<button class="f-${f}" data-i="${i}" data-form="${f}" aria-pressed="${s.form === f}">${f === "base" ? "Base" : f === "evo" ? "Evo" : "Hero"}</button>`).join("")}</span>` : "";
-      rows.push(`<div class="seed filled">${drop(c)}<span class="nm">${esc(c.name)}</span>${formBtns}
-        <button class="x" data-rm="${i}" aria-label="Remove ${esc(c.name)}">×</button></div>`);
+      rows.push(`<div class="seed filled">${UI.drop(c)}<span class="nm">${esc(c.name)}</span>${fb}<button class="rm" data-rm="${i}" aria-label="Remove ${esc(c.name)}">×</button></div>`);
     }
     $("#seeds").innerHTML = rows.join("");
+    $("#seed-hint").textContent = example
+      ? `Starting example: ${E.describe(EXAMPLE[0])}. Remove it, or pick up to two more cards.`
+      : seeds.length ? `${3 - seeds.length ? `${3 - seeds.length} slot${3 - seeds.length === 1 ? "" : "s"} free.` : "All 3 slots used."} Press × to remove a card, or switch its form.`
+      : "Optional. With no cards picked, it builds the strongest decks it can find.";
   }
   $("#seeds").onclick = (ev) => {
     const rm = ev.target.closest("[data-rm]");
-    if (rm) { state.seeds.splice(Number(rm.dataset.rm), 1); seedsChanged(); return; }
+    if (rm) { seeds.splice(Number(rm.dataset.rm), 1); changed(); return; }
     const f = ev.target.closest("[data-form]");
-    if (f) { state.seeds[Number(f.dataset.i)].form = f.dataset.form; seedsChanged(); }
+    if (f) { seeds[Number(f.dataset.i)].form = f.dataset.form; changed(); }
   };
 
-  // ---------------------------------------------------------------- build
-  function scheduleBuild() { clearTimeout(buildTimer); $("#status").textContent = "Building…"; buildTimer = setTimeout(build, 120); }
+  // ------------------------------------------------------------ build
+  function schedule() { clearTimeout(timer); $("#status").textContent = "Building decks…"; timer = setTimeout(build, 120); }
   function build() {
-    $("#status").textContent = "Building…";
+    $("#status").textContent = "Building decks…";
     setTimeout(() => {
       const t0 = performance.now();
       try {
-        const res = E.complete(state.seeds);
-        state.decks = res.map((d) => ({ entries: d.entries, original: d.entries.map(CRDeck.keyOf), history: [] }));
-        state.swaps = {};
+        decks = E.complete(seeds).map((d) => d.entries);
         renderDecks();
-        const names = state.seeds.map((s) => E.describe(s)).join(", ");
-        $("#status").textContent = `${res.length} legal decks${names ? " around " + names : ""} · ${Math.round(performance.now() - t0)} ms`;
+        const names = seeds.map((s) => E.describe(s)).join(", ");
+        $("#status").textContent = `${decks.length} decks${names ? " with " + names : ""}, built in ${(performance.now() - t0) / 1000 < 1 ? Math.round(performance.now() - t0) + " ms" : ((performance.now() - t0) / 1000).toFixed(1) + " s"}`;
       } catch (e) {
+        $("#status").textContent = "";
         if (!(e instanceof CRDeck.SeedError)) {
-          console.error(e);
-          $("#decks").innerHTML = `<div class="panel empty-state">Something went wrong while building decks (${esc(e.message)}). Try different cards or reload the page.</div>`;
-          $("#status").textContent = "";
+          $("#decks").innerHTML = `<div class="panel empty"><b>The builder hit an error.</b><span>${esc(e.message)}. Try other cards or reload the page.</span></div>`;
           return;
         }
-        state.decks = [];
-        $("#decks").innerHTML = `<div class="panel empty-state">No legal deck contains these cards.<br><span class="hint">${esc(friendlySeedError(e.message))}</span></div>`;
-        $("#status").textContent = "";
-        showSeedErr(friendlySeedError(e.message));
+        decks = [];
+        const why = friendly(e.message);
+        $("#decks").innerHTML = `<div class="panel empty"><b>No legal deck can hold these cards together.</b><span>${esc(why)}</span></div>`;
+        showNote(why);
       }
     }, 10);
   }
-  function friendlySeedError(msg) {
-    if (msg.includes("max_champions")) return "Too many champions: a deck can hold at most two (Hero slot and Wild slot).";
-    if (msg.includes("cannot be placed")) return "Too many special cards: a deck has one Evolution slot, one Hero slot and one Wild slot.";
+  function friendly(msg) {
+    if (msg.includes("max_champions")) return "A deck can hold at most two champions (one in the Hero slot, one in the Wild slot). Remove a champion.";
+    if (msg.includes("cannot be placed")) return "A deck has one Evolution slot, one Hero slot and one Wild slot. Switch one of your picks to its base form.";
     return msg.replace("seed cards cannot form a legal deck: ", "");
   }
 
-  // ---------------------------------------------------------------- decks
-  function scaleSvg(x) {
-    // 40% to 60% axis (widened in 5-point steps if an interval reaches past it), 50% marked
-    const [a, b] = x.score.interval, p = x.score.meta_win_prob;
-    const lo = Math.min(0.4, Math.floor(a * 20) / 20), hi = Math.max(0.6, Math.ceil(b * 20) / 20);
-    const W = 300, X = (v) => 8 + (W - 16) * (v - lo) / (hi - lo);
-    return `<svg viewBox="0 0 ${W} 34" role="img" aria-label="Estimated win rate ${pct(p)}, interval ${pct(a)} to ${pct(b)}">
-      <line x1="8" y1="12" x2="${W - 8}" y2="12" stroke="var(--line)" stroke-width="4" stroke-linecap="round"/>
-      <line x1="${X(0.5)}" y1="4" x2="${X(0.5)}" y2="20" stroke="var(--muted)" stroke-width="1"/>
-      <line x1="${X(a)}" y1="12" x2="${X(b)}" y2="12" stroke="var(--elixir)" stroke-width="6" stroke-linecap="round" opacity="0.35"/>
-      <circle cx="${X(p)}" cy="12" r="5.5" fill="var(--elixir)" stroke="var(--surface)" stroke-width="2"/>
-      <text x="8" y="31" font-size="10" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${Math.round(lo * 100)}%</text>
-      <text x="${X(0.5)}" y="31" font-size="10" fill="var(--muted)" text-anchor="middle" font-family="IBM Plex Mono, monospace">50%</text>
-      <text x="${W - 8}" y="31" font-size="10" fill="var(--muted)" text-anchor="end" font-family="IBM Plex Mono, monospace">${Math.round(hi * 100)}%</text>
-    </svg>`;
-  }
-  function tile(e, slots, seedIds, original) {
-    const c = E.card(e.id), k = CRDeck.keyOf(e), slot = slots[k];
-    const cls = slot ? `s-${slot}` : "";
-    const formNote = e.form === "evo" ? "Evolution" : e.form === "hero" ? "Hero" : c.champion ? "Champion" : "";
-    return `<div class="tile ${cls}${seedIds.has(e.id) ? " seedcard" : ""}${original.includes(k) ? "" : " changed"}" title="${esc(E.describe(e))}${slot ? " · " + slot + " slot" : ""}">
-      ${slot ? `<span class="tag ${slot}">${SLOT_NAME[slot]}</span>` : ""}
-      ${drop(c)}<span class="tn">${esc(c.name)}</span>${formNote ? `<span class="form-note">${formNote}</span>` : ""}
-    </div>`;
-  }
-  function pairList(rows) {
-    return `<ul class="pairs">${rows.map((p) => `<li><span>${esc(p.pair)}</span><span class="pv ${p.synergy >= 0 ? "pos" : "neg"}">${signed(p.synergy)}</span>
-      <span class="ev">[${signed(p.interval[0])}, ${signed(p.interval[1])}] · lift ${p.lift.toFixed(2)} · ${p.games.toLocaleString()} games · won ${pct(p.shrunk_wr)}</span></li>`).join("")}</ul>`;
-  }
   function renderDecks() {
-    const seedIds = new Set(state.seeds.map((s) => s.id));
-    $("#decks").innerHTML = state.decks.map((d, i) => {
-      const x = E.explain(d.entries, E.objectiveDict(E.evaluate(d.entries)));
-      const a = x.archetype, unc = a.label === CRDeck.UNCERTAIN || a.label === CRDeck.NO_LABELS;
-      const sw = state.swaps[i] || (state.swaps[i] = E.swaps(d.entries, { locked: state.seeds }));
-      const ws = x.entries.map((e) => Object.assign(E.coefInfo(e), { role: "in" })).sort((p, q) => q.weight - p.weight);
-      const cardSum = ws.reduce((t, w) => t + w.weight, 0), pairSum = E.utility(x.entries) - cardSum;
-      const warnHtml = x.warnings.length ? `<div class="warns">${x.warnings.map((g) => `<div class="warn"><b>${esc(g.root_cause)}</b>
-          ${g.warnings.map((w) => `<span class="wd">${esc(w.message)} · rule ${esc(w.rule)}</span>`).join("")}</div>`).join("")}</div>`
-        : `<div class="okline">No structural warnings: win condition, air defense, spells and elixir all covered.</div>`;
-      const exact = x.score.test_battles_exact_deck;
-      return `<article class="panel deck" aria-label="Deck ${i + 1}">
-        <div class="deck-top">
-          <div><span class="label">Deck ${i + 1}</span><h3>${esc(a.label === CRDeck.NO_LABELS ? "Deck" : (unc ? "Hybrid / uncertain" : a.label))}</h3></div>
-          <span class="arch${unc ? " unc" : ""}" title="Archetype classifier confidence">${a.probability === null ? "no labels" : pct(a.probability, 0) + " sure"}</span>
+    const seedIds = new Set(seeds.map((s) => s.id));
+    $("#decks").innerHTML = decks.map((entries, i) => {
+      const x = E.explain(entries, E.objectiveDict(E.evaluate(entries)));
+      const v = UI.verdict(x.score), a = x.archetype;
+      const href = `reason.html#${UI.token(slug(), x.entries, seeds)}`;
+      const health = x.warnings.length
+        ? x.warnings.map((g) => `<div class="notice"><b>Watch out:</b> ${esc(g.root_cause)}</div>`).join("")
+        : `<div class="okline">✓ Has a win condition, air defense and spells, at a workable elixir cost.</div>`;
+      return `<article class="panel deck" aria-labelledby="dk${i}">
+        <div class="deck-top"><span class="k">Deck ${i + 1}${a.probability !== null ? ` · style guess ${pct(a.probability, 0)} sure` : ""}</span><h3 id="dk${i}">${esc(UI.archName(a))}</h3></div>
+        <div class="grid8">${x.entries.map((e) => UI.tile(E, e, x.legality.slots, seedIds, null)).join("")}</div>
+        <div class="win">
+          <div><span class="cap">Estimated win rate <span class="src model">model estimate</span></span><div class="big">${pct(x.score.meta_win_prob)}</div></div>
+          <div class="elx"><span class="cap">Average elixir</span><b>${x.avg_elixir === null ? "n/a" : x.avg_elixir.toFixed(1)}</b></div>
+          <div class="meter">${UI.meter(x.score)}</div>
+          <div class="range cap"><span class="pill ${v[0]}">${v[1]}</span> Likely between ${pct(x.score.interval[0])} and ${pct(x.score.interval[1])} against decks top players used.</div>
         </div>
-        <div class="grid8">${x.entries.map((e) => tile(e, x.legality.slots, seedIds, d.original)).join("")}</div>
-        <div class="stats">
-          <div><span class="label">Est. win rate vs top meta</span><div class="wp">${pct(x.score.meta_win_prob)} <small>${pct(x.score.interval[0])}–${pct(x.score.interval[1])}</small></div></div>
-          <div class="avg">avg elixir<b>${x.avg_elixir === null ? "–" : x.avg_elixir.toFixed(2)}</b></div>
-          <div class="scale">${scaleSvg(x)}</div>
-        </div>
-        <div class="sect"><span class="label">What the regression sees in this deck</span>
-          <div class="key"><span><i style="background:var(--elixir)"></i>Learned weight of each card (log-odds)</span><span>line = 90% interval · right of 0 helps win</span></div>
-          ${coefChart(ws)}
-          <p class="hint">The 8 card weights add up to ${signed(cardSum, 3)} log-odds and the tracked card pairs add ${signed(pairSum, 3)}. Against the sampled opponent decks that gives the ${pct(x.score.meta_win_prob)} estimate above.</p>
-        </div>
-        <div class="sect"><span class="label">Regression line vs real results</span>
-          <div class="key"><span><i style="background:var(--elixir)"></i>Model: win rate for a deck of this strength</span><span><i style="background:var(--ink)"></i>Real win rate of decks played in the test window (90% interval)</span></div>
-          ${lineChart(cardSum + pairSum, x.score.meta_win_prob)}
-          <p class="hint">Each dot groups about ${Math.round(CAL.total / CAL.bins.length).toLocaleString()} held-out deck appearances by model strength. Dots that follow the line mean the regression matches what really happened.</p>
-        </div>
-        <div class="sect"><span class="label">Best pairs in this deck</span>${x.synergy_top.length ? pairList(x.synergy_top) : `<p class="hint">No pair has enough games for a synergy score.</p>`}</div>
-        <div class="sect"><span class="label">Advisory warnings</span>${warnHtml}</div>
-        ${x.data_quality.length ? `<div class="dq">${x.data_quality.map((q) => `<span title="${esc(DQ_HELP[q.state] || q.detail)}">${esc(q.state.replace(/_/g, " ").toLowerCase())}</span>`).join("")}</div>` : ""}
-        <details class="more">
-          <summary>Evidence and score breakdown</summary>
-          <div class="body">
-            ${x.synergy_bottom.length ? `<div class="sect"><span class="label">Weakest pairs</span>${pairList(x.synergy_bottom)}</div>` : ""}
-            <div class="sect"><span class="label">This exact deck in the test window</span>
-              <p class="hint">${exact ? `${exact} battles, ${x.score.test_wins_exact_deck} wins` : "Not played in the test window."} Scored against ${x.score.opponent_decks.toLocaleString()} sampled opponent decks.</p></div>
-            <div class="sect"><span class="label">Ranking score</span>
-              <p class="hint num">${x.objective.objective.toFixed(4)} = win ${x.objective.meta_win_prob.toFixed(4)} + ${E.weight} × synergy ${signed(x.objective.mean_pair_synergy, 4)} + ${E.coWeight} × co-play ${x.objective.mean_log_lift.toFixed(3)}</p>
-              <p class="hint">The co-play term favors card pairs people actually run together.</p></div>
-          </div>
-        </details>
-        <div class="sect"><span class="label">Swap suggestions · ${sw.length && Math.max(...sw.map((s) => s.delta_objective)) > 0 ? "best improvement first" : "smallest drop first"}</span>
-          ${sw.length && Math.max(...sw.map((s) => s.delta_objective)) <= 0 ? `<p class="hint">No single swap raises this deck's ranking score: the search already found the best version it could. These are the swaps that cost the least.</p>` : ""}
-          ${renderSwaps(i, sw)}</div>
+        <div class="health">${health}</div>
         <div class="actions">
+          <a class="btn primary" href="${href}">Why this deck →</a>
           <button class="btn" data-copy="${i}">Copy card list</button>
-          ${d.history.length ? `<button class="btn" data-undo="${i}">Undo swap</button>` : ""}
         </div>
       </article>`;
     }).join("");
-    // the best swap group's charts are open from the start
-    document.querySelectorAll("#decks details.why[open]").forEach((det) => { if (!det.dataset.done) { det.dataset.done = "1"; renderWhy(det); } });
   }
-  function renderSwaps(i, sw) {
-    if (!sw.length) return `<p class="hint">Every card here is a picked card, so there is nothing to swap.</p>`;
-    const groups = new Map();
-    sw.forEach((s, j) => { if (!groups.has(s.replace)) groups.set(s.replace, []); groups.get(s.replace).push([s, j]); });
-    const ordered = [...groups.entries()].sort((a, b) => b[1][0][0].delta_objective - a[1][0][0].delta_objective);
-    return `<div class="swaps" aria-label="Swap suggestions">${ordered.map(([from, rows], gi) => `
-      <div class="swapgrp"><span class="from">Replace ${esc(from)}</span>
-        ${rows.map(([s, j]) => `<div class="swaprow"><span>${esc(s.with)}</span>
-          <span class="d ${s.delta_objective >= 0 ? "pos" : "neg"}" title="Score: change in ranking score, which swaps are sorted by. Win: change in estimated win rate, in percentage points.">score ${fmtPts(s.delta_objective)} · win ${s.delta_win_prob >= 0 ? "+" : "−"}${(Math.abs(s.delta_win_prob) * 100).toFixed(2)}</span>
-          <button class="btn" data-apply="${i}:${j}">Swap</button>
-          <span class="why">${esc(s.reason)}</span></div>`).join("")}
-        <details class="why" data-why="${i}:${rows.map(([, j]) => j).join(",")}"${gi === 0 ? " open" : ""}>
-          <summary>Why these cards? Show the regression</summary>
-          <div class="whybody"></div>
-        </details>
-      </div>`).join("")}</div>`;
-  }
-
-  // ---------------------------------------------------------------- "why" charts
-  const PTS = 100; // ranking-score points: 1 point = 1 percentage point of win rate
-  const fmtPts = (v, d = 2) => (v >= 0 ? "+" : "−") + Math.abs(v * PTS).toFixed(d);
-  function niceStep(span, n) {
-    const raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / mag;
-    return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * mag;
-  }
-  function ticks(lo, hi, n = 4) {
-    const st = niceStep(hi - lo, n), out = [];
-    for (let v = Math.ceil(lo / st) * st; v <= hi + st * 1e-9; v += st) out.push(Math.abs(v) < st * 1e-9 ? 0 : v);
-    return out;
-  }
-  function tipAttr(title, lines) {
-    const t = JSON.stringify({ title, lines }), aria = `${title}: ${lines.join("; ")}`;
-    return `data-tip="${esc(t)}" tabindex="0" aria-label="${esc(aria)}"`;
-  }
-  function barPath(x0, x1, y, h) {
-    // square at the zero baseline, 4px rounded at the data end
-    const r = Math.min(4, Math.abs(x1 - x0) / 2, h / 2);
-    if (Math.abs(x1 - x0) < 0.5) return `M${x0},${y}h0.5v${h}h-0.5z`;
-    if (x1 > x0) return `M${x0},${y}H${x1 - r}A${r},${r} 0 0 1 ${x1},${y + r}V${y + h - r}A${r},${r} 0 0 1 ${x1 - r},${y + h}H${x0}Z`;
-    return `M${x0},${y}H${x1 + r}A${r},${r} 0 0 0 ${x1},${y + r}V${y + h - r}A${r},${r} 0 0 0 ${x1 + r},${y + h}H${x0}Z`;
-  }
-
-  // Chart 1: the regression coefficient (log-odds weight) of each card form, with its 90% interval
-  function coefChart(items) {
-    const z = 1.6448536269514722;
-    const lows = items.map((it) => it.weight - z * (it.se || 0)), highs = items.map((it) => it.weight + z * (it.se || 0));
-    let lo = Math.min(0, ...lows), hi = Math.max(0, ...highs);
-    const pad = (hi - lo) * 0.08 || 0.01; lo -= pad; hi += pad;
-    const W = 340, L = 124, R = 12, rowH = 26, top = 6, H = top + items.length * rowH + 22;
-    const X = (v) => L + (W - L - R) * (v - lo) / (hi - lo);
-    const tk = ticks(lo, hi, 4);
-    let g = tk.map((v) => `<line x1="${X(v)}" y1="${top}" x2="${X(v)}" y2="${H - 18}" stroke="var(--grid)" stroke-width="1"/>
-      <text x="${X(v)}" y="${H - 5}" text-anchor="middle">${tickLabel(v, niceStep(hi - lo, 4))}</text>`).join("");
-    g += `<line x1="${X(0)}" y1="${top}" x2="${X(0)}" y2="${H - 18}" stroke="var(--muted)" stroke-width="1"/>`;
-    items.forEach((it, k) => {
-      const y = top + k * rowH + rowH / 2, col = it.role === "old" ? "var(--muted)" : "var(--elixir)";
-      const ci = z * (it.se || 0);
-      g += `<text class="lbl" x="${L - 10}" y="${y + 4}" text-anchor="end">${esc((it.role === "old" ? "Now: " : "") + shorten(it.name, 18))}</text>`;
-      if (it.known) {
-        g += `<line x1="${X(it.weight - ci)}" y1="${y}" x2="${X(it.weight + ci)}" y2="${y}" stroke="${col}" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="${X(it.weight)}" cy="${y}" r="4.5" fill="${col}" stroke="var(--surface)" stroke-width="2"/>`;
-      } else {
-        g += `<text x="${X(0) + 6}" y="${y + 4}">no learned weight</text>`;
-      }
-      g += `<rect class="hit" x="${L - 120}" y="${y - rowH / 2}" width="${W - L + 120}" height="${rowH}" ${tipAttr(it.name, it.known
-        ? [`weight ${it.weight >= 0 ? "+" : "−"}${Math.abs(it.weight).toFixed(4)} log-odds`, `90% interval ${(it.weight - ci).toFixed(4)} to ${(it.weight + ci).toFixed(4)}`, `${it.games.toLocaleString()} training games`]
-        : ["no learned weight (too few training games)"])}/>`;
-    });
-    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="group" aria-label="Regression weights of the cards">${g}</svg>`;
-  }
-  function tickLabel(v, step) {
-    if (v === 0) return "0";
-    const dec = Math.min(3, Math.max(0, -Math.floor(Math.log10(step) + 1e-9) + (step / Math.pow(10, Math.floor(Math.log10(step))) === 2.5 ? 1 : 0)));
-    return (v > 0 ? "+" : "−") + Math.abs(v).toFixed(dec);
-  }
-  // Chart 3: the regression line (model win rate by deck strength) over real held-out results
-  let CAL = null;
-  function lineChart(deckU, deckWp) {
-    const bins = CAL.bins;
-    const us = bins.map((b) => b.u).concat([deckU]);
-    let x0 = Math.min(...us), x1 = Math.max(...us); const xp = (x1 - x0) * 0.08 || 0.02; x0 -= xp; x1 += xp;
-    const curve = []; for (let k = 0; k <= 40; k++) { const u = x0 + (x1 - x0) * k / 40; curve.push([u, E.winProbFromU(u)]); }
-    const ys = bins.flatMap((b) => [b.lo, b.hi]).concat(curve.map((c) => c[1]), [deckWp, 0.5]);
-    let y0 = Math.min(...ys), y1 = Math.max(...ys); const yp = (y1 - y0) * 0.1 || 0.01; y0 -= yp; y1 += yp;
-    const W = 340, H = 214, L = 42, R = 12, T = 18, B = 34;
-    const X = (u) => L + (W - L - R) * (u - x0) / (x1 - x0), Y = (p) => T + (H - T - B) * (1 - (p - y0) / (y1 - y0));
-    const yStep = niceStep((y1 - y0) * 100, 4) / 100, xStep = niceStep(x1 - x0, 4);
-    let g = "";
-    ticks(y0, y1, 4).forEach((v) => { g += `<line x1="${L}" y1="${Y(v)}" x2="${W - R}" y2="${Y(v)}" stroke="var(--grid)" stroke-width="1"/>
-      <text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${(v * 100).toFixed(yStep * 100 < 1 ? 1 : 0)}%</text>`; });
-    ticks(x0, x1, 4).forEach((v) => { g += `<text x="${X(v)}" y="${H - B + 14}" text-anchor="middle">${tickLabel(v, xStep)}</text>`; });
-    g += `<line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="var(--line)" stroke-width="1"/>`;
-    g += `<text x="${L}" y="${T - 6}">Win rate</text><text x="${W - R}" y="${H - 4}" text-anchor="end">Deck strength: sum of weights (log-odds) →</text>`;
-    bins.forEach((b) => {
-      g += `<line x1="${X(b.u)}" y1="${Y(b.lo)}" x2="${X(b.u)}" y2="${Y(b.hi)}" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" opacity="0.55"/>
-        <circle cx="${X(b.u)}" cy="${Y(b.win)}" r="4" fill="var(--ink)" stroke="var(--surface)" stroke-width="2"/>
-        <rect class="hit" x="${X(b.u) - 9}" y="${T}" width="18" height="${H - T - B}" ${tipAttr("Decks played in the test window", [
-          `real win rate ${pct(b.win)} (90%: ${pct(b.lo)}–${pct(b.hi)})`, `model says ${pct(b.model)}`,
-          `${b.battles.toLocaleString()} appearances of ${b.decks.toLocaleString()} decks`, `strength ${b.uLo.toFixed(3)} to ${b.uHi.toFixed(3)}`])}/>`;
-    });
-    g += `<path d="${curve.map((c, k) => `${k ? "L" : "M"}${X(c[0]).toFixed(1)},${Y(c[1]).toFixed(1)}`).join("")}" fill="none" stroke="var(--elixir)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
-    const dx = X(deckU), dy = Y(deckWp), right = dx > W - 110;
-    g += `<line x1="${dx}" y1="${dy}" x2="${dx}" y2="${H - B}" stroke="var(--elixir)" stroke-width="1" opacity="0.6"/>
-      <circle cx="${dx}" cy="${dy}" r="6" fill="var(--elixir)" stroke="var(--surface)" stroke-width="2"/>
-      <text class="lbl" x="${right ? dx - 10 : dx + 10}" y="${dy - 8}" text-anchor="${right ? "end" : "start"}" font-weight="600">This deck ${pct(deckWp)}</text>
-      <rect class="hit" x="${dx - 10}" y="${dy - 10}" width="20" height="20" ${tipAttr("This deck", [`strength ${deckU >= 0 ? "+" : "−"}${Math.abs(deckU).toFixed(3)} log-odds`, `estimated win rate ${pct(deckWp)}`,
-        deckU > bins[bins.length - 1].uHi ? "stronger than any deck group seen in the test window: an extrapolation" : "inside the range of decks seen in the test window"])}/>`;
-    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="group" aria-label="Regression line of win rate against deck strength, with real results">${g}</svg>`;
-  }
-  function shorten(s, n) { return s.length > n ? s.slice(0, n - 1) + "…" : s; }
-
-  // Chart 2: one small multiple per suggestion, the ranking-score change split into its exact parts
-  function partsChart(x, dom) {
-    const rows = x.parts.concat([{ key: "total", label: "Total change", value: x.total, detail: "the number swaps are ranked by" }]);
-    const W = 340, L = 124, R = 46, rowH = 20, top = 4, H = top + rows.length * rowH + 4;
-    const X = (v) => L + (W - L - R) * (v + dom) / (2 * dom);
-    let g = `<line x1="${X(0)}" y1="${top}" x2="${X(0)}" y2="${H - 2}" stroke="var(--muted)" stroke-width="1"/>`;
-    rows.forEach((r, k) => {
-      const tot = r.key === "total", h = tot ? 13 : 10, y = top + k * rowH + (rowH - h) / 2;
-      const col = r.value >= 0 ? "var(--pos)" : "var(--neg)";
-      if (tot) g += `<line x1="${L - 118}" y1="${top + k * rowH}" x2="${W}" y2="${top + k * rowH}" stroke="var(--line)" stroke-width="1"/>`;
-      g += `<text class="${tot ? "lbl" : ""}" x="${L - 10}" y="${y + h / 2 + 4}" text-anchor="end"${tot ? ' font-weight="600"' : ""}>${esc(r.label)}</text>
-        <path d="${barPath(X(0), X(r.value), y, h)}" fill="${col}"/>`;
-      if (tot) g += `<text class="val" x="${r.value >= 0 ? X(r.value) + 5 : X(r.value) - 5}" y="${y + h / 2 + 4}" text-anchor="${r.value >= 0 ? "start" : "end"}">${fmtPts(r.value)}</text>`;
-      g += `<rect class="hit" x="${L - 120}" y="${top + k * rowH}" width="${W - L + 120}" height="${rowH}" ${tipAttr(r.label, [`${fmtPts(r.value, 3)} points`, r.detail])}/>`;
-    });
-    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="group" aria-label="Score change split by cause">${g}</svg>`;
-  }
-
-  function renderWhy(det) {
-    const [i, js] = det.dataset.why.split(":"), d = state.decks[Number(i)];
-    const sw = js.split(",").map((j) => state.swaps[Number(i)][Number(j)]);
-    const oldE = sw[0].replace_entry;
-    const xs = sw.map((s) => E.explainSwap(d.entries, oldE, s.with_entry));
-    const items = [Object.assign(E.coefInfo(oldE), { role: "old" })].concat(xs.map((x) => Object.assign(x.new, { role: "new" })));
-    const dom = Math.max(1e-4, ...xs.flatMap((x) => x.parts.map((p) => Math.abs(p.value)).concat([Math.abs(x.total)]))) * 1.15;
-    const tbl = `<details class="more"><summary>Show the numbers</summary><div class="tblwrap"><table class="nums">
-      <thead><tr><th>Swap in</th><th>Weight</th><th>Card</th><th>Pairs</th><th>Synergy</th><th>Co-play</th><th>Total</th></tr></thead><tbody>
-      ${xs.map((x) => `<tr><td>${esc(x.new.name)}</td><td>${x.new.weight.toFixed(4)}</td>${x.parts.map((p) => `<td>${fmtPts(p.value, 3)}</td>`).join("")}<td>${fmtPts(x.total, 3)}</td></tr>`).join("")}
-      </tbody></table></div><p class="cap">Weight in log-odds; the other columns in ranking-score points (1 point = 1 percentage point of estimated win rate).</p></details>`;
-    det.querySelector(".whybody").innerHTML = `
-      <p class="cap">The strength model is a logistic regression: every card form and every tracked card pair has a learned weight in log-odds, and a deck's strength is the sum. Swapping a card changes which weights are added up.</p>
-      <div class="sect"><span class="label">Regression weight of each card</span>
-        <div class="key"><span><i style="background:var(--muted)"></i>Card you'd remove</span><span><i style="background:var(--elixir)"></i>Suggested card</span><span>Dot = weight · line = 90% interval · right of 0 helps win</span></div>
-        ${coefChart(items)}</div>
-      <div class="sect"><span class="label">Why each suggestion ranks where it does</span>
-        <div class="key"><span><i style="background:var(--pos)"></i>Raises the score</span><span><i style="background:var(--neg)"></i>Lowers the score</span><span>Points: 1 = 1 percentage point of win rate</span></div>
-        ${xs.map((x) => `<div class="mult"><h4>${esc(x.new.name)} <span>${fmtPts(x.total)} pts</span></h4>${partsChart(x, dom)}
-          ${x.pair_changes.length ? `<p class="pc">Tracked pairs: ${x.pair_changes.map((p) => `${p.gained ? "gains" : "loses"} ${esc(p.pair)} (${p.weight >= 0 ? "+" : "−"}${Math.abs(p.weight).toFixed(4)})`).join("; ")}</p>` : ""}</div>`).join("")}
-      </div>${tbl}`;
-  }
-  document.getElementById("decks").addEventListener("toggle", (ev) => {
-    const det = ev.target;
-    if (det.matches && det.matches("details.why") && det.open && !det.dataset.done) { renderWhy(det); det.dataset.done = "1"; }
-  }, true);
-
-  // tooltip for chart marks (hover and keyboard focus)
-  const tip = document.createElement("div"); tip.id = "tip"; tip.hidden = true; document.body.appendChild(tip);
-  function showTip(el, x, y) {
-    try {
-      const t = JSON.parse(el.getAttribute("data-tip"));
-      tip.innerHTML = `<b>${esc(t.title)}</b>${t.lines.map((l) => `<span>${esc(l)}</span>`).join("<br>")}`;
-    } catch { return; }
-    tip.hidden = false;
-    const w = tip.offsetWidth, h = tip.offsetHeight, vw = document.documentElement.clientWidth;
-    tip.style.left = Math.max(8, Math.min(vw - w - 8, x + 12)) + "px";
-    tip.style.top = Math.max(8, y - h - 12) + "px";
-  }
-  const decksEl = document.body; // tooltips for every chart on the page (decks, meta)
-  decksEl.addEventListener("pointermove", (ev) => { const el = ev.target.closest("[data-tip]"); if (el) showTip(el, ev.clientX, ev.clientY); else tip.hidden = true; });
-  decksEl.addEventListener("pointerleave", () => { tip.hidden = true; });
-  decksEl.addEventListener("focusin", (ev) => { const el = ev.target.closest("[data-tip]"); if (!el) return; const r = el.getBoundingClientRect(); showTip(el, r.left + r.width / 2, r.top); });
-  decksEl.addEventListener("focusout", () => { tip.hidden = true; });
   $("#decks").onclick = async (ev) => {
-    const t = ev.target.closest("button"); if (!t) return;
-    if (t.dataset.swaps !== undefined) {
-      const i = Number(t.dataset.swaps); t.disabled = true; t.textContent = "Finding swaps…";
-      setTimeout(() => { state.swaps[i] = E.swaps(state.decks[i].entries, { locked: state.seeds }); renderDecks(); }, 10);
-    } else if (t.dataset.apply) {
-      const [i, j] = t.dataset.apply.split(":").map(Number), s = state.swaps[i][j], d = state.decks[i];
-      d.history.push(d.entries);
-      d.entries = CRDeck.parseDeckKey(s.new_deck_key);
-      state.swaps[i] = E.swaps(d.entries, { locked: state.seeds });
-      renderDecks();
-      $("#status").textContent = `Deck ${i + 1}: swapped ${s.replace} for ${s.with}. Score and warnings recomputed.`;
-    } else if (t.dataset.undo) {
-      const i = Number(t.dataset.undo), d = state.decks[i];
-      d.entries = d.history.pop(); delete state.swaps[i]; renderDecks();
-    } else if (t.dataset.copy) {
-      const d = state.decks[Number(t.dataset.copy)];
-      const text = d.entries.map((e) => E.describe(e)).join(", ");
-      try { await navigator.clipboard.writeText(text); t.textContent = "Copied"; }
-      catch { t.textContent = "Copy failed"; $("#status").textContent = text; }
-      setTimeout(() => { t.textContent = "Copy card list"; }, 1600);
-    }
+    const t = ev.target.closest("[data-copy]"); if (!t) return;
+    const text = decks[Number(t.dataset.copy)].map((e) => E.describe(e)).join(", ");
+    try { await navigator.clipboard.writeText(text); t.textContent = "Copied"; }
+    catch { t.textContent = "Copy blocked"; $("#status").textContent = text; }
+    setTimeout(() => { t.textContent = "Copy card list"; }, 1600);
   };
-
-  // ---------------------------------------------------------------- card guide (every CSV row)
-  const STATUS = { in_search: "Used by search", seed_only: "Pick only", no_weight: "Too few games", no_games: "No games in this mode",
-    tower_troop: "Tower troop", not_in_game: "Not in the game", duplicate: "Duplicate row" };
-  const guide = { q: "", status: "all", sort: "name" };
-  let GROWS = null, WDOM = 0.1;
-  function guideRows() {
-    // one row per playable card form (from the API bitmask) + the CSV rows that are not deck card forms
-    if (GROWS) return GROWS;
-    const minc = Number(E.cfg.search.min_card_games), minf = E.m.strength.min_feature_games;
-    const csvByKey = {};
-    E.m.csv_rows.forEach((r) => { if (r.card_id && r.status !== "duplicate" && !csvByKey[`${r.card_id}:${r.form}`]) csvByKey[`${r.card_id}:${r.form}`] = r; });
-    const formRows = E.m.forms.map((f) => {
-      const c = E.card(f.card_id), e = { id: f.card_id, form: f.form }, ci = E.coefInfo(e), csvr = csvByKey[f.key];
-      const status = ci.known && f.games >= minc ? "in_search" : ci.known ? "seed_only" : f.games === 0 ? "no_games" : "no_weight";
-      const note = status === "seed_only" ? `${f.games} games in this mode (search needs ${minc}); you can still pick it.`
-        : status === "no_weight" ? `${f.games} games in this mode (a learned weight needs ${minf}).`
-        : status === "no_games" ? "Nobody played this form in this mode's battles." : "";
-      return { row: f.key, name: E.describe(e), form: f.form, c, e, ok: true, ci: ci.known ? ci : null, status, note,
-        games: f.games, wins: f.wins, wr: f.games ? f.wins / f.games : null, csv: csvr ? csvr.csv : null, csvRow: csvr ? csvr.row : null,
-        rating: csvr ? Number(csvr.csv.rating) : NaN, elixir: c.elixir_variable ? null : c.elixir };
-    });
-    const csvOnly = E.m.csv_rows.filter((r) => ["tower_troop", "not_in_game", "duplicate"].includes(r.status)).map((r) => {
-      const c = r.card_id ? E.card(r.card_id) : null;
-      return Object.assign({}, r, { row: `csv${r.row}`, c: r.status === "duplicate" ? c : null, e: null, ok: false, ci: null, games: 0, wr: null,
-        csvRow: r.row, rating: Number(r.csv.rating), elixir: Number(r.csv.elixir), csvOnly: true });
-    });
-    GROWS = formRows.concat(csvOnly);
-    WDOM = Math.max(0.02, ...GROWS.filter((g) => g.ci && g.ci.known).map((g) => Math.abs(g.ci.weight) + 1.645 * (g.ci.se || 0))) * 1.05;
-    return GROWS;
-  }
-  function miniWeight(ci) {
-    if (!ci || !ci.known) return `<span class="hint">–</span>`;
-    const W = 96, X = (v) => 4 + (W - 8) * (v + WDOM) / (2 * WDOM), h = 1.645 * (ci.se || 0);
-    return `<svg viewBox="0 0 ${W} 18" aria-hidden="true">
-      <line x1="${X(0)}" y1="2" x2="${X(0)}" y2="16" stroke="var(--line)" stroke-width="1"/>
-      <line x1="${X(ci.weight - h)}" y1="9" x2="${X(ci.weight + h)}" y2="9" stroke="var(--elixir)" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
-      <circle cx="${X(ci.weight)}" cy="9" r="4" fill="var(--elixir)" stroke="var(--surface)" stroke-width="2"/></svg>`;
-  }
-  function renderGuide() {
-    const rows = guideRows(), q = guide.q.trim().toLowerCase();
-    const counts = {}; rows.forEach((r) => { counts[r.status] = (counts[r.status] || 0) + 1; });
-    const nForms = rows.filter((r) => !r.csvOnly).length, nCsv = rows.filter((r) => r.csvOnly).length;
-    $("#guide-sum").textContent = `${nForms} playable card forms in ${INDEX.modes.find((m) => m.slug === currentSlug).label} ` +
-      `(${rows.filter((r) => !r.csvOnly && r.form === "base").length} base, ${rows.filter((r) => r.form === "evo" && !r.csvOnly).length} Evolution, ` +
-      `${rows.filter((r) => r.form === "hero" && !r.csvOnly).length} Hero), plus ${nCsv} CSV rows that are not deck card forms. ` +
-      Object.entries(counts).map(([k, n]) => `${n} ${STATUS[k].toLowerCase()}`).join(" · ") + ".";
-    let list = rows.filter((r) => (!q || r.name.toLowerCase().includes(q)) &&
-      (guide.status === "all" || (guide.status === "in_search" ? r.status === "in_search" : guide.status === "csv_only" ? r.csvOnly : r.status !== "in_search")));
-    const key = { name: (r) => r.name.toLowerCase(), weight: (r) => (r.ci && r.ci.known ? -r.ci.weight : Infinity), games: (r) => -r.games,
-      winrate: (r) => (r.wr === null ? Infinity : -r.wr), elixir: (r) => (r.elixir === null || Number.isNaN(r.elixir) ? Infinity : r.elixir),
-      rating: (r) => (Number.isNaN(r.rating) ? Infinity : -r.rating) }[guide.sort];
-    list = list.slice().sort((a, b) => { const x = key(a), y = key(b); return x < y ? -1 : x > y ? 1 : a.row - b.row; });
-    const picked = new Set(state.seeds.map((s) => `${s.id}:${s.form}`));
-    $("#gtable").innerHTML = `<thead><tr><th>Card</th><th>Status</th><th class="n">Elixir</th><th>Type</th><th>Roles</th>
-      <th class="n">Games</th><th class="n">Real win</th><th>Model weight</th><th class="n">Weight</th><th class="n" title="From your CSV">Rating</th><th class="n" title="From your CSV">Usage</th><th class="n" title="From your CSV">Win%</th><th></th></tr></thead>
-      <tbody>${list.map((r) => {
-        const c = r.c, form = r.form !== "base" ? `<span class="fbadge ${r.form}">${r.form === "evo" ? "EVO" : "HERO"}</span>` : "";
-        const typ = c ? `${c.champion ? "Champion" : c.type[0].toUpperCase() + c.type.slice(1)} · ${c.rarity}` : esc(r.csv ? r.csv.type : "");
-        const dropHtml = c ? drop(c) : `<span class="drop"><span>${esc(r.csv ? r.csv.elixir : "–")}</span></span>`;
-        const isPicked = r.e && picked.has(`${r.e.id}:${r.e.form}`);
-        return `<tr>
-          <td><span class="cn">${dropHtml}<span>${esc(r.name)}</span>${form}</span></td>
-          <td><span class="st ${r.status}">${STATUS[r.status]}</span>${r.note ? `<span class="gnote">${esc(r.note)}</span>` : ""}</td>
-          <td class="n">${c ? (c.elixir_variable ? "varies" : c.elixir) : esc(r.csv ? r.csv.elixir : "–")}</td>
-          <td>${typ}</td>
-          <td class="roles">${c ? esc(c.roles.join(", ").replace(/_/g, " ") || "—") + (c.wincon ? " · win condition" : "") : "—"}</td>
-          <td class="n">${r.ok ? (r.games ? r.games.toLocaleString() : "no games") : "–"}</td>
-          <td class="n">${r.ok && r.wr !== null ? pct(r.wr) : "–"}</td>
-          <td class="wbar">${miniWeight(r.ci)}</td>
-          <td class="n">${r.ci && r.ci.known ? signed(r.ci.weight, 4) : "–"}</td>
-          ${r.csv ? `<td class="n csvv">${esc(r.csv.rating)}</td><td class="n csvv">${esc(r.csv.usage)}%</td><td class="n csvv">${esc(r.csv.win_rate)}%</td>` : `<td class="n csvv" colspan="3">not in your CSV</td>`}
-          <td>${r.ok ? `<button class="pickbtn" data-gpick="${r.row}"${isPicked ? " disabled" : ""}>${isPicked ? "Picked" : "Pick"}</button>` : ""}</td>
-        </tr>`; }).join("")}</tbody>`;
-  }
-  $("#gq").addEventListener("input", (ev) => { guide.q = ev.target.value; renderGuide(); });
-  $("#gstatus").addEventListener("change", (ev) => { guide.status = ev.target.value; renderGuide(); });
-  $("#gsort").addEventListener("change", (ev) => { guide.sort = ev.target.value; renderGuide(); });
-  $("#gtable").addEventListener("click", (ev) => {
-    const b = ev.target.closest("[data-gpick]"); if (!b) return;
-    const r = guideRows().find((x) => String(x.row) === b.dataset.gpick); if (!r || !r.e) return;
-    const i = state.seeds.findIndex((s) => s.id === r.e.id);
-    if (i >= 0) state.seeds[i].form = r.e.form;
-    else if (state.seeds.length < 3) state.seeds.push({ id: r.e.id, form: r.e.form });
-    else { showSeedErr("You can pick up to 3 cards. Remove one first."); document.querySelector(".picker").scrollIntoView({ behavior: "smooth" }); return; }
-    seedsChanged();
-    document.querySelector(".picker").scrollIntoView({ behavior: "smooth" });
-  });
-
-  // ---------------------------------------------------------------- meta history and forecast (ranked)
-  const keyName = (k) => { const e = CRDeck.parseKey(k); return E.card(e.id) ? E.describe(e) : k; };
-  const fmtTime = (t) => String(t).slice(0, 16).replace("T", " ") + " UTC";
-  function moversChart(movers) {
-    // diverging bars: change in usage share (points) between the last two periods, 90% whiskers
-    const rows = movers.slice(0, 14), W = 360, L = 150, R = 50, rowH = 22, top = 4, H = top + rows.length * rowH + 22;
-    const dom = Math.max(0.005, ...rows.map((m) => Math.max(Math.abs(m.change_ci90[0]), Math.abs(m.change_ci90[1])))) * 1.1;
-    const X = (v) => L + (W - L - R) * (v + dom) / (2 * dom);
-    let g = ticks(-dom, dom, 4).map((v) => `<line x1="${X(v)}" y1="${top}" x2="${X(v)}" y2="${H - 18}" stroke="var(--grid)" stroke-width="1"/>
-      <text x="${X(v)}" y="${H - 5}" text-anchor="middle">${v === 0 ? "0" : (v > 0 ? "+" : "−") + Math.abs(v * 100).toFixed(1)}</text>`).join("");
-    g += `<line x1="${X(0)}" y1="${top}" x2="${X(0)}" y2="${H - 18}" stroke="var(--muted)" stroke-width="1"/>`;
-    rows.forEach((m, k) => {
-      const y = top + k * rowH + 5, h = 12, col = m.change >= 0 ? "var(--pos)" : "var(--neg)";
-      g += `<text class="lbl" x="${L - 8}" y="${y + 10}" text-anchor="end">${esc(shorten(keyName(m.key), 24))}</text>
-        <path d="${barPath(X(0), X(m.change), y, h)}" fill="${col}"/>
-        <line x1="${X(m.change_ci90[0])}" y1="${y + h / 2}" x2="${X(m.change_ci90[1])}" y2="${y + h / 2}" stroke="var(--ink)" stroke-width="1.5" opacity="0.6"/>
-        <rect class="hit" x="0" y="${top + k * rowH}" width="${W}" height="${rowH}" ${tipAttr(keyName(m.key), [
-          `${pct(m.share_before)} → ${pct(m.share_after)} of ranked decks`, `change ${fmtPts(m.change)} points (90%: ${fmtPts(m.change_ci90[0])} to ${fmtPts(m.change_ci90[1])})`])}/>`;
-    });
-    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="group" aria-label="Biggest usage changes between the last two periods">${g}</svg>`;
-  }
-  function historyCell(key, M) {
-    // one small multiple per card form: usage share per collection period with 90% intervals (and forecast band if shown)
-    const pts = M.history.filter((h) => h.key === key).sort((a, b) => a.period - b.period);
-    const fc = M.forecast ? M.forecast.find((f) => f.key === key) : null;
-    const P = M.periods.length + (fc ? 1 : 0), W = 220, H = 110, L = 34, R = 8, T = 8, B = 20;
-    const vals = pts.flatMap((p) => p.share_ci90).concat(fc ? fc.band90 : []);
-    let y0 = Math.min(...vals), y1 = Math.max(...vals); const pad = (y1 - y0) * 0.15 || 0.005; y0 = Math.max(0, y0 - pad); y1 += pad;
-    const X = (i) => L + (W - L - R) * (P === 1 ? 0.5 : i / (P - 1)), Y = (v) => T + (H - T - B) * (1 - (v - y0) / (y1 - y0));
-    let g = ticks(y0, y1, 3).map((v) => `<line x1="${L}" y1="${Y(v)}" x2="${W - R}" y2="${Y(v)}" stroke="var(--grid)" stroke-width="1"/>
-      <text x="${L - 4}" y="${Y(v) + 4}" text-anchor="end">${(v * 100).toFixed(1)}%</text>`).join("");
-    M.periods.forEach((p, i) => { g += `<text x="${X(i)}" y="${H - 5}" text-anchor="middle">P${i + 1}</text>`; });
-    if (fc) {
-      const i = P - 1, last = pts[pts.length - 1];
-      g += `<text x="${X(i)}" y="${H - 5}" text-anchor="middle">next</text>
-        <path d="M${X(i - 1)},${Y(last.share)}L${X(i)},${Y(fc.band90[1])}L${X(i)},${Y(fc.band90[0])}Z" fill="var(--elixir)" opacity="0.12"/>
-        <path d="M${X(i - 1)},${Y(last.share)}L${X(i)},${Y(fc.band50[1])}L${X(i)},${Y(fc.band50[0])}Z" fill="var(--elixir)" opacity="0.22"/>
-        <line x1="${X(i - 1)}" y1="${Y(last.share)}" x2="${X(i)}" y2="${Y(fc.median)}" stroke="var(--elixir)" stroke-width="2"/>`;
-    }
-    g += `<path d="${pts.map((p, i) => `${i ? "L" : "M"}${X(p.period)},${Y(p.share)}`).join("")}" fill="none" stroke="var(--ink)" stroke-width="2"/>`;
-    pts.forEach((p) => {
-      g += `<line x1="${X(p.period)}" y1="${Y(p.share_ci90[0])}" x2="${X(p.period)}" y2="${Y(p.share_ci90[1])}" stroke="var(--ink)" stroke-width="2" opacity="0.45"/>
-        <circle cx="${X(p.period)}" cy="${Y(p.share)}" r="4" fill="var(--ink)" stroke="var(--surface)" stroke-width="2"/>
-        <rect class="hit" x="${X(p.period) - 14}" y="${T}" width="28" height="${H - T - B}" ${tipAttr(`${keyName(key)}, period ${p.period + 1}`, [
-          `${pct(p.share)} of ranked decks (90%: ${pct(p.share_ci90[0])}–${pct(p.share_ci90[1])})`, `${p.games.toLocaleString()} appearances`,
-          p.win_rate === null ? "no win rate" : `won ${pct(p.win_rate)} of its games`])}/>`;
-    });
-    return `<div class="mcell"><b>${esc(keyName(key))}</b><svg class="chart" viewBox="0 0 ${W} ${H}" role="group" aria-label="Usage share of ${esc(keyName(key))} per period">${g}</svg></div>`;
-  }
-  let metaDone = false;
-  function renderMeta() {
-    if (metaDone || !INDEX.meta) { if (!INDEX.meta) $("#meta").innerHTML = `<p class="hint">No ranked model was exported, so there is no meta history.</p>`; return; }
-    metaDone = true;
-    const M = INDEX.meta, st = M.status;
-    const stLabel = { blocked: "Forecast not available yet", not_better: "Forecast not shown: not better than no change", shown: "Forecast shown" }[st.state];
-    const per = M.periods.map((p, i) => `<tr><td>P${i + 1}</td><td>${esc(p.window_id)}</td><td>${esc(fmtTime(p.start))}</td><td>${esc(fmtTime(p.end))}</td>
-      <td>${M.period_hours ? M.period_hours[i] : ""}</td><td>${p.battles.toLocaleString()}</td></tr>`).join("");
-    const arch = {}; M.archetypes.forEach((a) => { (arch[a.archetype] = arch[a.archetype] || {})[a.period] = a; });
-    const archRows = Object.entries(arch).sort((a, b) => ((b[1][M.periods.length - 1] || {}).share || 0) - ((a[1][M.periods.length - 1] || {}).share || 0))
-      .map(([name, byP]) => `<tr><td>${esc(name)}</td>${M.periods.map((_, i) => `<td>${byP[i] ? pct(byP[i].share) : "–"}</td>`).join("")}</tr>`).join("");
-    const top = M.movers.slice(0, 6).map((m) => m.key);
-    $("#meta").innerHTML = `
-      <div class="statebox"><span class="st ${st.state}">${stLabel}</span><p class="hint" style="margin:0">${esc(st.reason)}</p>
-        <p class="hint" style="margin:0">Needs at least ${st.min_periods} collection periods (recommended ${st.recommended_periods}); have ${st.periods}. The forecast is a Monte Carlo simulation (${M.settings.monte_carlo_runs.toLocaleString()} runs, seed ${M.settings.seed}) that is only shown after it beats or matches “no change” in a backtest.</p></div>
-      <div class="twocol">
-        <div class="sect"><h3>Collection periods</h3><div class="tblwrap"><table class="nums"><thead><tr><th>Period</th><th>Window</th><th>From</th><th>To</th><th>Hours</th><th>Ranked battles</th></tr></thead><tbody>${per}</tbody></table></div></div>
-        <div class="sect"><h3>Archetype share per period</h3><div class="tblwrap"><table class="nums"><thead><tr><th>Archetype</th>${M.periods.map((_, i) => `<th>P${i + 1}</th>`).join("")}</tr></thead><tbody>${archRows}</tbody></table></div>
-          <p class="hint">Archetypes come from the classifier, whose labels were drafted by the project's assistant.</p></div>
-      </div>
-      ${M.movers.length ? `<div class="sect"><h3>Biggest usage changes, P${M.periods.length - 1} → P${M.periods.length}</h3>
-        <div class="key"><span><i style="background:var(--pos)"></i>More decks use it</span><span><i style="background:var(--neg)"></i>Fewer decks use it</span><span>Points of usage share · line = 90% interval</span></div>
-        ${moversChart(M.movers)}</div>
-      <div class="sect"><h3>Usage over time: the six biggest movers</h3><div class="multiples">${top.map((k) => historyCell(k, M)).join("")}</div></div>` : ""}
-      ${M.backtest.length ? `<div class="sect"><h3>Backtest</h3><div class="tblwrap">${recordsTable(M.backtest)}</div></div>` : ""}
-      <div class="sect"><h3>Assumptions</h3><ul class="md">${M.assumptions.map((a) => `<li>${esc(a)}</li>`).join("")}</ul></div>`;
-  }
-
-  // ---------------------------------------------------------------- model log (rendered from run_log.json)
-  function fmtCell(v) {
-    if (v === null || v === undefined) return "–";
-    if (Array.isArray(v)) return v.map(fmtCell).join(" – ");
-    if (typeof v === "number") return Number.isInteger(v) ? v.toLocaleString() : (Math.abs(v) < 1e-3 && v !== 0 ? v.toExponential(2) : v.toFixed(4));
-    if (typeof v === "boolean") return v ? "yes" : "no";
-    if (typeof v === "object") return esc(JSON.stringify(v));
-    return esc(String(v));
-  }
-  function recordsTable(rows) {
-    if (!rows || !rows.length) return `<p class="hint">none</p>`;
-    const cols = Object.keys(rows[0]);
-    return `<table class="nums"><thead><tr>${cols.map((c) => `<th>${esc(c.replace(/_/g, " "))}</th>`).join("")}</tr></thead>
-      <tbody>${rows.map((r) => `<tr>${cols.map((c) => `<td>${fmtCell(r[c])}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
-  }
-  function kv(obj) {
-    return `<dl class="kv">${Object.entries(obj).filter(([, v]) => typeof v !== "object" || v === null || Array.isArray(v))
-      .map(([k, v]) => `<dt>${esc(k.replace(/_/g, " "))}</dt><dd>${fmtCell(v)}</dd>`).join("")}</dl>`;
-  }
-  function md(text) {
-    // minimal Markdown for docs/model-notes.md: paragraphs, bullets, tables, **bold**, `code`
-    const inline = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>");
-    const out = []; let list = null, table = null;
-    const flush = () => { if (list) { out.push(`<ul>${list.join("")}</ul>`); list = null; } if (table) { out.push(`<div class="tblwrap"><table class="nums">${table.join("")}</table></div>`); table = null; } };
-    for (const line of text.split("\n")) {
-      if (/^\s*\|/.test(line)) {
-        if (/^\s*\|\s*-/.test(line)) continue;
-        const cells = line.trim().replace(/^\||\|$/g, "").split("|").map((c) => inline(c.trim()));
-        if (!table) { flush(); table = [`<tr>${cells.map((c) => `<th>${c}</th>`).join("")}</tr>`]; } else table.push(`<tr>${cells.map((c) => `<td>${c}</td>`).join("")}</tr>`);
-      } else if (/^\s*- /.test(line)) { if (table) flush(); (list = list || []).push(`<li>${inline(line.replace(/^\s*- /, ""))}</li>`); }
-      else if (!line.trim()) flush();
-      else if (/^### /.test(line)) { flush(); out.push(`<p><b>${inline(line.slice(4))}</b></p>`); }
-      else { flush(); out.push(`<p>${inline(line)}</p>`); }
-    }
-    flush();
-    return out.join("");
-  }
-  function renderLog() {
-    const L = INDEX.log || {}, b = L.build || {}, x = L.export || {}, ev = L[`evaluate:${currentSlug}`] || {};
-    const mode = INDEX.modes.find((m) => m.slug === currentSlug);
-    const modeRows = Object.entries(b.modes || {}).map(([m, st]) => Object.assign({ mode: m }, st));
-    const arenaRows = Object.entries(b.ok_by_mode_arena || {}).map(([k, n]) => ({ mode: k.split("|")[0], arena: k.split("|")[1], usable_battles: n }));
-    $("#log").innerHTML = `
-      <div class="logsec"><h3>Data</h3>
-        ${kv({ battle_rows_before_dedupe: b.battle_rows_before_dedupe, battles_after_dedupe: b.battles_after_dedupe, duplicates_removed: b.duplicates_removed,
-               raw_battle_log_files: b.files, files_without_battles: b.files_without_battles, distinct_decks: b.distinct_decks,
-               first_battle: b.first_battle, last_battle: b.last_battle, unknown_card_ids: (b.unknown_card_ids || []).length ? b.unknown_card_ids.join(", ") : "none", build_written_at: b.written_at })}
-        <div class="twocol"><div><b>Collection windows</b><div class="tblwrap">${recordsTable(b.windows)}</div></div>
-          <div><b>Battle status by mode</b><div class="tblwrap">${recordsTable(modeRows)}</div></div></div>
-        <div class="twocol"><div><b>Battle status, all modes</b><div class="tblwrap">${recordsTable(Object.entries(b.status || {}).map(([k, v]) => ({ status: k, battles: v })))}</div></div>
-          <div><b>Usable battles by mode and arena</b><div class="tblwrap">${recordsTable(arenaRows)}</div></div></div>
-        <div><b>Modes on this site</b><div class="tblwrap">${recordsTable(INDEX.modes.map((m) => ({ mode: m.label, status: m.status, usable_battles: m.ok_battles, reason: m.reason || "" })))}</div></div>
-      </div>
-      <div class="logsec"><h3>Splits · ${esc(mode.label)}</h3><div class="tblwrap">${recordsTable(ev.splits)}</div></div>
-      <div class="logsec"><h3>Model selection · ${esc(mode.label)}</h3>
-        <p class="hint">${esc(ev.strength_selection_rule || "")}</p>
-        <div class="tblwrap">${recordsTable(ev.strength_candidates)}</div>
-        <b>Synergy variant (chosen on validation)</b><div class="tblwrap">${recordsTable(ev["synergy_variant_choice (validation)"])}</div>
-        <b>Co-occurrence weight (completion recall on validation)</b><div class="tblwrap">${recordsTable(ev.cooccurrence_tuning)}</div>
-        ${ev.cooccurrence_choice ? kv(ev.cooccurrence_choice) : ""}
-      </div>
-      <div class="logsec"><h3>Test results · ${esc(mode.label)}</h3>
-        <p class="hint">${esc(ev.described_as || "")}</p>
-        <b>Strength: every model and baseline, 90% bootstrap intervals</b><div class="tblwrap">${recordsTable(ev.strength_intervals)}</div>
-        <b>Strength: paired log-loss differences</b><div class="tblwrap">${recordsTable(ev.strength_significance)}</div>
-        <b>Completion</b>${ev.completion ? kv(ev.completion) : ""}
-        <b>Synergy</b><div class="tblwrap">${recordsTable(ev.synergy)}</div>
-        <b>Archetype</b>${ev.archetype ? kv(ev.archetype) : ""}
-        <p class="hint">Evaluation written ${esc(ev.written_at || "")} · data fingerprint ${esc(String(ev.data_fingerprint || "").slice(0, 12))}</p>
-      </div>
-      <div class="logsec"><h3>Known caveats (docs/model-notes.md, verbatim)</h3>
-        ${Object.entries(INDEX.caveats || {}).map(([h, t]) => `<details class="more"><summary>${esc(h)}</summary><div class="body md">${md(t)}</div></details>`).join("")}
-      </div>
-      <div class="logsec"><h3>Versions</h3>
-        ${kv({ code_commit: (x.code || {}).commit, commit_date: (x.code || {}).commit_date, uncommitted_changes: (x.code || {}).uncommitted_changes,
-               exported_at: x.exported_at, label_versions: (x.label_versions || []).join(", ") })}
-        <details class="more"><summary>Config values used</summary><pre class="cfg">${esc(JSON.stringify(x.config || {}, null, 2))}</pre></details>
-      </div>`;
-  }
-
-  // ---------------------------------------------------------------- report
-  function renderReport(m) {
-    const ev = m.evaluation || {}, st = ev.strength || [], sig = ev.strength_significance || [];
-    const ci = (a) => (a && a.length === 2 ? ` (90%: ${pct(a[0], 1)}–${pct(a[1], 1)})` : "");
-    const verdictStrength = sig.length && sig.every((x) => x.ci90_hi < 0) ? ["good", "Beats every baseline"] : ["weak", "Not statistically clear"];
-    const test = (name) => st.find((r) => r.part === "test" && r.model === name);
-    const chosen = (st.find((r) => r.selected) || {}).model;
-    const mt = test(chosen) || {}, c05 = test("constant_0.5") || {}, pop = test("popularity") || {}, rat = test("rating_only") || {};
-    const bestShare = sig.length ? Math.max(...sig.map((s) => s.share_boot_better)) : null;
-    const comp = ev.completion || {}, ar = ev.archetype || {}, syn = ev.synergy || [];
-    const synUsed = syn.find((s) => s.score.includes("used")) || {}, lift = syn.find((s) => s.score === "mean_lift") || {}, spop = syn.find((s) => s.score === "popularity") || {};
-    const tw = ev.test_window || m.meta.test_window;
-    const vComp = comp.difference_ci90 ? (comp.difference_ci90[0] > 0 ? ["good", "Beats the baseline"] : ["weak", "Not statistically clear"]) : ["weak", "No interval"];
-    const vArch = ar.accuracy_ci90 ? (ar.accuracy_ci90[0] > ar.majority_accuracy_ci90[1] ? ["good", "Beats the baseline"] : ["weak", "Not statistically clear"]) : ["weak", ar.status || "No labels"];
-    const vSyn = synUsed.auc_ci90 ? (synUsed.auc_ci90[0] > Math.max(lift.test_auc || 0, spop.test_auc || 0) ? ["good", "Beats lift and popularity"] : ["weak", "Not statistically clear"]) : ["weak", "No interval"];
-    const auci = (x) => (x && x.auc_ci90 ? ` (90%: ${x.auc_ci90[0].toFixed(3)}–${x.auc_ci90[1].toFixed(3)})` : "");
-    const si = (ev.strength_intervals || []).find((r) => r.selected) || {};
-    $("#report").innerHTML = `
-      <div class="metric"><span class="pill ${verdictStrength[0]}">${verdictStrength[1]}</span><h3>Deck strength</h3>
-        <div class="big">AUC ${(mt.auc || 0).toFixed(3)}</div>
-        <div class="vs">${si.auc_ci90 ? `90% interval ${si.auc_ci90[0].toFixed(3)}–${si.auc_ci90[1].toFixed(3)} · ` : ""}log loss ${(mt.log_loss || 0).toFixed(5)} vs 50%: ${(c05.log_loss || 0).toFixed(5)} · popularity ${(pop.log_loss || 0).toFixed(5)} · rating ${(rat.log_loss || 0).toFixed(5)}</div>
-        <p>${sig.map((x) => `vs ${esc(x.vs)}: log-loss change ${x.delta_log_loss.toFixed(5)} (90%: ${x.ci90_lo.toFixed(5)} to ${x.ci90_hi.toFixed(5)})`).join("; ")}.</p></div>
-      <div class="metric"><span class="pill ${vComp[0]}">${vComp[1]}</span><h3>Deck completion</h3>
-        <div class="big">${pct(comp.recall_model || 0, 0)}</div>
-        <div class="vs">recall@10 of 2 hidden cards${ci(comp.recall_model_ci90)} · most-popular fill: ${pct(comp.recall_popular_fill || 0, 0)}${ci(comp.recall_popular_fill_ci90)}</div>
-        <p>On ${comp.decks_evaluated || 0} frequent held-out decks.${ev.cooccurrence_choice && ev.cooccurrence_choice.note ? " " + esc(ev.cooccurrence_choice.note) + "." : ""}</p></div>
-      <div class="metric"><span class="pill ${vArch[0]}">${vArch[1]}</span><h3>Archetype</h3>
-        <div class="big">${ar.accuracy !== undefined ? pct(ar.accuracy, 0) : "–"}</div>
-        <div class="vs">on ${ar.heldout_decks || 0} held-out decks${ci(ar.accuracy_ci90)} · always “${esc(ar.majority_class || "")}”: ${ar.majority_accuracy !== undefined ? pct(ar.majority_accuracy, 0) : "–"}${ci(ar.majority_accuracy_ci90)}</div>
-        <p>${esc(ar.labels_note || "")}</p></div>
-      <div class="metric"><span class="pill ${vSyn[0]}">${vSyn[1]}</span><h3>Synergy</h3>
-        <div class="big">AUC ${(synUsed.test_auc || 0).toFixed(3)}</div>
-        <div class="vs">${auci(synUsed).trim()} · lift ${(lift.test_auc || 0).toFixed(3)} · popularity ${(spop.test_auc || 0).toFixed(3)}</div>
-        <p>How well a deck's mean pair synergy picks the winner of held-out battles.</p></div>`;
-    const R = m.rules, A = m.archetype, ae = ev.archetype || {};
-    $("#note-rules").innerHTML = `<b>Legality is a hard rule.</b> Every deck has ${R.deck_size} cards, one form per card, and special cards sit in the ${R.special_slots.map((x) => x.name).join(" / ")} slots, with at most ${R.max_champions} champion${R.max_champions === 1 ? "" : "s"} (config/deck_rules.yaml). Warnings never block a deck.`;
-    $("#note-arch").innerHTML = `<b>Archetype labels</b> come from a classifier${A.classes.length ? ` over ${A.classes.length} archetypes` : ""}, checked on ${ae.heldout_decks || 0} held-out decks; ${esc(ae.labels_note || "")}. Below ${Math.round(A.threshold * 100)}% confidence it says “Hybrid / uncertain”.`;
-    $("#rep-sub").textContent = `${ev.described_as || ""} (${(ev.splits || []).find((x) => x.part === "test") ? (ev.splits.find((x) => x.part === "test").battles).toLocaleString() : m.meta.test_battles_total.toLocaleString()} battles), never used for training.`;
-  }
 })();
 </script>

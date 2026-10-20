@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Why This Deck · crdeck</title>
+<meta name="description" content="The evidence behind one suggested Clash Royale deck: which cards carry it, how the model compares with real results, card pairs, warnings and swaps.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z' fill='%23a8247f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="app.css">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.back { font-weight: 600; text-decoration: none; display: inline-flex; min-height: 40px; align-items: center; }
+.top { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: var(--space-5); align-items: start; }
+@media (max-width: 880px) { .top { grid-template-columns: minmax(0, 1fr); } }
+.deckbox { padding: var(--space-4); display: grid; gap: var(--space-3); }
+.short { padding: var(--space-4) var(--space-5); display: grid; gap: var(--space-3); }
+.short ul { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-3); }
+.short li { display: grid; gap: 2px; }
+.short .big { font-family: var(--display); font-size: 2.25rem; font-weight: 700; line-height: 1; }
+.short .line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px var(--space-2); }
+.charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(330px, 100%), 1fr)); gap: var(--space-4); align-items: start; }
+.chartbox { padding: var(--space-4); display: grid; gap: var(--space-3); min-width: 0; }
+.chartbox h3 { font-size: 1.125rem; }
+.chartbox p { color: var(--muted); font-size: 0.9375rem; }
+.pairs { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-2); }
+.pairs li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--space-2); font-size: 0.9375rem; }
+.pairs .pv { font-weight: 700; }
+.pairs .pv.pos { color: var(--ok); } .pairs .pv.neg { color: var(--warn); }
+.pairs .ev { grid-column: 1 / -1; font-size: 0.8125rem; color: var(--muted); }
+.swaps { display: grid; gap: var(--space-4); }
+.swapgrp { padding: var(--space-4); display: grid; gap: var(--space-2); min-width: 0; }
+.swapgrp > b { font-size: 1rem; }
+.swaprow { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px var(--space-3); align-items: center; padding: 8px 10px; border-radius: 8px; background: var(--sunken); font-size: 0.9375rem; }
+.swaprow .d { font-weight: 700; font-size: 0.875rem; }
+.swaprow .d.pos { color: var(--ok); } .swaprow .d.neg { color: var(--warn); }
+.swaprow .why { grid-column: 1 / -1; font-size: 0.8125rem; color: var(--muted); }
+.whybody { display: grid; gap: var(--space-4); }
+.whybody .chart { max-width: 520px; }
+.mult { display: grid; gap: 4px; }
+.mult h4 { margin: 0; font-size: 0.875rem; display: flex; justify-content: space-between; gap: 8px; }
+.mult .pc { font-size: 0.8125rem; color: var(--muted); }
+.formula { font-size: 0.875rem; background: var(--sunken); padding: 10px 12px; border-radius: 8px; overflow-x: auto; }
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the reasons</a>
+<div class="wrap">
+  <header class="site" id="site"></header>
+  <main id="main" class="wrap">
+    <div class="pagehead">
+      <a class="back" id="back" href="index.html">← Back to the builder</a>
+      <h1 id="title">Why this deck</h1>
+      <p class="lede" id="sub">Loading the deck…</p>
+      <div class="modebar" id="modebar"></div>
+      <div class="facts" id="facts"></div>
+    </div>
+    <div id="body" class="wrap" aria-live="polite">
+      <div class="top"><div class="panel deckbox"><div class="skel" style="height:180px"></div></div><div class="panel short"><div class="skel" style="height:180px"></div></div></div>
+    </div>
+  </main>
+  <footer class="site-foot">
+    <span>Green tags are measured from battles, pink tags are model estimates, grey tags are fixed game rules.</span>
+    <span>A fan-made learning project. Not affiliated with, endorsed by or sponsored by Supercell. Battle data from the official Clash Royale API.</span>
+  </footer>
+</div>
+
+<script src="engine.js"></script>
+<script src="common.js"></script>
+<script>
+(() => {
+  "use strict";
+  const { $, esc, pct, signed, fmtPts, num } = UI;
+  const DQ_HELP = {
+    UNSEEN_DECK: "Nobody in the collected battles played these exact 8 cards, so the estimate comes from the cards and their pairs.",
+    INSUFFICIENT_SAMPLE: "Some card pairs were played together too rarely to get a synergy score.",
+    LOW_CARD_DATA: "A card form has too few games to have a learned weight.",
+    FORM_UNKNOWN: "Hero and base forms could not be told apart in the battle data.",
+    UNKNOWN_CARD: "A card is missing from the card table.",
+  };
+  let ctx = null, E = null, CAL = null, deck = null, seeds = [], original = [], past = [], swaps = [];
+
+  UI.start("", (c) => {
+    ctx = c; E = c.E; CAL = E.calibration(8);
+    if (c.hash.deck !== null && deck === null) { deck = c.hash.deck; seeds = c.hash.seeds || []; original = deck.map(CRDeck.keyOf); }
+    render();
+  }, { failTarget: "#body" });
+
+  const slug = () => ctx.entry.slug;
+  function render() {
+    $("#back").href = `index.html#${seeds.length ? UI.token(slug(), null, seeds) : slug() + "~~"}`;
+    if (!deck || !deck.length) return emptyState("This page needs a deck. Build one on the first page and press “Why this deck”.");
+    if (deck.some((e) => !E.card(e.id) || !E.allowedForms(E.card(e.id)).includes(e.form)))
+      return emptyState(`This deck has a card form that ${ctx.entry.label} has no data for. Switch back to the mode you built it in.`);
+    const chk = E.checkDeck(deck);
+    if (!chk.legal) return emptyState(`This link holds a deck that breaks the deck rules (${chk.reasons.join("; ")}). Build a new one on the first page.`);
+    UI.setHash(UI.token(slug(), deck, seeds));
+    swaps = E.swaps(deck, { locked: seeds });
+    draw();
+  }
+  function emptyState(msg) {
+    $("#title").textContent = "Why this deck"; $("#sub").textContent = "";
+    $("#body").innerHTML = `<div class="panel empty"><b>No deck to explain.</b><span>${esc(msg)}</span><a class="btn primary" href="index.html#${esc(slug())}">Go to the builder</a></div>`;
+  }
+
+  function draw() {
+    const x = E.explain(deck, E.objectiveDict(E.evaluate(deck)));
+    const seedIds = new Set(seeds.map((s) => s.id)), v = UI.verdict(x.score);
+    const ws = x.entries.map((e) => Object.assign(E.coefInfo(e), { role: "in" })).sort((p, q) => q.weight - p.weight);
+    const known = ws.filter((w) => w.known), cardSum = ws.reduce((t, w) => t + w.weight, 0), pairSum = E.utility(x.entries) - cardSum;
+    const best = known[0], worst = known[known.length - 1];
+    const exact = x.score.test_battles_exact_deck, bestPair = x.synergy_top[0];
+    $("#title").textContent = `Why this deck: ${UI.archName(x.archetype)}`;
+    $("#sub").textContent = `Everything below is worked out from ${ctx.entry.label} battles. Hover or tap a chart mark to see its numbers.`;
+    document.title = `Why This Deck · ${UI.archName(x.archetype)} · crdeck`;
+
+    const swapIntro = swaps.length && Math.max(...swaps.map((s) => s.delta_objective)) <= 0
+      ? "No single swap raises this deck's score, so the search already found its best version. These swaps cost the least."
+      : "Swaps that raise the deck's score come first. Pressing Swap changes the deck on this page and recomputes everything.";
+
+    $("#body").innerHTML = `
+      <div class="top">
+        <section class="panel deckbox" aria-label="The deck">
+          <div class="grid8">${x.entries.map((e) => UI.tile(E, e, x.legality.slots, seedIds, original)).join("")}</div>
+          ${UI.SLOT_KEY}
+          <div class="actions">
+            <button class="btn" id="copy">Copy card list</button>
+            ${past.length ? `<button class="btn" id="undo">Undo last swap</button>` : ""}
+          </div>
+        </section>
+        <section class="panel short" aria-labelledby="short-h">
+          <h2 id="short-h" style="font-size:1.25rem">The short version</h2>
+          <ul>
+            <li><span class="line"><span class="big">${pct(x.score.meta_win_prob)}</span><span class="pill ${v[0]}">${v[1]}</span></span>
+              <span class="muted small">Estimated win rate, likely between ${pct(x.score.interval[0])} and ${pct(x.score.interval[1])}, against ${num(x.score.opponent_decks)} opponent decks top players used. <span class="src model">model estimate</span></span></li>
+            ${best ? `<li><b>${esc(best.name)} has the highest card weight here.</b><span class="muted small">${best.weight > 0 ? "Decks with it won more often, after accounting for the other cards and player rating." : "No card in this deck has a positive weight, so the deck leans on its pairs and matchups."}${worst && worst !== best ? ` ${esc(worst.name)} has the lowest.` : ""} <span class="src model">learned from ${num(best.games)} games</span></span></li>` : ""}
+            ${bestPair ? `<li><b>Best pair: ${esc(bestPair.pair)}.</b><span class="muted small">Together they won ${pct(bestPair.shrunk_wr)} of ${num(bestPair.games)} games, ${bestPair.synergy > 0 ? "more" : "less"} than each card alone predicts. <span class="src measured">measured</span></span></li>` : ""}
+            <li><b>${exact ? `Played ${num(exact)} times in the test battles, won ${num(x.score.test_wins_exact_deck)}.` : "Nobody played these exact 8 cards in the test battles."}</b>
+              <span class="muted small">${exact ? "These battles were held back from training." : "The estimate comes from its cards and pairs, so treat it with more caution."} <span class="src measured">measured</span></span></li>
+            <li><b>${x.warnings.length ? `${x.warnings.length} thing${x.warnings.length === 1 ? "" : "s"} to watch` : "Passes every deck check"}.</b>
+              <span class="muted small">${x.warnings.length ? x.warnings.map((g) => esc(g.root_cause)).join(". ") + "." : "It has a win condition, air defense and spells, at a workable elixir cost."} <span class="src rule">deck checks</span></span></li>
+          </ul>
+        </section>
+      </div>
+
+      <section class="section" aria-labelledby="ev-h">
+        <header><h2 id="ev-h">The evidence</h2><p>Two charts from the same model. The first shows what each card adds. The second checks the model against battles it never trained on.</p></header>
+        <div class="charts">
+          <div class="panel chartbox">
+            <h3>Which cards carry this deck</h3>
+            <p>Each dot is how much a card raised the chance of winning in past battles. Right of the 0 line means it helped. The line around a dot is the range the true value likely sits in.</p>
+            <div class="key"><span><i style="background:var(--elixir)"></i>Card weight</span><span>line: 90% range</span><span class="src model">model</span></div>
+            ${UI.coefChart(ws)}
+            <details class="more"><summary>Show the math</summary><div class="body small muted">
+              <p>The model is a logistic regression. Each card form and each tracked card pair has a learned weight in log-odds. The 8 card weights here add up to ${signed(cardSum, 3)} and the tracked pairs add ${signed(pairSum, 3)}. Played against the sampled opponent decks at equal player rating, that gives the ${pct(x.score.meta_win_prob)} estimate.</p></div></details>
+          </div>
+          <div class="panel chartbox">
+            <h3>Does the model match real results?</h3>
+            <p>The pink line is what the model predicts for decks of each strength. The dark dots are how real decks did in battles held back from training. Dots near the line mean the model's numbers can be trusted.</p>
+            <div class="key"><span><i style="background:var(--elixir)"></i>Model prediction</span><span><i style="background:var(--ink)"></i>Real win rate, 90% range</span><span class="src measured">measured</span></div>
+            ${UI.lineChart(E, CAL, cardSum + pairSum, x.score.meta_win_prob)}
+            <p class="small">Each dot groups about ${num(Math.round(CAL.total / CAL.bins.length))} deck appearances from ${esc(UI.when(E.m.meta.test_window[0]))} to ${esc(UI.when(E.m.meta.test_window[1]))}.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="pairs-h">
+        <header><h2 id="pairs-h">Cards that work together</h2><p>Synergy compares how often two cards won together with what each card wins alone. Above 0 means they did better as a pair. It shows a pattern in the data, not proof of a combo.</p></header>
+        <div class="charts">
+          <div class="panel chartbox"><h3>Strongest pairs</h3>${x.synergy_top.length ? pairList(x.synergy_top) : `<p>No pair in this deck was played together often enough to score.</p>`}</div>
+          <div class="panel chartbox"><h3>Weakest pairs</h3>${x.synergy_bottom.length ? pairList(x.synergy_bottom) : `<p>No pair in this deck was played together often enough to score.</p>`}</div>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="warn-h">
+        <header><h2 id="warn-h">Things to watch</h2><p>Deck checks give advice only. They never block a deck.</p></header>
+        <div class="panel chartbox">
+          ${x.warnings.length ? x.warnings.map((g) => `<div class="notice"><b>${esc(g.root_cause)}</b>${g.warnings.map((w) => `<div class="small muted">${esc(w.message)}</div>`).join("")}</div>`).join("")
+            : `<p style="color:var(--ok);font-weight:600">✓ No warnings. It has a win condition, air defense and spells, at a workable elixir cost.</p>`}
+          ${x.data_quality.length ? `<div><b>About the data for this deck</b><ul class="small muted" style="margin:6px 0 0;padding-left:18px">${x.data_quality.map((q) => `<li>${esc(DQ_HELP[q.state] || q.detail)}</li>`).join("")}</ul></div>` : ""}
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="swap-h">
+        <header><h2 id="swap-h">Try a swap</h2><p>${swapIntro} The score is in points: 1 point is one percentage point of estimated win rate.</p></header>
+        ${renderSwaps()}
+      </section>
+
+      <section class="section" aria-labelledby="raw-h">
+        <header><h2 id="raw-h">Raw numbers</h2></header>
+        <div class="panel chartbox">
+          <p>Decks are ranked by a score that adds the win estimate, card-pair synergy and how often people play these cards together:</p>
+          <div class="formula">${x.objective.objective.toFixed(4)} = win ${x.objective.meta_win_prob.toFixed(4)} + ${E.weight} × synergy ${signed(x.objective.mean_pair_synergy, 4)} + ${E.coWeight} × played-together ${x.objective.mean_log_lift.toFixed(3)}</div>
+          <p class="small">The weights ${E.weight} and ${E.coWeight} come from the project's config and were checked on validation battles. The full selection record is on <a href="model.html#${esc(slug())}">How it works</a>.</p>
+        </div>
+      </section>`;
+    document.querySelectorAll("details.why[open]").forEach(renderWhy);
+  }
+
+  function pairList(rows) {
+    return `<ul class="pairs">${rows.map((p) => `<li><span>${esc(p.pair)}</span><span class="pv ${p.synergy >= 0 ? "pos" : "neg"}">${signed(p.synergy)}</span>
+      <span class="ev">won ${pct(p.shrunk_wr)} of ${num(p.games)} games together · 90% range ${signed(p.interval[0])} to ${signed(p.interval[1])} · played together ${p.lift.toFixed(2)}× as often as chance</span></li>`).join("")}</ul>`;
+  }
+
+  function renderSwaps() {
+    if (!swaps.length) return `<div class="panel empty">Every card in this deck is one you picked, so there is nothing to swap.</div>`;
+    const groups = new Map();
+    swaps.forEach((s, j) => { if (!groups.has(s.replace)) groups.set(s.replace, []); groups.get(s.replace).push([s, j]); });
+    const ordered = [...groups.entries()].sort((a, b) => b[1][0][0].delta_objective - a[1][0][0].delta_objective);
+    return `<div class="swaps">${ordered.map(([from, rows], gi) => `
+      <div class="panel swapgrp"><b>Replace ${esc(from)} with</b>
+        ${rows.map(([s, j]) => `<div class="swaprow"><span>${esc(s.with)}</span>
+          <span class="d ${s.delta_objective >= 0 ? "pos" : "neg"}">score ${fmtPts(s.delta_objective)} · win ${s.delta_win_prob >= 0 ? "+" : "−"}${(Math.abs(s.delta_win_prob) * 100).toFixed(2)}</span>
+          <button class="btn small" data-apply="${j}">Swap</button>
+          <span class="why">${esc(s.reason)}</span></div>`).join("")}
+        <details class="more why" data-why="${rows.map(([, j]) => j).join(",")}"${gi === 0 ? " open" : ""}>
+          <summary>Why these cards?</summary><div class="body whybody"></div></details>
+      </div>`).join("")}</div>`;
+  }
+
+  function renderWhy(det) {
+    if (det.dataset.done) return; det.dataset.done = "1";
+    const sw = det.dataset.why.split(",").map((j) => swaps[Number(j)]);
+    const oldE = sw[0].replace_entry;
+    const xs = sw.map((s) => E.explainSwap(deck, oldE, s.with_entry));
+    const items = [Object.assign(E.coefInfo(oldE), { role: "old" })].concat(xs.map((x) => Object.assign(x.new, { role: "new" })));
+    const dom = Math.max(1e-4, ...xs.flatMap((x) => x.parts.map((p) => Math.abs(p.value)).concat([Math.abs(x.total)]))) * 1.15;
+    det.querySelector(".whybody").innerHTML = `
+      <div class="mult"><b class="small">Card weight: the card you'd remove next to each suggestion</b>
+        <div class="key"><span><i style="background:var(--muted)"></i>Card now</span><span><i style="background:var(--elixir)"></i>Suggested card</span></div>
+        ${UI.coefChart(items)}</div>
+      <div class="mult"><b class="small">Where each suggestion's score change comes from</b>
+        <div class="key"><span><i style="background:var(--pos)"></i>Raises the score</span><span><i style="background:var(--neg)"></i>Lowers it</span></div>
+        ${xs.map((x) => `<div class="mult"><h4>${esc(x.new.name)} <span>${fmtPts(x.total)} pts</span></h4>${UI.partsChart(x, dom)}
+          ${x.pair_changes.length ? `<p class="pc">Pairs: ${x.pair_changes.map((p) => `${p.gained ? "gains" : "loses"} ${esc(p.pair)} (${signed(p.weight, 4)})`).join("; ")}</p>` : ""}</div>`).join("")}
+      </div>
+      <details class="more"><summary>Show the numbers</summary><div class="body"><div class="tblwrap"><table class="nums">
+        <thead><tr><th scope="col">Swap in</th><th scope="col">Weight</th>${xs[0].parts.map((p) => `<th scope="col">${esc(p.label)}</th>`).join("")}<th scope="col">Total</th></tr></thead><tbody>
+        ${xs.map((x) => `<tr><td>${esc(x.new.name)}</td><td>${x.new.weight.toFixed(4)}</td>${x.parts.map((p) => `<td>${fmtPts(p.value, 3)}</td>`).join("")}<td>${fmtPts(x.total, 3)}</td></tr>`).join("")}
+        </tbody></table></div><p class="small muted">Weight in log-odds; the other columns in score points.</p></div></details>`;
+  }
+
+  document.addEventListener("toggle", (ev) => { const d = ev.target; if (d.matches && d.matches("details.why") && d.open) renderWhy(d); }, true);
+  $("#body").addEventListener("click", async (ev) => {
+    const t = ev.target.closest("button"); if (!t) return;
+    if (t.dataset.apply) {
+      const s = swaps[Number(t.dataset.apply)];
+      past.push(deck); deck = CRDeck.parseDeckKey(s.new_deck_key); render();
+      $("#sub").textContent = `Swapped ${s.replace} for ${s.with}. Every number on this page is recomputed for the new deck.`;
+      $("#main").scrollIntoView({ behavior: "smooth" });
+    } else if (t.id === "undo") { deck = past.pop(); render(); }
+    else if (t.id === "copy") {
+      const text = deck.map((e) => E.describe(e)).join(", ");
+      try { await navigator.clipboard.writeText(text); t.textContent = "Copied"; }
+      catch { t.textContent = "Copy blocked"; $("#sub").textContent = text; }
+      setTimeout(() => { t.textContent = "Copy card list"; }, 1600);
+    }
+  });
+})();
+</script>
+</body>
+</html>
