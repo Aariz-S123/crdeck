@@ -173,3 +173,16 @@ def test_arena_collector_respects_request_budget(monkeypatch, tmp_path):
     C, client = _arena_cfg(monkeypatch, sess, tmp_path, players_per_arena=10, max_requests=4)
     s = C.collect_arenas(client=client, progress=False)
     assert s["requests_sent"] == 4 and s["stopped_by_request_budget"]
+
+
+def test_arena_collector_stops_reading_clans_that_add_nobody(monkeypatch, tmp_path):
+    # Bone Pit and Barbarian Bowl never appear, so they never fill; the stall guard ends the clan pass
+    clans = [{"tag": f"#C{i}", "clanScore": 100 + i, "members": 10} for i in range(30)]
+    routes = {"/clans": FakeResp(200, {"items": clans})}
+    for i in range(30):
+        routes[f"/clans/%23C{i}/members"] = FakeResp(200, {"items": [{"tag": f"#G{i}", "trophies": 10, "arena": {"name": "Goblin Stadium"}}]})
+    sess = RoutedSession(routes)
+    C, client = _arena_cfg(monkeypatch, sess, tmp_path, snowball=False, stall_clans=5, skip_arenas=["Barbarian Bowl"])
+    s = C.collect_arenas(client=client, progress=False)
+    assert s["clans_read"] == 7 and s["clan_pass_stopped_by"] == "no new players"   # 2 placed, then 5 in a row add nobody
+    assert [a["arena"] for a in s["arenas"]] == ["Goblin Stadium", "Bone Pit"] and s["skipped_arenas"] == ["Barbarian Bowl"]

@@ -123,6 +123,12 @@ battles:
 arena_sample:
   players_per_arena: 150
   max_requests: 9000             # hard stop for one run
+  max_clan_reads: 1500           # member lists read at most, so most requests go to battle logs
+  stall_clans: 200               # stop reading clans after this many in a row add no player
+  # Member records name players at 14,000+ trophies "Spirit Square" (observed 2026-10-20), never
+  # a Seasonal Arena, so the collector cannot aim at those two; their battles come from the
+  # leaderboard players, whose ladder battles are recorded in the Seasonal Arenas.
+  skip_arenas: [Seasonal Arena I, Seasonal Arena II]
   clan_search:
     names: [clash, royale, king, kings, royal, war, legends, team, family, army, elite, noob, pro, the, fun, dragons, warriors, empire, squad, friends]
     min_members: 5

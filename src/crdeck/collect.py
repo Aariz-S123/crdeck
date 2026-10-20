@@ -237,8 +237,9 @@ def collect_arenas(client: ApiClient | None = None, progress: bool = True, windo
     if window_id == "auto":
         window_id = auto_window_id()
     client = client or ApiClient(cfg=cfg, window_id=window_id)
-    arenas = mode_groups(cfg, "trophy_road")
-    floors = sorted((a["min_trophies"], a["name"]) for a in arenas)
+    skip = set(acfg.get("skip_arenas") or [])
+    floors = sorted((a["min_trophies"], a["name"]) for a in mode_groups(cfg, "trophy_road"))
+    arenas = [a for a in mode_groups(cfg, "trophy_road") if a["name"] not in skip]
     target, budget = int(acfg["players_per_arena"]), int(acfg["max_requests"])
     picked: dict[str, list[str]] = {a["name"]: [] for a in arenas}
     source: dict[str, Counter] = {a["name"]: Counter() for a in arenas}
@@ -258,6 +259,7 @@ def collect_arenas(client: ApiClient | None = None, progress: bool = True, windo
             return None
         how["trophy floor (config)"] += 1
         return [n for f, n in floors if f <= t][-1] if t >= floors[0][0] else None
+    # (an arena in skip_arenas is not a key of `picked`, so add() ignores it)
 
     def add(tag: str | None, arena: str | None, via: str) -> None:
         if tag and arena in picked and tag not in seen and len(picked[arena]) < target:
@@ -301,10 +303,12 @@ def collect_arenas(client: ApiClient | None = None, progress: bool = True, windo
     if progress:
         print(f"  {len(clans)} clans found by name search")
     order = sorted(clans.values(), key=lambda c: (c.get("clanScore") or 0) / max(1, c.get("members") or 1))
-    visited = 0
+    visited = stall = 0
+    max_reads, max_stall = int(acfg.get("max_clan_reads", 10**9)), int(acfg.get("stall_clans", 10**9))
     for clan in order:
-        if full() or spent():
+        if full() or spent() or visited >= max_reads or stall >= max_stall:
             break
+        placed_before = len(seen)
         try:
             members = client.clan_members(clan["tag"])
         except ApiError as e:
@@ -315,9 +319,13 @@ def collect_arenas(client: ApiClient | None = None, progress: bool = True, windo
         visited += 1
         for m in _body_items(members):
             add(m.get("tag"), arena_of(m), "clan member")
+        stall = 0 if len(seen) > placed_before else stall + 1
         if progress and visited % 100 == 0:
             print(f"  {visited} clans read: {sum(len(v) for v in picked.values())} players placed")
     summary["clans_read"] = visited
+    summary["clan_pass_stopped_by"] = ("all arenas full" if full() else "request budget" if spent() else
+                                       "max_clan_reads" if visited >= max_reads else "no new players" if stall >= max_stall else "clans exhausted")
+    summary["skipped_arenas"] = sorted(skip)
     fetch_logs()
 
     # 2. opponent pass: ladder opponents from logs already fetched, until no arena gains a player
