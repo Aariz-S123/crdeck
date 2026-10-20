@@ -72,3 +72,5 @@ Endpoints used, from documentation as recalled, **not yet called** (the key was 
 Already observed in collected battles: `leagueNumber` on every `pathOfLegend` battle (values 4 to 7 among leaderboard players on 2026-10-19), and `arena.name` on ladder battles, with names matching the owner's arena table. After the first run, check the collector's summary (`arena_assigned_by` shows how often the member `arena` field was present) and record what was observed here.
 
 `CR_API_BASE` in `.env` overrides `api.base_url`, for example `https://proxy.royaleapi.dev/v1` (a third-party relay of the official API; the key then has to allow the relay's IP instead of yours).
+
+Observed 2026-10-20: the campus network changed this machine's public IP four times in one day (128.227.5.165, .1.37, .1.52, .4.23, .1.66), each time invalidating the key. Since 2026-10-20 the project uses the relay: a key allowing 45.79.218.79 plus `CR_API_BASE=https://proxy.royaleapi.dev/v1`; `/cards` answered 200 with 123 cards through it. Responses are the official API's, relayed unchanged.
