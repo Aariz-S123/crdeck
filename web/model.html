@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>How crdeck Works</title>
+<meta name="description" content="How the crdeck deck builder learns from Clash Royale battles, how well it does on battles it never trained on, its limits, and the full model log.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z' fill='%23a8247f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="app.css">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.steps { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-4); counter-reset: s; max-width: 78ch; }
+.steps li { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: var(--space-3); counter-increment: s; }
+.steps li::before { content: counter(s); font-family: var(--display); font-weight: 700; font-size: 1.25rem; color: var(--elixir); }
+.steps b { display: block; }
+.steps span { color: var(--muted); }
+.results td, .results th { vertical-align: top; }
+.results td:first-child { font-weight: 600; white-space: nowrap; }
+.results .big { font-family: var(--display); font-weight: 700; font-size: 1.25rem; }
+.results .vs { color: var(--muted); font-size: 0.8125rem; display: block; }
+table.results { border-collapse: collapse; width: 100%; min-width: 720px; font-size: 0.9375rem; }
+table.results th { text-align: left; font-size: 0.8125rem; color: var(--muted); font-weight: 600; background: var(--sunken); padding: 8px 12px; }
+table.results td { padding: 12px; border-top: 1px solid var(--line); }
+.notes { margin: 0; padding-left: 18px; display: grid; gap: var(--space-2); max-width: 80ch; color: var(--muted); }
+.notes b { color: var(--ink); }
+.gloss { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: var(--space-3) var(--space-6); margin: 0; }
+.gloss div { display: grid; gap: 2px; }
+.gloss dt { font-weight: 700; }
+.gloss dd { margin: 0; color: var(--muted); font-size: 0.9375rem; }
+.box { padding: var(--space-4) var(--space-5); display: grid; gap: var(--space-3); min-width: 0; grid-template-columns: minmax(0, 1fr); }
+.logsec { display: grid; gap: var(--space-3); padding: var(--space-4) var(--space-5); grid-template-columns: minmax(0, 1fr); }
+.logsec + .logsec { border-top: 1px solid var(--line); }
+.logsec h3 { font-size: 1.125rem; }
+.logsec .tblwrap { max-height: 380px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+.logsec table.nums th { position: sticky; top: 0; }
+.twocol { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: var(--space-4); align-items: start; }
+.kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; font-size: 0.875rem; margin: 0; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; overflow-wrap: anywhere; }
+.md { font-size: 0.9375rem; max-width: 80ch; } .md p { margin: 0 0 8px; } .md ul { margin: 0 0 8px; padding-left: 18px; }
+.md code, pre.cfg { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.8125rem; }
+.md code { background: var(--sunken); padding: 1px 4px; border-radius: 4px; }
+pre.cfg { background: var(--sunken); padding: 12px; border-radius: 8px; overflow: auto; max-height: 340px; margin: 0; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the explanation</a>
+<div class="wrap">
+  <header class="site" id="site"></header>
+  <main id="main" class="wrap">
+    <div class="pagehead">
+      <h1>How crdeck works</h1>
+      <p class="lede">What the builder learns from, how well it does on battles it never saw, and where it can be wrong. Every number on this page is read from the pipeline's own output files.</p>
+      <div class="modebar" id="modebar"></div>
+      <div class="facts" id="facts"></div>
+    </div>
+
+    <section class="section" aria-labelledby="how-h">
+      <header><h2 id="how-h">From battles to a deck</h2></header>
+      <div class="panel box"><ol class="steps" id="steps"><li><span class="skel" style="height:60px"></span></li></ol></div>
+    </section>
+
+    <section class="section" aria-labelledby="rep-h">
+      <header><h2 id="rep-h">How good is it?</h2><p id="rep-sub">Loading…</p></header>
+      <div class="panel tblwrap"><table class="results" id="report"></table></div>
+      <p class="muted small">A check passes only when its 90% range clears the simple baseline it is compared with. Otherwise it says “not clearly better”.</p>
+    </section>
+
+    <section class="section" aria-labelledby="lim-h">
+      <header><h2 id="lim-h">Limits to keep in mind</h2></header>
+      <div class="panel box"><ul class="notes" id="notes"></ul></div>
+    </section>
+
+    <section class="section" aria-labelledby="gl-h">
+      <header><h2 id="gl-h">Words used on this site</h2></header>
+      <div class="panel box"><dl class="gloss" id="gloss"></dl></div>
+    </section>
+
+    <section class="section" aria-labelledby="log-h">
+      <header><h2 id="log-h">Model log</h2><p>The raw record the pipeline wrote (data/processed/run_log.json) and the caveats from docs/model-notes.md, shown as they are.</p></header>
+      <div class="panel" id="log"><div class="logsec"><div class="skel" style="height:120px"></div></div></div>
+    </section>
+  </main>
+  <footer class="site-foot">
+    <span>A fan-made learning project. Not affiliated with, endorsed by or sponsored by Supercell. Battle data from the official Clash Royale API.</span>
+  </footer>
+</div>
+
+<script src="engine.js"></script>
+<script src="common.js"></script>
+<script>
+(() => {
+  "use strict";
+  const { $, esc, pct, num } = UI;
+  UI.start("model.html", (c) => { UI.setHash(c.entry.slug); steps(c); report(c); notes(c); gloss(c); log(c); }, { failTarget: "#report" });
+
+  function steps({ entry, m, E }) {
+    const ev = m.evaluation || {}, sp = ev.splits || [], part = (p) => sp.find((x) => x.part === p) || {};
+    $("#steps").innerHTML = `
+      <li><div><b>Collect real battles.</b><span>${num(entry.ok_battles)} ${esc(entry.label)} battles of top players, fetched from the official Clash Royale API. Battles are only used once, even when both players were collected.</span></div></li>
+      <li><div><b>Split them by time.</b><span>The oldest battles train the model (${num(part("train").battles || 0)}), the next ones pick its settings (${num(part("valid").battles || 0)}), and the newest ones are held back to test it (${num(part("test").battles || 0)}). Testing on later battles is closer to how you would use it.</span></div></li>
+      <li><div><b>Learn a weight for every card and card pair.</b><span>A logistic regression learns how much each card form and each common pair raised the chance of winning, after accounting for the two players' ratings. That is the “card weight” you see on the other pages.</span></div></li>
+      <li><div><b>Search for decks.</b><span>Starting from your picks, the builder tries card combinations, keeps only legal decks, and ranks them by estimated win rate plus how well the cards worked together. It returns ${E.cfg.search.n_results} decks that differ by at least ${E.cfg.search.min_diff_cards} cards.</span></div></li>
+      <li><div><b>Check the result.</b><span>Each deck gets deck checks (win condition, air defense, spells, elixir cost) and a style guess. Checks give advice; they never block a deck.</span></div></li>`;
+  }
+
+  function report({ m }) {
+    const ev = m.evaluation || {}, st = ev.strength || [], sig = ev.strength_significance || [];
+    const r1 = (a) => (a && a.length === 2 ? `${pct(a[0])} to ${pct(a[1])}` : "n/a");
+    const test = (name) => st.find((r) => r.part === "test" && r.model === name) || {};
+    const chosen = (st.find((r) => r.selected) || {}).model, mt = test(chosen), si = (ev.strength_intervals || []).find((r) => r.selected) || {};
+    const comp = ev.completion || {}, ar = ev.archetype || {}, syn = ev.synergy || [];
+    const synUsed = syn.find((s) => s.score.includes("used")) || {}, lift = syn.find((s) => s.score === "mean_lift") || {}, spop = syn.find((s) => s.score === "popularity") || {};
+    const pill = (ok, label) => `<span class="pill ${ok ? "good" : "weak"}">${ok ? label : "Not clearly better"}</span>`;
+    const vStr = sig.length && sig.every((x) => x.ci90_hi < 0);
+    const vComp = comp.difference_ci90 && comp.difference_ci90[0] > 0;
+    const vArch = ar.accuracy_ci90 && ar.majority_accuracy_ci90 && ar.accuracy_ci90[0] > ar.majority_accuracy_ci90[1];
+    const vSyn = synUsed.auc_ci90 && synUsed.auc_ci90[0] > Math.max(lift.test_auc || 0, spop.test_auc || 0);
+    const tb = (ev.splits || []).find((x) => x.part === "test");
+    $("#rep-sub").textContent = `Tested on ${tb ? num(tb.battles) : num(m.meta.test_battles_total)} held-out battles from ${UI.when(m.meta.test_window[0])} to ${UI.when(m.meta.test_window[1])}. The model never saw them while training.`;
+    $("#report").innerHTML = `<thead><tr><th scope="col">Check</th><th scope="col">The question</th><th scope="col">Result</th><th scope="col">Compared with</th><th scope="col">Verdict</th></tr></thead><tbody>
+      <tr><td>Picking winners</td><td>Given two decks, does the model know which one won?</td>
+        <td><span class="big">AUC ${(mt.auc || 0).toFixed(3)}</span><span class="vs">90% range ${si.auc_ci90 ? si.auc_ci90.map((v) => v.toFixed(3)).join(" to ") : "n/a"}. 0.5 is a coin flip.</span></td>
+        <td>Coin flip, card popularity, player rating alone.<span class="vs">Log loss ${(mt.log_loss || 0).toFixed(5)}; lower is better. ${sig.map((x) => `vs ${esc(x.vs)}: ${x.delta_log_loss.toFixed(5)} (90% ${x.ci90_lo.toFixed(5)} to ${x.ci90_hi.toFixed(5)})`).join("; ")}</span></td>
+        <td>${pill(vStr, "Beats every baseline")}</td></tr>
+      <tr><td>Finishing decks</td><td>Hide 2 cards of a real deck. Are they in the builder's top 10 guesses?</td>
+        <td><span class="big">${pct(comp.recall_model || 0, 0)}</span><span class="vs">90% range ${r1(comp.recall_model_ci90)}, on ${num(comp.decks_evaluated || 0)} decks</span></td>
+        <td>Filling with the most popular cards: ${pct(comp.recall_popular_fill || 0, 0)}<span class="vs">90% range ${r1(comp.recall_popular_fill_ci90)}</span></td>
+        <td>${pill(vComp, "Beats the baseline")}</td></tr>
+      <tr><td>Deck style</td><td>Does the style guess match the hand-made label?</td>
+        <td><span class="big">${ar.accuracy !== undefined ? pct(ar.accuracy, 0) : "n/a"}</span><span class="vs">90% range ${r1(ar.accuracy_ci90)}, on ${num(ar.heldout_decks || 0)} decks</span></td>
+        <td>Always guessing “${esc(ar.majority_class || "")}”: ${ar.majority_accuracy !== undefined ? pct(ar.majority_accuracy, 0) : "n/a"}<span class="vs">${esc(ar.labels_note || "")}</span></td>
+        <td>${pill(vArch, "Beats the baseline")}</td></tr>
+      <tr><td>Card pairs</td><td>Does a deck's pair score pick the winner of a battle?</td>
+        <td><span class="big">AUC ${(synUsed.test_auc || 0).toFixed(3)}</span><span class="vs">90% range ${synUsed.auc_ci90 ? synUsed.auc_ci90.map((v) => v.toFixed(3)).join(" to ") : "n/a"}</span></td>
+        <td>Raw pair lift ${(lift.test_auc || 0).toFixed(3)}, popularity ${(spop.test_auc || 0).toFixed(3)}</td>
+        <td>${pill(vSyn, "Beats both")}</td></tr></tbody>`;
+  }
+
+  function notes({ m }) {
+    const R = m.rules, A = m.archetype, ae = (m.evaluation || {}).archetype || {};
+    $("#notes").innerHTML = `
+      <li><b>Win rates describe top players.</b> They are estimates against the opponent decks in the test battles, at equal player rating. They are not a promise about your games.</li>
+      <li><b>The best decks look a bit better than they are.</b> When you pick the top of many noisy estimates, the winner is usually lucky. The ranges cover model and sampling noise, not this effect.</li>
+      <li><b>Card pairs show patterns, not proof.</b> A positive pair score means two cards won together more than expected. It does not prove a combo.</li>
+      <li><b>Unseen decks are guesses.</b> When nobody played the exact 8 cards, the estimate comes only from the cards and their pairs.</li>
+      <li><b>Deck rules are fixed.</b> Every deck has ${R.deck_size} cards, one form per card, special cards in the ${R.special_slots.map((x) => ({ evo: "Evolution", hero: "Hero", wild: "Wild" }[x.name] || x.name)).join(", ")} slots, and at most ${R.max_champions} champion${R.max_champions === 1 ? "" : "s"}.</li>
+      <li><b>Style labels are a starting point.</b> The classifier knows ${A.classes.length} styles and was checked on ${num(ae.heldout_decks || 0)} decks; ${esc(ae.labels_note || "")}. Below ${Math.round(A.threshold * 100)}% confidence it says “Mixed style”.</li>`;
+  }
+
+  function gloss({ m }) {
+    const words = [
+      ["Estimated win rate", "How often the model expects the deck to win against the decks top players used, with both players equally rated."],
+      ["90% range", "The span the true value likely falls in. A wide range means the data is thin."],
+      ["Card weight", "How much having a card form in a deck raised the chance of winning in past battles. Above 0 helps, below 0 hurts."],
+      ["Synergy", "Whether two cards won more together than each one wins on its own."],
+      ["Evolution, Hero and Wild slots", "A deck has one slot for an Evolution, one for a Hero or Champion, and a Wild slot that takes any of them."],
+      ["Held-out battles", "The newest battles, kept away from training so the test is fair."],
+      ["Deck style", `A guess at the deck's archetype from a small classifier. Its styles: ${m.archetype.classes.join(", ")}.`],
+      ["Score points", "What swaps are ranked by. 1 point is about one percentage point of estimated win rate."],
+    ];
+    $("#gloss").innerHTML = words.map(([t, d]) => `<div><dt>${esc(t)}</dt><dd>${esc(d)}</dd></div>`).join("");
+  }
+
+  function log({ INDEX, entry }) {
+    const L = INDEX.log || {}, b = L.build || {}, x = L.export || {}, ev = L[`evaluate:${entry.slug}`] || {};
+    const modeRows = Object.entries(b.modes || {}).map(([k, st]) => Object.assign({ mode: k }, st));
+    const arenaRows = Object.entries(b.ok_by_mode_arena || {}).map(([k, n]) => ({ mode: k.split("|")[0], arena: k.split("|")[1], usable_battles: n }));
+    const T = UI.recordsTable;
+    $("#log").innerHTML = `
+      <div class="logsec"><h3>Data</h3>
+        ${UI.kv({ battle_rows_before_dedupe: b.battle_rows_before_dedupe, battles_after_dedupe: b.battles_after_dedupe, duplicates_removed: b.duplicates_removed,
+          raw_battle_log_files: b.files, files_without_battles: b.files_without_battles, distinct_decks: b.distinct_decks,
+          first_battle: b.first_battle ? UI.when(b.first_battle) : null, last_battle: b.last_battle ? UI.when(b.last_battle) : null,
+          unknown_card_ids: (b.unknown_card_ids || []).length ? b.unknown_card_ids.join(", ") : "none", build_written_at: b.written_at ? UI.when(b.written_at) : null })}
+        <div class="twocol"><div><b>Collection windows</b><div class="tblwrap">${T(b.windows)}</div></div><div><b>Battle status by mode</b><div class="tblwrap">${T(modeRows)}</div></div></div>
+        <div class="twocol"><div><b>Battle status, all modes</b><div class="tblwrap">${T(Object.entries(b.status || {}).map(([k, v]) => ({ status: k, battles: v })))}</div></div>
+          <div><b>Usable battles by mode and arena</b><div class="tblwrap">${T(arenaRows)}</div></div></div>
+        <div><b>Modes on this site</b><div class="tblwrap">${T(INDEX.modes.map((m) => ({ mode: m.label, status: m.status, usable_battles: m.ok_battles, reason: m.reason || "" })))}</div></div>
+      </div>
+      <div class="logsec"><h3>Splits · ${esc(entry.label)}</h3><div class="tblwrap">${T(ev.splits)}</div></div>
+      <div class="logsec"><h3>Model selection · ${esc(entry.label)}</h3>
+        <p class="muted">${esc(ev.strength_selection_rule || "")}</p>
+        <div class="tblwrap">${T(ev.strength_candidates)}</div>
+        <b>Synergy variant (chosen on validation)</b><div class="tblwrap">${T(ev["synergy_variant_choice (validation)"])}</div>
+        <b>Played-together weight (completion recall on validation)</b><div class="tblwrap">${T(ev.cooccurrence_tuning)}</div>
+        ${ev.cooccurrence_choice ? UI.kv(ev.cooccurrence_choice) : ""}
+      </div>
+      <div class="logsec"><h3>Test results · ${esc(entry.label)}</h3>
+        <p class="muted">${esc(ev.described_as || "")}</p>
+        <b>Strength: every model and baseline, 90% bootstrap ranges</b><div class="tblwrap">${T(ev.strength_intervals)}</div>
+        <b>Strength: paired log-loss differences</b><div class="tblwrap">${T(ev.strength_significance)}</div>
+        <b>Completion</b>${ev.completion ? UI.kv(ev.completion) : ""}
+        <b>Synergy</b><div class="tblwrap">${T(ev.synergy)}</div>
+        <b>Archetype</b>${ev.archetype ? UI.kv(ev.archetype) : ""}
+        <p class="muted small">Evaluation written ${esc(ev.written_at ? UI.when(ev.written_at) : "")} · data fingerprint ${esc(String(ev.data_fingerprint || "").slice(0, 12))}</p>
+      </div>
+      <div class="logsec"><h3>Known caveats (docs/model-notes.md, word for word)</h3>
+        ${Object.entries(INDEX.caveats || {}).map(([h, t]) => `<details class="more"><summary>${esc(h)}</summary><div class="body md">${UI.md(t)}</div></details>`).join("")}
+      </div>
+      <div class="logsec"><h3>Versions</h3>
+        ${UI.kv({ code_commit: (x.code || {}).commit, commit_date: (x.code || {}).commit_date, uncommitted_changes: (x.code || {}).uncommitted_changes,
+          exported_at: x.exported_at ? UI.when(x.exported_at) : null, label_versions: (x.label_versions || []).join(", ") })}
+        <details class="more"><summary>Config values used</summary><div class="body"><pre class="cfg">${esc(JSON.stringify(x.config || {}, null, 2))}</pre></div></details>
+      </div>`;
+  }
+})();
+</script>
+</body>
+</html>

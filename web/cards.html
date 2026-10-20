@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>All Cards · crdeck</title>
+<meta name="description" content="Every Clash Royale card form, with how often it was played, its real win rate and its learned weight, next to the values from your card list.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z' fill='%23a8247f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="app.css">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.bar { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.search, select { min-height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 0.9375rem; }
+.search { flex: 1 1 220px; min-width: 0; }
+.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: var(--space-2) var(--space-5); font-size: 0.875rem; color: var(--muted); padding: var(--space-4); }
+.legend b { color: var(--ink); }
+.gtable { overflow-x: auto; }
+table.cards { border-collapse: collapse; width: 100%; min-width: 900px; font-size: 0.9375rem; }
+table.cards th { position: sticky; top: 0; background: var(--sunken); text-align: left; font-size: 0.8125rem; font-weight: 600; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.cards th.grp { text-align: center; border-bottom: 0; padding-bottom: 0; }
+table.cards td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+table.cards tr:last-child td { border-bottom: 0; }
+table.cards .n { text-align: right; white-space: nowrap; }
+table.cards .cn { display: flex; align-items: center; gap: 8px; font-weight: 600; min-width: 180px; }
+table.cards .cn .drop { width: 20px; height: 20px; } table.cards .cn .drop span { font-size: 11px; }
+table.cards .sub { display: block; font-size: 0.75rem; color: var(--muted); font-weight: 400; }
+table.cards .csvv { color: var(--hero); }
+.st { display: inline-block; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+.st.in_search { background: var(--ok-soft); color: var(--ok); }
+.st.seed_only, .st.no_weight { background: var(--hero-soft); color: var(--hero); }
+.st.no_games, .st.tower_troop, .st.not_in_game, .st.duplicate { background: var(--sunken); color: var(--muted); }
+.gnote { display: block; font-size: 0.75rem; color: var(--muted); max-width: 240px; margin-top: 2px; }
+.wbar svg { width: 100px; height: 18px; display: block; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the card table</a>
+<div class="wrap">
+  <header class="site" id="site"></header>
+  <main id="main" class="wrap">
+    <div class="pagehead">
+      <h1>All cards</h1>
+      <p class="lede" id="sum">Every card form in the game, with what the battles say about it.</p>
+      <div class="modebar" id="modebar"></div>
+      <div class="facts" id="facts"></div>
+    </div>
+    <div class="panel legend">
+      <span><b>Games</b> and <b>real win rate</b>: how often the card form was in a deck in this mode's training battles, and how many of those it won. <span class="src measured">measured</span></span>
+      <span><b>Card weight</b>: how much the card raised the chance of winning once the other cards and player rating are accounted for. Right of the middle line helps. <span class="src model">model</span></span>
+      <span><b>Your CSV</b>: rating, usage and win rate from your own card list. The model does not use them. <span class="src csv">your CSV</span></span>
+    </div>
+    <div class="bar">
+      <label class="sr" for="gq">Search cards</label>
+      <input class="search" id="gq" type="search" placeholder="Search cards" autocomplete="off">
+      <label class="sr" for="gstatus">Show</label>
+      <select id="gstatus">
+        <option value="all">All rows</option>
+        <option value="in_search">Used by the builder</option>
+        <option value="other">Not used by the builder</option>
+        <option value="csv_only">CSV rows that are not deck cards</option>
+      </select>
+      <label class="sr" for="gsort">Sort by</label>
+      <select id="gsort">
+        <option value="name">Sort by name</option>
+        <option value="weight">Sort by card weight</option>
+        <option value="games">Sort by games</option>
+        <option value="winrate">Sort by real win rate</option>
+        <option value="elixir">Sort by elixir</option>
+        <option value="rating">Sort by your CSV rating</option>
+      </select>
+    </div>
+    <p class="muted small" id="counts" aria-live="polite"></p>
+    <div class="panel gtable"><table class="cards" id="gtable"><tbody><tr><td><div class="skel" style="height:300px"></div></td></tr></tbody></table></div>
+  </main>
+  <footer class="site-foot">
+    <span>Base, Evolution and Hero forms are separate rows, since the game treats them as different cards in a deck.</span>
+    <span>A fan-made learning project. Not affiliated with, endorsed by or sponsored by Supercell. Battle data from the official Clash Royale API.</span>
+  </footer>
+</div>
+
+<script src="engine.js"></script>
+<script src="common.js"></script>
+<script>
+(() => {
+  "use strict";
+  const { $, esc, pct, signed, num } = UI;
+  const STATUS = { in_search: "Used by the builder", seed_only: "Pick only", no_weight: "Too few games", no_games: "Not played in this mode",
+    tower_troop: "Tower troop", not_in_game: "Not in the game", duplicate: "Duplicate row" };
+  const view = { q: "", status: "all", sort: "name" };
+  let ctx = null, E = null, ROWS = null, WDOM = 0.1;
+
+  UI.start("cards.html", (c) => { ctx = c; E = c.E; ROWS = null; UI.setHash(c.entry.slug); render(); }, { failTarget: "#gtable" });
+
+  function rows() {
+    if (ROWS) return ROWS;
+    const minc = Number(E.cfg.search.min_card_games), minf = E.m.strength.min_feature_games, csvByKey = {};
+    E.m.csv_rows.forEach((r) => { if (r.card_id && r.status !== "duplicate" && !csvByKey[`${r.card_id}:${r.form}`]) csvByKey[`${r.card_id}:${r.form}`] = r; });
+    const forms = E.m.forms.map((f) => {
+      const c = E.card(f.card_id), e = { id: f.card_id, form: f.form }, ci = E.coefInfo(e), r = csvByKey[f.key];
+      const status = ci.known && f.games >= minc ? "in_search" : ci.known ? "seed_only" : f.games === 0 ? "no_games" : "no_weight";
+      const note = status === "seed_only" ? `${num(f.games)} games here. The builder adds cards with at least ${num(minc)}, but you can still pick it.`
+        : status === "no_weight" ? `${num(f.games)} games here. A card weight needs at least ${num(minf)}.`
+        : status === "no_games" ? "Nobody played this form in this mode's battles." : "";
+      return { row: f.key, name: E.describe(e), form: f.form, c, e, ok: true, ci: ci.known ? ci : null, status, note,
+        games: f.games, wr: f.games ? f.wins / f.games : null, csv: r ? r.csv : null, rating: r ? Number(r.csv.rating) : NaN, elixir: c.elixir_variable ? null : c.elixir };
+    });
+    const csvOnly = E.m.csv_rows.filter((r) => ["tower_troop", "not_in_game", "duplicate"].includes(r.status)).map((r) => Object.assign({}, r, {
+      row: `csv${r.row}`, c: r.status === "duplicate" && r.card_id ? E.card(r.card_id) : null, e: null, ok: false, ci: null, games: 0, wr: null,
+      rating: Number(r.csv.rating), elixir: Number(r.csv.elixir), csvOnly: true }));
+    ROWS = forms.concat(csvOnly);
+    WDOM = Math.max(0.02, ...ROWS.filter((g) => g.ci).map((g) => Math.abs(g.ci.weight) + 1.645 * (g.ci.se || 0))) * 1.05;
+    return ROWS;
+  }
+  function mini(ci) {
+    if (!ci) return `<span class="muted">n/a</span>`;
+    const W = 100, X = (v) => 4 + (W - 8) * (v + WDOM) / (2 * WDOM), h = 1.645 * (ci.se || 0);
+    return `<svg viewBox="0 0 ${W} 18" aria-hidden="true"><line x1="${X(0)}" y1="2" x2="${X(0)}" y2="16" stroke="var(--line)" stroke-width="1"/>
+      <line x1="${X(ci.weight - h)}" y1="9" x2="${X(ci.weight + h)}" y2="9" stroke="var(--elixir)" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+      <circle cx="${X(ci.weight)}" cy="9" r="4" fill="var(--elixir)" stroke="var(--surface)" stroke-width="2"/></svg>`;
+  }
+  function render() {
+    const all = rows(), q = view.q.trim().toLowerCase(), counts = {};
+    all.forEach((r) => { counts[r.status] = (counts[r.status] || 0) + 1; });
+    const forms = all.filter((r) => !r.csvOnly);
+    $("#sum").textContent = `${forms.length} card forms in ${ctx.entry.label} (${forms.filter((r) => r.form === "base").length} base, ${forms.filter((r) => r.form === "evo").length} Evolution, ${forms.filter((r) => r.form === "hero").length} Hero), plus ${all.length - forms.length} rows from your CSV that are not deck cards.`;
+    let list = all.filter((r) => (!q || r.name.toLowerCase().includes(q)) &&
+      (view.status === "all" || (view.status === "in_search" ? r.status === "in_search" : view.status === "csv_only" ? r.csvOnly : r.status !== "in_search")));
+    const key = { name: (r) => r.name.toLowerCase(), weight: (r) => (r.ci ? -r.ci.weight : Infinity), games: (r) => -r.games,
+      winrate: (r) => (r.wr === null ? Infinity : -r.wr), elixir: (r) => (r.elixir === null || Number.isNaN(r.elixir) ? Infinity : r.elixir),
+      rating: (r) => (Number.isNaN(r.rating) ? Infinity : -r.rating) }[view.sort];
+    list = list.slice().sort((a, b) => { const x = key(a), y = key(b); return x < y ? -1 : x > y ? 1 : String(a.row).localeCompare(String(b.row)); });
+    $("#counts").textContent = `Showing ${list.length} of ${all.length} rows. ` + Object.entries(counts).map(([k, n]) => `${n} ${STATUS[k].toLowerCase()}`).join(" · ") + ".";
+    $("#gtable").innerHTML = `<thead>
+        <tr><th scope="col" rowspan="2">Card</th><th scope="col" rowspan="2">Status</th><th scope="col" class="n" rowspan="2">Elixir</th><th scope="col" rowspan="2">Type</th>
+          <th scope="colgroup" colspan="2" class="grp">Battles</th><th scope="colgroup" colspan="2" class="grp">Model</th><th scope="colgroup" colspan="3" class="grp">Your CSV</th><th rowspan="2"><span class="sr">Action</span></th></tr>
+        <tr><th scope="col" class="n">Games</th><th scope="col" class="n">Real win rate</th><th scope="col">Card weight</th><th scope="col" class="n">Weight</th>
+          <th scope="col" class="n">Rating</th><th scope="col" class="n">Usage</th><th scope="col" class="n">Win%</th></tr></thead>
+      <tbody>${list.length ? list.map((r) => {
+        const c = r.c, fb = r.form !== "base" && !r.csvOnly ? ` <span class="fbadge ${r.form}">${r.form === "evo" ? "EVO" : "HERO"}</span>` : "";
+        const typ = c ? `${UI.typeName(c)}<span class="sub">${esc(c.rarity)}${c.wincon ? " · win condition" : ""}</span>` : esc(r.csv ? r.csv.type : "");
+        return `<tr>
+          <td><span class="cn">${c ? UI.drop(c) : `<span class="drop"><span>${esc(r.csv ? r.csv.elixir : "?")}</span></span>`}<span>${esc(r.name)}</span>${fb}</span></td>
+          <td><span class="st ${r.status}">${STATUS[r.status]}</span>${r.note ? `<span class="gnote">${esc(r.note)}</span>` : ""}</td>
+          <td class="n">${c ? (c.elixir_variable ? "varies" : c.elixir) : esc(r.csv ? r.csv.elixir : "n/a")}</td>
+          <td>${typ}</td>
+          <td class="n">${r.ok ? (r.games ? num(r.games) : "0") : "n/a"}</td>
+          <td class="n">${r.ok && r.wr !== null ? pct(r.wr) : "n/a"}</td>
+          <td class="wbar">${mini(r.ci)}</td>
+          <td class="n">${r.ci ? signed(r.ci.weight, 4) : "n/a"}</td>
+          ${r.csv ? `<td class="n csvv">${esc(r.csv.rating)}</td><td class="n csvv">${esc(r.csv.usage)}%</td><td class="n csvv">${esc(r.csv.win_rate)}%</td>` : `<td class="n muted" colspan="3">not in your CSV</td>`}
+          <td>${r.ok ? `<a class="btn small" href="index.html#${UI.token(ctx.entry.slug, null, [r.e])}">Build with it</a>` : ""}</td>
+        </tr>`; }).join("") : `<tr><td colspan="12"><div class="empty">No card matches “${esc(view.q)}” with this filter. Clear the search or pick “All rows”.</div></td></tr>`}</tbody>`;
+  }
+  let t = 0;
+  $("#gq").addEventListener("input", (ev) => { view.q = ev.target.value; clearTimeout(t); t = setTimeout(render, 120); });
+  $("#gstatus").addEventListener("change", (ev) => { view.status = ev.target.value; render(); });
+  $("#gsort").addEventListener("change", (ev) => { view.sort = ev.target.value; render(); });
+})();
+</script>
+</body>
+</html>
