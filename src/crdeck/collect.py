@@ -225,8 +225,8 @@ def _body_items(r) -> list[dict]:
 def collect_arenas(client: ApiClient | None = None, progress: bool = True, window_id: str | None = None) -> dict[str, Any]:
     """Battle logs for up to `players_per_arena` players in each Trophy Road arena.
 
-    1. Clan pass: GET /clans per location (config arena_sample.clan_search), then each clan's
-       member list. A member goes to the arena named in its own `arena` field; when that field is
+    1. Clan pass: GET /clans by name word (config arena_sample.clan_search), then member lists,
+       lowest clan score per member first. A member goes to the arena named in its own `arena` field; when that field is
        missing or unknown, to the arena whose trophy floor (config) its trophies reach.
     2. Opponent pass: for arenas still short, the ladder opponents in the logs fetched so far,
        placed in the arena the battle was played in.
@@ -282,31 +282,42 @@ def collect_arenas(client: ApiClient | None = None, progress: bool = True, windo
                     summary["errors"].append(f"{tag}: {e}")
                     fetched[tag] = None
 
-    # 1. clan pass
+    # 1. clan pass: gather clans by name word, then read member lists, low score per member first
     cs = acfg["clan_search"]
-    for loc in cs["location_ids"]:
+    clans: dict[str, dict] = {}
+    for word in cs["names"]:
         after = None
         for _ in range(int(cs["max_pages"])):
-            if full() or spent():
+            if spent():
                 break
-            r = client.clan_search(str(loc), int(cs["min_members"]), int(cs["limit"]), after)
-            for clan in _body_items(r):
-                if full() or spent():
-                    break
-                try:
-                    members = client.clan_members(clan["tag"])
-                except ApiError as e:
-                    if "403" in str(e):
-                        raise
-                    summary["errors"].append(f"clan {clan.get('tag')}: {e}")
-                    continue
-                for m in _body_items(members):
-                    add(m.get("tag"), arena_of(m), "clan member")
+            r = client.clan_search({"name": word, "minMembers": int(cs["min_members"]), "limit": int(cs["limit"])}, after)
+            for c in _body_items(r):
+                if c.get("tag"):
+                    clans.setdefault(c["tag"], c)
             after = ((r.body.get("paging") or {}).get("cursors") or {}).get("after") if isinstance(r.body, dict) else None
             if not after:
                 break
-        if progress:
-            print(f"  clans in {loc}: {sum(len(v) for v in picked.values())} players placed")
+    summary["clans_found"] = len(clans)
+    if progress:
+        print(f"  {len(clans)} clans found by name search")
+    order = sorted(clans.values(), key=lambda c: (c.get("clanScore") or 0) / max(1, c.get("members") or 1))
+    visited = 0
+    for clan in order:
+        if full() or spent():
+            break
+        try:
+            members = client.clan_members(clan["tag"])
+        except ApiError as e:
+            if "403" in str(e):
+                raise
+            summary["errors"].append(f"clan {clan.get('tag')}: {e}")
+            continue
+        visited += 1
+        for m in _body_items(members):
+            add(m.get("tag"), arena_of(m), "clan member")
+        if progress and visited % 100 == 0:
+            print(f"  {visited} clans read: {sum(len(v) for v in picked.values())} players placed")
+    summary["clans_read"] = visited
     fetch_logs()
 
     # 2. opponent pass: ladder opponents from logs already fetched, until no arena gains a player

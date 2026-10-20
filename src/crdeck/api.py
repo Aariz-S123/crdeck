@@ -204,12 +204,11 @@ class ApiClient:
         """folder: "battlelog" for leaderboard players, "battlelog_arena" for the arena sample."""
         return self.get(f"/players/{encode_tag(tag)}/battlelog", f"{folder}/{safe_tag(tag)}.json")
 
-    def clan_search(self, location_id: str, min_members: int, limit: int, after: str | None = None) -> CachedResponse:
-        params = {"locationId": location_id, "minMembers": min_members, "limit": limit}
-        if after:
-            params["after"] = after
-        page = hashlib.sha1(after.encode()).hexdigest()[:10] if after else "first"
-        return self.get("/clans", f"clans/search_{location_id}_m{min_members}_l{limit}_{page}.json", params=params)
+    def clan_search(self, params: dict, after: str | None = None) -> CachedResponse:
+        """GET /clans with search params (name, locationId, minMembers, maxMembers, limit, ...)."""
+        params = dict(params, **({"after": after} if after else {}))
+        key = hashlib.sha1(json.dumps(params, sort_keys=True).encode()).hexdigest()[:12]
+        return self.get("/clans", f"clans/search_{key}.json", params=params)
 
     def clan_members(self, tag: str) -> CachedResponse:
         return self.get(f"/clans/{encode_tag(tag)}/members", f"clans/members_{safe_tag(tag)}.json")

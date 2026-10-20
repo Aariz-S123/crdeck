@@ -112,17 +112,22 @@ battles:
 # Players for lower arenas (`python -m crdeck collect --arenas`). Leaderboards only list top
 # players, so the collector finds clans through GET /clans, reads their member lists (each
 # member's own arena), and fetches battle logs for up to `players_per_arena` members per arena.
+# Observed 2026-10-20: a search by locationId returns the strongest clans first (scores
+# 81k-140k, members at 14,000 trophies) and stops after about 1,000 results, so it never
+# reaches low arenas. A search by name returns about 640 clans per word across the whole
+# score range (about 20k to 140k), and low-score clans hold low-arena members. So the
+# collector searches by common name words and visits clans with the lowest score per member first.
 # Arenas still short after the clan pass are filled from the ladder opponents in logs already
 # fetched. These logs go to data/raw/<window>/battlelog_arena/ and are tagged
 # sample = "arena_sample"; the meta history keeps using the leaderboard sample only.
 arena_sample:
   players_per_arena: 150
-  max_requests: 8000             # hard stop for one run
+  max_requests: 9000             # hard stop for one run
   clan_search:
-    location_ids: [57000249, 57000038, 57000153, 57000218, 57000094, 57000087, 57000120, 57000122, 57000193, 57000239, 57000248, 57000113]
-    min_members: 20
+    names: [clash, royale, king, kings, royal, war, legends, team, family, army, elite, noob, pro, the, fun, dragons, warriors, empire, squad, friends]
+    min_members: 5
     limit: 50                    # clans per search page
-    max_pages: 4                 # pages per location
+    max_pages: 13                # pages per name (the API stops near 640 results)
   snowball: true                 # fill short arenas from ladder opponents
 
 form_resolution:

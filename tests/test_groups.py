@@ -126,7 +126,7 @@ def _arena_cfg(monkeypatch, sess, tmp_path, **sample):
     full = collection_config()
     full["battles"]["modes"]["trophy_road"]["arenas"] = [["Goblin Stadium", 0], ["Bone Pit", 300], ["Barbarian Bowl", 600]]
     full["arena_sample"] = {"players_per_arena": 2, "max_requests": 100, "snowball": True,
-                            "clan_search": {"location_ids": [1], "min_members": 1, "limit": 10, "max_pages": 2}, **sample}
+                            "clan_search": {"names": ["a"], "min_members": 1, "limit": 10, "max_pages": 2}, **sample}
     import crdeck.collect as C
     monkeypatch.setattr(C, "collection_config", lambda: full)
     monkeypatch.delenv("CR_API_BASE", raising=False)
