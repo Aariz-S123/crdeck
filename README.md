@@ -50,6 +50,7 @@ The deck builder also runs as a small website that runs the trained model in the
 | `web/reason.html` (Why this deck) | Opened from a deck: a plain-language summary, card weights, model vs real results, card pairs, warnings, swaps with their breakdown, raw score |
 | `web/cards.html` (All cards) | Every row of `data/labels/source/cards_meta.csv` and every card form: status, battle stats, regression weight, your CSV's numbers |
 | `web/meta.html` (Meta) | Ranked usage history, biggest movers, deck styles per period, forecast status and assumptions |
+| `web/seasons.html` (Next season) | Today's most-played ranked decks with their trend, new cards / Evolutions / Heroes between saved card lists, and a next-season prediction that stays locked until 3 seasons are collected and it beats "no change" on a held-out season |
 | `web/model.html` (How it works) | How the model is built, held-out results against baselines, limits, a glossary, and the full run log |
 
 - `web/common.js` and `web/app.css` are shared by all pages; `web/engine.js` is a JavaScript port of the scoring, search, legality, warnings, archetype and explanation code.
