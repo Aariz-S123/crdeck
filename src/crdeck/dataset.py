@@ -10,14 +10,15 @@ from .parse import OK
 
 
 def model_battles(battles: pd.DataFrame, dib: pd.DataFrame, modes: list[str] | None = None,
-                  arena: str | None = None) -> pd.DataFrame:
+                  group: str | None = None) -> pd.DataFrame:
     """One row per OK battle: battle_key, battle_time, deck_a, deck_b, a_won, level gap, form_unknown.
-    `modes` keeps only those modes (None = all OK battles); `arena` keeps one arena."""
+    `modes` keeps only those modes (None = all OK battles); `group` keeps one group of the mode:
+    an arena for Trophy Road, a league for Ranked (column `group`; older tables only have `arena`)."""
     keep = battles["status"] == OK
     if modes is not None and "mode" in battles:
         keep &= battles["mode"].isin(modes)
-    if arena is not None and "arena" in battles:
-        keep &= battles["arena"] == arena
+    if group is not None:
+        keep &= battles["group" if "group" in battles else "arena"] == group
     ok = battles.loc[keep, ["battle_key", "battle_time"]]
     a = dib[dib["side"] == "A"].set_index("battle_key")
     b = dib[dib["side"] == "B"].set_index("battle_key")

@@ -281,7 +281,7 @@ def full_report(ctx, completion_decks: int = 100) -> dict:
     chosen = choose_cooccurrence(tuning)
     return {
         "source": ctx.paths.banner(),
-        "mode": ctx.mode, "arena": ctx.arena, "mode_label": ctx.mode_label,
+        "mode": ctx.mode, "group": ctx.group, "mode_label": ctx.mode_label,
         "test_window": [s, e],
         "data_fingerprint": _fingerprint(ctx.paths),
         "described_as": f"held-out {ctx.mode_label} battles of top players from {s} to {e}",

@@ -40,18 +40,90 @@ battles:
   # collected logs on 2026-10-19 (inventory in docs/api-notes.md). Battles that match no mode
   # (events, draft, friendlies, clan war, 2v2, tournaments) get status FILTERED_TYPE and are
   # never modeled: their decks are not the player's own choice or the rules differ.
+  #
+  # Each mode is also split into groups (the site's League / Arena picker):
+  #   group_by: league -> the battle's `leagueNumber` (observed on every pathOfLegend battle, 2026-10-19)
+  #   group_by: arena  -> the battle's `arena.name`
+  # The names, order and trophy floors below were supplied by the project owner on 2026-10-20.
+  # They order the picker and aim the arena collector; a battle's group always comes from the
+  # battle itself, never from these numbers.
   modes:
     ranked:
       label: "Ranked (Path of Legends)"
       types: [pathOfLegend]
       game_modes: [Ranked1v1_NewArena, Ranked1v1_NewArena2]
+      group_by: league
+      group_word: League
+      leagues:                     # leagueNumber: name
+        1: Master I
+        2: Master II
+        3: Master III
+        4: Champion
+        5: Grand Champion
+        6: Royal Champion
+        7: Ultimate Champion
     trophy_road:
       label: "Trophy Road ladder"
       types: [trail, PvP]
       game_modes: [Ladder]
+      group_by: arena
+      group_word: Arena
+      arenas:                      # [name, trophies needed]; game order
+        - ["Goblin Stadium", 0]
+        - ["Bone Pit", 300]
+        - ["Barbarian Bowl", 600]
+        - ["Spell Valley", 1000]
+        - ["Builder's Workshop", 1300]
+        - ["P.E.K.K.A's Playhouse", 1600]
+        - ["Royal Arena", 2000]
+        - ["Frozen Peak", 2300]
+        - ["Jungle Arena", 2600]
+        - ["Hog Mountain", 3000]
+        - ["Electro Valley", 3400]
+        - ["Spooky Town", 3800]
+        - ["Rascal's Hideout", 4200]
+        - ["Serenity Peak", 4600]
+        - ["Miner's Mine", 5000]
+        - ["Executioner's Kitchen", 5500]
+        - ["Royal Crypt", 6000]
+        - ["Silent Sanctuary", 6500]
+        - ["Dragon Spa", 7000]
+        - ["Boot Camp", 7500]
+        - ["Clash Fest", 8000]
+        - ["PANCAKES!", 8500]
+        - ["Valkalla", 9000]
+        - ["Legendary Arena", 9500]
+        - ["Lumberlove Cabin", 10000]
+        - ["Royal Road", 10500]
+        - ["Musketeer Street", 11000]
+        - ["Summit of Heroes", 11500]
+        - ["Magic Academy", 12000]
+        - ["Ultimate Clash Pit", 12500]
+        - ["Little Prince's Tavern", 13000]
+        - ["Spirit Square", 13500]
+        # Not in the owner's table; floors are the lowest startingTrophies seen in collected
+        # Seasonal Arena battles (2026-10-19: 14,000 and 14,500).
+        - ["Seasonal Arena I", 14000]
+        - ["Seasonal Arena II", 14500]
   deck_selection: [collection]   # the player's own deck
   combined:
     all: [ranked, trophy_road]   # "All" = every modeled mode together
+
+# Players for lower arenas (`python -m crdeck collect --arenas`). Leaderboards only list top
+# players, so the collector finds clans through GET /clans, reads their member lists (each
+# member's own arena), and fetches battle logs for up to `players_per_arena` members per arena.
+# Arenas still short after the clan pass are filled from the ladder opponents in logs already
+# fetched. These logs go to data/raw/<window>/battlelog_arena/ and are tagged
+# sample = "arena_sample"; the meta history keeps using the leaderboard sample only.
+arena_sample:
+  players_per_arena: 150
+  max_requests: 8000             # hard stop for one run
+  clan_search:
+    location_ids: [57000249, 57000038, 57000153, 57000218, 57000094, 57000087, 57000120, 57000122, 57000193, 57000239, 57000248, 57000113]
+    min_members: 20
+    limit: 50                    # clans per search page
+    max_pages: 4                 # pages per location
+  snowball: true                 # fill short arenas from ladder opponents
 
 form_resolution:
   # Observed in real calls on 2026-10-18 (docs/api-notes-observed.md, docs/api-notes.md):

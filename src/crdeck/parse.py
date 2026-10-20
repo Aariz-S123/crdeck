@@ -56,13 +56,29 @@ class ModeRules:
     Battles matching no mode are "other" and are never modeled."""
     rules: tuple[tuple[str, frozenset, frozenset], ...]
     deck_selection: frozenset
+    group_by: tuple[tuple[str, str], ...] = ()          # mode -> "league" | "arena"
+    league_names: tuple[tuple[int, str], ...] = ()      # leagueNumber -> name
 
     @classmethod
     def from_collection(cls, cfg: dict) -> "ModeRules":
         b = cfg.get("battles", {})
+        modes = b.get("modes") or {}
         rules = tuple((k, frozenset(v.get("types", [])), frozenset(v.get("game_modes", [])))
-                      for k, v in (b.get("modes") or {}).items())
-        return cls(rules, frozenset(b.get("deck_selection", ["collection"])))
+                      for k, v in modes.items())
+        group_by = tuple((k, v["group_by"]) for k, v in modes.items() if v.get("group_by"))
+        leagues = tuple((int(n), str(name)) for v in modes.values() for n, name in (v.get("leagues") or {}).items())
+        return cls(rules, frozenset(b.get("deck_selection", ["collection"])), group_by, leagues)
+
+    def group(self, battle: dict, mode: str) -> str | None:
+        """The battle's group within its mode: its league name (from leagueNumber) or its arena
+        name, both read from the battle. None when the mode has no grouping or the field is missing."""
+        how = dict(self.group_by).get(mode)
+        if how == "arena":
+            return (battle.get("arena") or {}).get("name")
+        if how == "league":
+            n = battle.get("leagueNumber")
+            return dict(self.league_names).get(n, f"League {n}") if n is not None else None
+        return None
 
     def assign(self, battle: dict) -> str:
         if battle.get("deckSelection") not in self.deck_selection:
@@ -84,6 +100,17 @@ def mode_label(cfg: dict, mode: str, arena: str | None = None) -> str:
     modes = cfg.get("battles", {}).get("modes") or {}
     base = modes.get(mode, {}).get("label") or ("All modes" if mode == "all" else mode)
     return f"{base}: {arena}" if arena else base
+
+
+def mode_groups(cfg: dict, mode: str) -> list[dict]:
+    """The configured groups of a mode in game order: [{"name", "order", "min_trophies" | "league"}].
+    Names come from config (supplied by the project owner); data decides which battle is in which."""
+    m = (cfg.get("battles", {}).get("modes") or {}).get(mode) or {}
+    if m.get("group_by") == "league":
+        return [{"name": str(name), "order": int(n), "league": int(n)} for n, name in sorted((m.get("leagues") or {}).items(), key=lambda x: int(x[0]))]
+    if m.get("group_by") == "arena":
+        return [{"name": str(a[0]), "order": i + 1, "min_trophies": a[1]} for i, a in enumerate(m.get("arenas") or [])]
+    return []
 
 
 def modes_for(cfg: dict, mode: str) -> list[str]:
@@ -178,6 +205,7 @@ def parse_battlelog(
     deck_size: int = 8,
     window: tuple[datetime | None, datetime | None] = (None, None),
     modes: ModeRules | None = None,
+    sample: str = "leaderboard",
 ) -> tuple[list[dict], list[dict], list[dict]]:
     """Return (battles, decks_in_battle, slot_cards) rows for one log.
 
@@ -197,6 +225,9 @@ def parse_battlelog(
             "game_mode": (b.get("gameMode") or {}).get("name"),
             "mode": mode,
             "arena": (b.get("arena") or {}).get("name"),
+            "league": b.get("leagueNumber"),
+            "group": modes.group(b, mode) if modes is not None else None,
+            "sample": sample,
             "deck_selection": b.get("deckSelection"),
             "source_player_tag": source_tag,
             "fetched_at": fetched_at,
@@ -273,7 +304,9 @@ def parse_files(
             n_404 += 1
             continue
         tag = "#" + p.stem
-        b, d, s = parse_battlelog(w["body"], tag, w.get("fetched_at", ""), cards, fc, battle_types, deck_size, window, modes)
+        # which group of players the log was collected for: leaderboard players or the arena sample
+        sample = "arena_sample" if p.parent.name == "battlelog_arena" else "leaderboard"
+        b, d, s = parse_battlelog(w["body"], tag, w.get("fetched_at", ""), cards, fc, battle_types, deck_size, window, modes, sample)
         all_b += b
         all_d += d
         all_s += s
@@ -281,11 +314,16 @@ def parse_files(
 
 
 def dedupe(battles: list[dict], dib: list[dict], slots: list[dict], extra_counts: dict | None = None) -> Parsed:
-    bdf = pd.DataFrame(battles, columns=["battle_key", "battle_time", "battle_type", "game_mode", "mode", "arena",
-                                         "deck_selection", "source_player_tag", "fetched_at", "status", "unknown_card_ids"])
+    bdf = pd.DataFrame(battles, columns=["battle_key", "battle_time", "battle_type", "game_mode", "mode", "arena", "league",
+                                         "group", "sample", "deck_selection", "source_player_tag", "fetched_at", "status", "unknown_card_ids"])
     n_raw = len(bdf)
+    if bdf["sample"].isna().all():
+        bdf["sample"] = "leaderboard"
+    in_leaderboard = set(bdf.loc[bdf["sample"] == "leaderboard", "battle_key"])
     bdf = bdf.sort_values(["battle_key", "fetched_at", "source_player_tag"], kind="mergesort")
     bdf = bdf.drop_duplicates("battle_key", keep="first").reset_index(drop=True)
+    # a battle seen in both samples counts as a leaderboard battle, so the leaderboard sample stays whole
+    bdf["sample"] = bdf["battle_key"].isin(in_leaderboard).map({True: "leaderboard", False: "arena_sample"})
     ddf = pd.DataFrame(dib, columns=["battle_key", "side", "player_tag", "deck_key", "won", "crowns",
                                      "trophies_or_rank", "global_rank", "level_deficit", "form_unknown"])
     ddf = ddf.drop_duplicates(["battle_key", "side"], keep="first").reset_index(drop=True)
@@ -308,6 +346,9 @@ def dedupe(battles: list[dict], dib: list[dict], slots: list[dict], extra_counts
                   for m, g in bdf.groupby("mode", dropna=False)},
         "ok_by_mode_arena": {f"{m}|{a}": int(n) for (m, a), n in
                              bdf[bdf["status"] == OK].groupby(["mode", "arena"], dropna=False).size().items()},
+        "ok_by_mode_group": {f"{m}|{g}": int(n) for (m, g), n in
+                             bdf[bdf["status"] == OK].groupby(["mode", "group"]).size().items()},
+        "ok_by_sample": {str(k): int(n) for k, n in bdf[bdf["status"] == OK].groupby("sample").size().items()},
         "unknown_card_ids": unknown_ids,
         "distinct_decks": int(len(decks)),
     }

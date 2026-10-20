@@ -57,7 +57,7 @@ def build(source: str | None = None, verbose: bool = True, paths: Paths | None =
     save_card_table(table, paths.processed / "cards.parquet")
     cards = load_card_table(paths.processed / "cards.parquet")
 
-    logs = sorted(paths.raw.glob("*/battlelog/*.json"))
+    logs = sorted(paths.raw.glob("*/battlelog/*.json")) + sorted(paths.raw.glob("*/battlelog_arena/*.json"))
     if not logs:
         raise NoDataError(f"No battle logs under {paths.raw}. Run `python -m crdeck collect`.")
     win = ccfg.get("window", {})
@@ -143,7 +143,7 @@ def save_model_outputs(ctx: "Context", report: dict | None = None) -> list[Path]
                        "train_games": ctx.strength.feature_games.get(k, 0)} for k, v in ctx.strength.card_weights.items()])
     w.sort_values("weight", ascending=False).to_csv(out / f"card_weights_{sfx}.csv", index=False)
     ctx.model_comparison.to_csv(out / f"model_comparison_{sfx}.csv", index=False)
-    meta = {"source": ctx.paths.source, "banner": ctx.paths.banner(), "mode": ctx.mode, "arena": ctx.arena,
+    meta = {"source": ctx.paths.source, "banner": ctx.paths.banner(), "mode": ctx.mode, "group": ctx.group,
             "mode_label": ctx.mode_label, "split": ctx.split.describe().to_dict("records"),
             "strength_model": ctx.strength.name, "C": ctx.strength.C, "synergy_expected_from": ctx.synergy.expected_from}
     if report is not None:
@@ -183,14 +183,22 @@ class Context:
     deck_appearances: dict[str, int] = field(default_factory=dict)
     synergy_choice: pd.DataFrame | None = None
     mode: str = "ranked"
-    arena: str | None = None
+    group: str | None = None  # one group of the mode: an arena (Trophy Road) or a league (Ranked)
     mode_label: str = "Ranked (Path of Legends)"
     candidates: pd.DataFrame | None = None  # every strength model and C tried, with validation scores
 
     @property
+    def arena(self) -> str | None:
+        """Older name for `group`."""
+        return self.group
+
+    @property
     def slug(self) -> str:
-        return mode_slug(self.mode, self.arena)
+        return mode_slug(self.mode, self.group)
     archetype_labels: pd.DataFrame | None = None
+
+
+MIN_BATTLES = 100  # fewest usable battles a mode or group needs before a model is trained
 
 
 def load_interim(paths: Paths) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict]:
@@ -292,8 +300,10 @@ def _fingerprint(paths: Paths) -> str:
 
 
 def load_context(source: str | None = None, verbose: bool = False, paths: Paths | None = None,
-                 cache: bool | None = None, mode: str = "ranked", arena: str | None = None) -> Context:
-    """Train (or load cached) models for one mode (and optionally one arena).
+                 cache: bool | None = None, mode: str = "ranked", group: str | None = None,
+                 arena: str | None = None) -> Context:
+    """Train (or load cached) models for one mode, optionally one group of it (an arena for
+    Trophy Road, a league for Ranked; `arena` is the older name of `group`).
     mode: a key of config battles.modes (e.g. 'ranked', 'trophy_road') or of battles.combined ('all').
     The cache in processed/context_cache_<slug>.pkl is reused only when the fingerprint of data,
     labels, configs and code is unchanged. cache=None reads CRDECK_NO_CACHE=1 to disable it."""
@@ -302,7 +312,8 @@ def load_context(source: str | None = None, verbose: bool = False, paths: Paths 
     if cache is None:
         cache = os.environ.get("CRDECK_NO_CACHE") != "1"
     paths = paths or Paths.for_source(source)
-    cache_file = paths.processed / f"context_cache_{mode_slug(mode, arena)}.pkl"
+    group = group if group is not None else arena
+    cache_file = paths.processed / f"context_cache_{mode_slug(mode, group)}.pkl"
     fp = _fingerprint(paths) if cache else ""
     if cache and cache_file.exists():
         try:
@@ -316,7 +327,7 @@ def load_context(source: str | None = None, verbose: bool = False, paths: Paths 
                 return ctx
         except Exception:  # stale or unreadable cache: retrain
             pass
-    ctx = _train_context(paths, verbose, mode, arena)
+    ctx = _train_context(paths, verbose, mode, group)
     if cache:
         paths.processed.mkdir(parents=True, exist_ok=True)
         with cache_file.open("wb") as f:
@@ -324,7 +335,7 @@ def load_context(source: str | None = None, verbose: bool = False, paths: Paths 
     return ctx
 
 
-def _train_context(paths: Paths, verbose: bool, mode: str = "ranked", arena: str | None = None) -> Context:
+def _train_context(paths: Paths, verbose: bool, mode: str = "ranked", group: str | None = None) -> Context:
     cfg = model_config()
     ccfg = collection_config()
     rules = DeckRules.load()
@@ -332,10 +343,10 @@ def _train_context(paths: Paths, verbose: bool, mode: str = "ranked", arena: str
     battles, dib, decks, counts = load_interim(paths)
     if "mode" not in battles:
         raise NoDataError("interim tables predate modes; run `python -m crdeck build` again")
-    mb = model_battles(battles, dib, modes_for(ccfg, mode), arena)
-    label = mode_label(ccfg, mode, arena)
-    if len(mb) < 100:
-        raise NoDataError(f"not enough data for {label}: only {len(mb)} usable battles (minimum 100)")
+    mb = model_battles(battles, dib, modes_for(ccfg, mode), group)
+    label = mode_label(ccfg, mode, group)
+    if len(mb) < MIN_BATTLES:
+        raise NoDataError(f"not enough data for {label}: only {len(mb)} usable battles (minimum {MIN_BATTLES})")
     split = time_split(mb, ccfg["split"]["train_frac"], ccfg["split"]["valid_frac"])
     for part in ("train", "valid", "test"):
         if len(getattr(split, part)) < 30:
@@ -367,7 +378,7 @@ def _train_context(paths: Paths, verbose: bool, mode: str = "ranked", arena: str
     appearances = all_sides["deck_key"].value_counts().to_dict()
     ctx = Context(paths, cfg, rules, cards, split, syn_tv, strength, scorer, am, hero_obs, comp, decks, counts,
                   test_deck_records=test_records, deck_appearances=appearances, archetype_labels=labels,
-                  synergy_choice=syn_choice, mode=mode, arena=arena, mode_label=label, candidates=candidates)
+                  synergy_choice=syn_choice, mode=mode, group=group, mode_label=label, candidates=candidates)
     if verbose:
         print(paths.banner())
         print(split.describe().to_string(index=False))
