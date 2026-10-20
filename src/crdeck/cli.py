@@ -1,7 +1,8 @@
 """Command line: python -m crdeck <command> [--source real|synthetic]
 
   gate        API gate (spec 6): /cards, leaderboard, one battle log; prints observations
-  collect     battle logs for top leaderboard players (resumable; cached files skipped)
+  collect     battle logs for top leaderboard players (resumable; cached files skipped);
+              --arenas: players in every Trophy Road arena instead
   synthetic   generate SYNTHETIC data under data/synthetic (pipeline testing only)
   build       rebuild interim tables from raw + labels
   evaluate    held-out evaluation report
@@ -27,6 +28,8 @@ def main(argv: list[str] | None = None) -> int:
     c = sub.add_parser("collect")
     c.add_argument("--players", type=int, default=None)
     c.add_argument("--window", default=None, help='window id for the raw cache; "auto" = today (UTC)')
+    c.add_argument("--arenas", action="store_true",
+                   help="players in every Trophy Road arena (clan search + ladder opponents) instead of the leaderboards")
     s = sub.add_parser("synthetic")
     s.add_argument("--battles", type=int, default=20_000)
     s.add_argument("--players", type=int, default=300)
@@ -35,7 +38,8 @@ def main(argv: list[str] | None = None) -> int:
         p.add_argument("--source", choices=["real", "synthetic"], default=None)
         if name in ("evaluate", "suggest"):
             p.add_argument("--mode", default="ranked", help="ranked, trophy_road or all (config battles.modes / combined)")
-            p.add_argument("--arena", default=None, help="one arena within the mode, e.g. 'Seasonal Arena II'")
+            p.add_argument("--group", "--arena", dest="group", default=None,
+                           help="one group of the mode: an arena ('Seasonal Arena II') or a league ('Ultimate Champion')")
         if name == "suggest":
             p.add_argument("seeds", nargs="*")
         if name == "label":
@@ -48,8 +52,12 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(obs, indent=2, default=str))
         print(f"\nwrote {write_observed_notes(obs)}; copy findings into docs/api-notes.md")
     elif args.cmd == "collect":
-        from .collect import collect
-        print(json.dumps(collect(args.players, window_id=args.window), indent=2))
+        if args.arenas:
+            from .collect import collect_arenas
+            print(json.dumps(collect_arenas(window_id=args.window), indent=2))
+        else:
+            from .collect import collect
+            print(json.dumps(collect(args.players, window_id=args.window), indent=2))
     elif args.cmd == "synthetic":
         from .synthetic import SynthConfig, generate
         print("Generating SYNTHETIC data (not real battles) under data/synthetic/")
@@ -61,7 +69,7 @@ def main(argv: list[str] | None = None) -> int:
         from .evaluate import full_report
         from .pipeline import load_context
         from .pipeline import save_model_outputs
-        ctx = load_context(args.source, verbose=True, mode=args.mode, arena=args.arena)
+        ctx = load_context(args.source, verbose=True, mode=args.mode, group=args.group)
         rep = full_report(ctx)
         for f in save_model_outputs(ctx, rep):
             print("wrote", f)
@@ -73,7 +81,7 @@ def main(argv: list[str] | None = None) -> int:
         from .explain import build_explanation, render_text
         from .pipeline import load_context
         from .search import Searcher, parse_seed
-        ctx = load_context(args.source, mode=args.mode, arena=args.arena)
+        ctx = load_context(args.source, mode=args.mode, group=args.group)
         searcher = Searcher(ctx)
         seeds = [parse_seed(x, ctx.cards) for x in args.seeds]
         for i, d in enumerate(searcher.complete(seeds), 1):

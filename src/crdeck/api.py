@@ -12,6 +12,7 @@ current API until docs/api-notes.md records observed calls.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import time
@@ -105,6 +106,18 @@ class ApiClient:
             self._key = load_key(self._key_env)
         return {"Authorization": f"Bearer {self._key}", "Accept": "application/json"}
 
+    def _base_url(self) -> str:
+        """config api.base_url, unless CR_API_BASE is set (environment or .env), e.g. the
+        RoyaleAPI proxy https://proxy.royaleapi.dev/v1 when the key's IP keeps changing."""
+        base = os.environ.get("CR_API_BASE")
+        if not base:
+            try:
+                from dotenv import dotenv_values
+                base = dotenv_values(PROJECT_ROOT / ".env").get("CR_API_BASE")
+            except ImportError:  # pragma: no cover
+                base = None
+        return base or self.cfg["base_url"]
+
     def _throttle(self) -> None:
         wait = float(self.cfg["request_delay_s"]) - (time.monotonic() - self._last)
         if wait > 0:
@@ -119,7 +132,7 @@ class ApiClient:
                 wrapped = json.load(f)
             return CachedResponse(cache, True, wrapped["status"], wrapped["body"])
 
-        url = self.cfg["base_url"].rstrip("/") + endpoint
+        url = self._base_url().rstrip("/") + endpoint
         retries = int(self.cfg["max_retries"])
         for attempt in range(retries + 1):
             self._throttle()
@@ -187,5 +200,16 @@ class ApiClient:
             rel = f"leaderboard/{location_id}_limit{limit}.json"  # limit in the name: a 50-player gate fetch must not satisfy a 1000-player collect
         return self.get(endpoint, rel, params={"limit": limit})
 
-    def battlelog(self, tag: str) -> CachedResponse:
-        return self.get(f"/players/{encode_tag(tag)}/battlelog", f"battlelog/{safe_tag(tag)}.json")
+    def battlelog(self, tag: str, folder: str = "battlelog") -> CachedResponse:
+        """folder: "battlelog" for leaderboard players, "battlelog_arena" for the arena sample."""
+        return self.get(f"/players/{encode_tag(tag)}/battlelog", f"{folder}/{safe_tag(tag)}.json")
+
+    def clan_search(self, location_id: str, min_members: int, limit: int, after: str | None = None) -> CachedResponse:
+        params = {"locationId": location_id, "minMembers": min_members, "limit": limit}
+        if after:
+            params["after"] = after
+        page = hashlib.sha1(after.encode()).hexdigest()[:10] if after else "first"
+        return self.get("/clans", f"clans/search_{location_id}_m{min_members}_l{limit}_{page}.json", params=params)
+
+    def clan_members(self, tag: str) -> CachedResponse:
+        return self.get(f"/clans/{encode_tag(tag)}/members", f"clans/members_{safe_tag(tag)}.json")

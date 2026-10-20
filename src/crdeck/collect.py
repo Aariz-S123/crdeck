@@ -3,6 +3,8 @@
 gate():    /cards, the Path of Legends leaderboard and one battle log, plus a
            field inventory to copy into docs/api-notes.md ("observed" section).
 collect(): battle logs for the top N leaderboard players in the current window.
+collect_arenas(): battle logs for players in every Trophy Road arena (clan search, then
+           ladder opponents), stored apart from the leaderboard logs.
 """
 
 from __future__ import annotations
@@ -14,6 +16,7 @@ from typing import Any
 
 from .api import ApiClient, ApiError
 from .config import PROJECT_ROOT, collection_config
+from .parse import ModeRules, mode_groups
 
 # Battle-deck card fields known before 2026. Anything else seen in a real log is
 # listed in the observed notes as a candidate marker (e.g. for Hero form).
@@ -211,5 +214,129 @@ def collect(n_players: int | None = None, client: ApiClient | None = None, progr
         if progress and (i + 1) % 50 == 0:
             print(f"  {i + 1}/{len(players)} logs")
     summary["requests_sent"] = client.requests_sent
+    summary["throttled_429"] = client.throttled
+    return summary
+
+
+def _body_items(r) -> list[dict]:
+    return list(r.body.get("items", [])) if r.status == 200 and isinstance(r.body, dict) else []
+
+
+def collect_arenas(client: ApiClient | None = None, progress: bool = True, window_id: str | None = None) -> dict[str, Any]:
+    """Battle logs for up to `players_per_arena` players in each Trophy Road arena.
+
+    1. Clan pass: GET /clans per location (config arena_sample.clan_search), then each clan's
+       member list. A member goes to the arena named in its own `arena` field; when that field is
+       missing or unknown, to the arena whose trophy floor (config) its trophies reach.
+    2. Opponent pass: for arenas still short, the ladder opponents in the logs fetched so far,
+       placed in the arena the battle was played in.
+    Logs are cached under <window>/battlelog_arena/. Stops at `max_requests` network requests,
+    and at once on an API error that affects every call (wrong IP, bad key)."""
+    cfg = collection_config()
+    acfg = cfg["arena_sample"]
+    if window_id == "auto":
+        window_id = auto_window_id()
+    client = client or ApiClient(cfg=cfg, window_id=window_id)
+    arenas = mode_groups(cfg, "trophy_road")
+    floors = sorted((a["min_trophies"], a["name"]) for a in arenas)
+    target, budget = int(acfg["players_per_arena"]), int(acfg["max_requests"])
+    picked: dict[str, list[str]] = {a["name"]: [] for a in arenas}
+    source: dict[str, Counter] = {a["name"]: Counter() for a in arenas}
+    seen: set[str] = set()
+    how = Counter()
+    rules = ModeRules.from_collection(cfg)
+    summary: dict[str, Any] = {"window_id": client.window_id, "players_per_arena": target, "errors": []}
+
+    def arena_of(member: dict) -> str | None:
+        name = (member.get("arena") or {}).get("name")
+        if name in picked:
+            how["member arena field"] += 1
+            return name
+        t = member.get("trophies")
+        if not isinstance(t, (int, float)):
+            how["no arena, no trophies"] += 1
+            return None
+        how["trophy floor (config)"] += 1
+        return [n for f, n in floors if f <= t][-1] if t >= floors[0][0] else None
+
+    def add(tag: str | None, arena: str | None, via: str) -> None:
+        if tag and arena in picked and tag not in seen and len(picked[arena]) < target:
+            picked[arena].append(tag)
+            seen.add(tag)
+            source[arena][via] += 1
+
+    full = lambda: all(len(v) >= target for v in picked.values())  # noqa: E731
+    spent = lambda: client.requests_sent >= budget  # noqa: E731
+    fetched: dict[str, Any] = {}
+
+    def fetch_logs() -> None:
+        for arena, tags in picked.items():
+            for tag in tags:
+                if tag in fetched or spent():
+                    continue
+                try:
+                    fetched[tag] = client.battlelog(tag, folder="battlelog_arena")
+                except ApiError as e:
+                    if "403" in str(e):
+                        raise
+                    summary["errors"].append(f"{tag}: {e}")
+                    fetched[tag] = None
+
+    # 1. clan pass
+    cs = acfg["clan_search"]
+    for loc in cs["location_ids"]:
+        after = None
+        for _ in range(int(cs["max_pages"])):
+            if full() or spent():
+                break
+            r = client.clan_search(str(loc), int(cs["min_members"]), int(cs["limit"]), after)
+            for clan in _body_items(r):
+                if full() or spent():
+                    break
+                try:
+                    members = client.clan_members(clan["tag"])
+                except ApiError as e:
+                    if "403" in str(e):
+                        raise
+                    summary["errors"].append(f"clan {clan.get('tag')}: {e}")
+                    continue
+                for m in _body_items(members):
+                    add(m.get("tag"), arena_of(m), "clan member")
+            after = ((r.body.get("paging") or {}).get("cursors") or {}).get("after") if isinstance(r.body, dict) else None
+            if not after:
+                break
+        if progress:
+            print(f"  clans in {loc}: {sum(len(v) for v in picked.values())} players placed")
+    fetch_logs()
+
+    # 2. opponent pass: ladder opponents from logs already fetched, until no arena gains a player
+    rounds = 0
+    while acfg.get("snowball", True) and not full() and not spent():
+        before = sum(len(v) for v in picked.values())
+        for tag, r in list(fetched.items()):
+            if r is None or r.status != 200 or not isinstance(r.body, list):
+                continue
+            for b in r.body:
+                if rules.assign(b) != "trophy_road":
+                    continue
+                arena = (b.get("arena") or {}).get("name")
+                if arena in picked and len(picked[arena]) < target:
+                    for side in b.get("opponent", []) + b.get("team", []):
+                        add(side.get("tag"), arena, "ladder opponent")
+        rounds += 1
+        if sum(len(v) for v in picked.values()) == before:
+            break
+        fetch_logs()
+        if progress:
+            print(f"  opponent round {rounds}: {sum(len(v) for v in picked.values())} players placed")
+
+    summary["arenas"] = [{"arena": a["name"], "players": len(picked[a["name"]]), **dict(source[a["name"]]),
+                          "logs": sum(1 for t in picked[a["name"]] if fetched.get(t) is not None and fetched[t].status == 200)}
+                         for a in arenas]
+    summary["short_arenas"] = [a["name"] for a in arenas if len(picked[a["name"]]) < target]
+    summary["arena_assigned_by"] = dict(how)
+    summary["opponent_rounds"] = rounds
+    summary["requests_sent"] = client.requests_sent
+    summary["stopped_by_request_budget"] = spent()
     summary["throttled_429"] = client.throttled
     return summary
