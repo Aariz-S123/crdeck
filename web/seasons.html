@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Next Season · crdeck</title>
+<meta name="description" content="The Clash Royale meta decks top ranked players use right now, new cards to watch for, and when a next-season prediction becomes possible.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z' fill='%23a8247f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="app.css">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.box { padding: var(--space-4) var(--space-5); display: grid; gap: var(--space-3); min-width: 0; grid-template-columns: minmax(0, 1fr); }
+.box h3 { font-size: 1.125rem; }
+.lockrow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); }
+.seasons { display: flex; flex-wrap: wrap; gap: 6px; }
+.seasons span { display: grid; gap: 2px; justify-items: center; min-width: 76px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); font-size: 0.8125rem; }
+.seasons span b { font-size: 0.9375rem; }
+.seasons span.have { background: var(--ok-soft); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+.seasons span.need { background: var(--sunken); border-style: dashed; color: var(--muted); }
+.decks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); gap: var(--space-4); }
+.deck { padding: var(--space-4); display: grid; gap: var(--space-3); min-width: 0; align-content: start; }
+.deck-top { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); }
+.deck-top .rank { font-size: 0.8125rem; color: var(--muted); font-weight: 600; }
+.nums3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); }
+.nums3 div { display: grid; gap: 2px; }
+.nums3 b { font-family: var(--display); font-size: 1.25rem; line-height: 1.1; }
+.nums3 span { font-size: 0.75rem; color: var(--muted); }
+.trend svg { width: 100%; height: 86px; display: block; overflow: visible; }
+.newlist { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.assume { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--muted); max-width: 80ch; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the season page</a>
+<div class="wrap">
+  <header class="site" id="site"></header>
+  <main id="main" class="wrap">
+    <div class="pagehead">
+      <h1>Next season</h1>
+      <p class="lede">What top ranked players play right now, which new cards to watch for, and when a prediction for the next season becomes possible. This page uses Ranked battles of leaderboard players.</p>
+    </div>
+    <div id="body" class="wrap"><div class="panel box"><div class="skel" style="height:90px"></div></div></div>
+  </main>
+  <footer class="site-foot">
+    <span>Every number here is measured from collected battles. Nothing on this page is a prediction until the prediction section unlocks.</span>
+    <span>A fan-made learning project. Not affiliated with, endorsed by or sponsored by Supercell. Battle data from the official Clash Royale API.</span>
+  </footer>
+</div>
+
+<script src="engine.js"></script>
+<script src="common.js"></script>
+<script>
+(() => {
+  "use strict";
+  const { $, esc, pct, num } = UI;
+  let E = null;
+  UI.start("seasons.html", (c) => { E = c.E; UI.setHash(c.entry.slug); render(c.INDEX.seasons); }, { failTarget: "#body" });
+
+  const entries = (k) => k.split("|").filter(Boolean).map((x) => { const [id, form] = x.split(":"); return { id: Number(id), form }; });
+
+  function trend(d, periods) {
+    // usage share per collection period with 90% ranges, own scale per deck
+    const h = d.history, W = 300, H = 86, L = 38, R = 8, T = 8, B = 20;
+    const vals = h.flatMap((x) => x.share_ci90 || []);
+    let y0 = Math.min(...vals), y1 = Math.max(...vals); const pad = (y1 - y0) * 0.15 || 0.002; y0 = Math.max(0, y0 - pad); y1 += pad;
+    const X = (i) => L + (W - L - R) * (h.length === 1 ? 0.5 : i / (h.length - 1)), Y = (v) => T + (H - T - B) * (1 - (v - y0) / (y1 - y0));
+    let g = UI.ticks(y0, y1, 3).map((v) => `<line x1="${L}" y1="${Y(v)}" x2="${W - R}" y2="${Y(v)}" stroke="var(--grid)" stroke-width="1"/>
+      <text x="${L - 4}" y="${Y(v) + 4}" text-anchor="end">${(v * 100).toFixed(1)}%</text>`).join("");
+    h.forEach((x, i) => { g += `<text x="${X(i)}" y="${H - 5}" text-anchor="middle">P${i + 1}</text>`; });
+    g += `<path d="${h.map((x, i) => `${i ? "L" : "M"}${X(i)},${Y(x.share || 0)}`).join("")}" fill="none" stroke="var(--ink)" stroke-width="2"/>`;
+    h.forEach((x, i) => {
+      if (!x.share_ci90) return;
+      g += `<line x1="${X(i)}" y1="${Y(x.share_ci90[0])}" x2="${X(i)}" y2="${Y(x.share_ci90[1])}" stroke="var(--ink)" stroke-width="2" opacity="0.4"/>
+        <circle cx="${X(i)}" cy="${Y(x.share)}" r="4" fill="var(--ink)" stroke="var(--surface)" stroke-width="2"/>
+        <rect class="hit" x="${X(i) - 14}" y="${T}" width="28" height="${H - T - B}" ${UI.tipAttr(`Period ${i + 1}`, [
+          `in ${pct(x.share, 2)} of ranked decks (90% range ${pct(x.share_ci90[0], 2)} to ${pct(x.share_ci90[1], 2)})`,
+          `${num(x.games)} games${x.win_rate !== null ? `, won ${pct(x.win_rate)}` : ""}`, `${UI.when(periods[i].start)} to ${UI.when(periods[i].end)}`])}/>`;
+    });
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="group" aria-label="Usage share per collection period">${g}</svg>`;
+  }
+  function changePill(c) {
+    if (!c) return `<span class="pill neutral">One period only</span>`;
+    const pts = `${c.points >= 0 ? "+" : "−"}${Math.abs(c.points * 100).toFixed(2)} pts`;
+    if (c.ci90[0] > 0) return `<span class="pill good">Rising ${pts}</span>`;
+    if (c.ci90[1] < 0) return `<span class="pill bad">Falling ${pts}</span>`;
+    return `<span class="pill neutral">No clear change (${pts})</span>`;
+  }
+
+  function render(S) {
+    if (!S) { $("#body").innerHTML = `<div class="panel empty"><b>No season data in this export.</b><span>Run the export again after a collection.</span></div>`; return; }
+    const st = S.status, md = S.meta_decks, cards = S.cards;
+    const boxes = st.seasons.filter((s) => s.covered).map((s) => `<span class="have"><b>${esc(s.season)}</b>${num(s.battles)} battles</span>`).join("") +
+      Array.from({ length: Math.max(0, st.needed - st.covered) }, (_, i) => `<span class="need"><b>needed</b>season ${st.covered + i + 1}</span>`).join("");
+    const short = st.seasons.filter((s) => !s.covered);
+    const noGames = E.m.forms.filter((f) => f.games === 0).map((f) => E.describe({ id: f.card_id, form: f.form }));
+    const snaps = cards.snapshots, last = snaps[snaps.length - 1];
+    $("#body").innerHTML = `
+      <section class="panel box" aria-labelledby="pred-h">
+        <div class="lockrow"><h2 id="pred-h" style="font-size:1.25rem">Next-season prediction</h2>
+          <span class="pill ${st.state === "blocked" ? "weak" : "good"}">${st.state === "blocked" ? "Locked: not enough seasons yet" : "Ready to backtest"}</span></div>
+        <p>${esc(st.reason)}</p>
+        <div class="seasons" aria-label="Seasons covered">${boxes}</div>
+        ${short.length ? `<p class="muted small">Not counted (under ${num(st.min_season_battles)} battles): ${short.map((s) => `${esc(s.season)} (${num(s.battles)})`).join(", ")}.</p>` : ""}
+        <p class="muted small">When it unlocks, the prediction will be shown only if it beats “no change” on a season it was not fitted on. New cards, Evolutions and Heroes have no battles before release, so they can never be part of a prediction until they have been played.</p>
+      </section>
+
+      <section class="section" aria-labelledby="md-h">
+        <header><h2 id="md-h">Meta decks right now</h2>
+          <p>The ${md.decks.length} most-played exact decks among top ranked players across ${md.periods.length} collection periods (each with at least ${num(md.min_games)} games). Rising or falling compares the last two periods and counts only when the 90% range is clear of zero. <span class="src measured">measured</span></p></header>
+        <div class="decks">${md.decks.map((d, i) => {
+          const es = entries(d.deck_key), chk = E.checkDeck(es);
+          return `<article class="panel deck" aria-label="Meta deck ${i + 1}">
+            <div class="deck-top"><div><span class="rank">#${i + 1} by games</span><h3 style="font-size:1.0625rem">${esc(d.archetype ? (d.archetype === CRDeck.UNCERTAIN ? "Mixed style" : d.archetype) : "Deck")}</h3></div>${changePill(d.change)}</div>
+            <div class="grid8">${es.map((e) => E.card(e.id) ? UI.tile(E, e, chk.slots, null, null) : `<div class="tile"><span class="tn">Card ${e.id}</span></div>`).join("")}</div>
+            <div class="nums3">
+              <div><b>${num(d.games)}</b><span>games</span></div>
+              <div><b>${pct(d.win_rate)}</b><span>won (90%: ${pct(d.win_ci90[0])} to ${pct(d.win_ci90[1])})</span></div>
+              <div><b>${d.history[d.history.length - 1].share !== null ? pct(d.history[d.history.length - 1].share, 2) : "n/a"}</b><span>of decks in the last period</span></div>
+            </div>
+            <div class="trend">${trend(d, md.periods)}</div>
+            <a class="btn small" href="reason.html#${UI.token("ranked", es, [])}" style="justify-self:start">Why this deck →</a>
+          </article>`; }).join("")}</div>
+      </section>
+
+      <section class="section" aria-labelledby="new-h">
+        <header><h2 id="new-h">New cards, Evolutions and Heroes</h2>
+          <p>The official card list is saved on every collection. Anything that appears between two saves is listed here the day it shows up.</p></header>
+        <div class="panel box">
+          <p><b>${snaps.length} saved card list${snaps.length === 1 ? "" : "s"}</b>${last ? `, newest ${esc(UI.when(last.fetched_at))}: ${num(last.cards)} cards, ${num(last.card_forms)} card forms (base, Evolution and Hero counted separately).` : "."}</p>
+          ${snaps.length < 2 ? `<p class="muted">Comparison starts with the next collection.</p>` : cards.changes.length
+            ? cards.changes.map((c) => `<div><b>Between ${esc(UI.when(c.from))} and ${esc(UI.when(c.to))}</b><ul class="newlist">${c.added.map((a) => `<li>New: ${esc(a.name)}${a.form !== "base" ? ` (${a.form === "evo" ? "Evolution" : "Hero"})` : ""}</li>`).join("")}${c.removed.map((a) => `<li>Removed: ${esc(a.name)}${a.form !== "base" ? ` (${a.form === "evo" ? "Evolution" : "Hero"})` : ""}</li>`).join("")}</ul></div>`).join("")
+            : `<p><span class="pill neutral">No changes</span> No card, Evolution or Hero was added or removed between ${esc(UI.when(snaps[0].fetched_at))} and ${esc(UI.when(last.fetched_at))}.</p>`}
+          <p class="muted small">How the builder treats a new card: it has no weight until it has at least ${num(E.m.strength.min_feature_games)} games in the training battles, and the search only adds it to decks after ${num(E.cfg.search.min_card_games)}. Until then you can still pick it yourself, and the card guide shows its game count.</p>
+          ${noGames.length ? `<p class="muted small">In the card list but not played in ${esc(E.m.meta.mode_label)} battles yet: ${noGames.map(esc).join(", ")}.</p>` : ""}
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="as-h">
+        <header><h2 id="as-h">Assumptions</h2></header>
+        <div class="panel box"><ul class="assume">${S.assumptions.map((a) => `<li>${esc(a)}</li>`).join("")}</ul></div>
+      </section>`;
+  }
+})();
+</script>
+</body>
+</html>
