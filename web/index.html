@@ -108,7 +108,7 @@
   const TYPES = [["all", "All"], ["troop", "Troops"], ["spell", "Spells"], ["building", "Buildings"]];
   const FORM_ORDER = { base: 0, evo: 1, hero: 2 };
   const EXAMPLE = [{ id: 26000021, form: "base" }];
-  let ctx = null, E = null, seeds = null, example = false, decks = [];
+  let ctx = null, E = null, seeds = null, example = false, decks = [], loaded = false;
   const view = { type: "all", q: "" };
   let timer = 0;
 
@@ -120,6 +120,8 @@
       else { seeds = EXAMPLE.slice(); example = true; }
     }
     seeds = seeds.filter((s) => E.card(s.id) && E.allowedForms(E.card(s.id)).includes(s.form));
+    if (loaded) saveLink(); // a mode, league or arena switch goes into the link too
+    loaded = true;
     $("#slotkey").innerHTML = UI.SLOT_KEY;
     renderTypes(); renderSeeds(); renderCards(); build();
   }, { failTarget: "#decks", onLoading: () => { $("#status").textContent = "Loading this mode…"; } });
