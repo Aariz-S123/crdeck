@@ -75,7 +75,12 @@ class PeriodData:
 
 def period_data(battles: pd.DataFrame, dib: pd.DataFrame, periods: pd.DataFrame, mode: str = "ranked",
                 statuses=("OK", "DRAW", "MIRROR")) -> PeriodData:
-    b = battles[(battles["mode"] == mode) & battles["status"].isin(statuses)][["battle_key", "battle_time", "status"]]
+    keep = (battles["mode"] == mode) & battles["status"].isin(statuses)
+    if "sample" in battles:
+        # one fixed population: players found on the leaderboards. Adding arena-sample players in
+        # later periods only would otherwise look like a change in the meta.
+        keep &= battles["sample"] == "leaderboard"
+    b = battles[keep][["battle_key", "battle_time", "status"]]
     b = b.assign(battle_time=pd.to_datetime(b["battle_time"], utc=True))
     a = dib[dib["side"] == "A"].set_index("battle_key")
     bb = dib[dib["side"] == "B"].set_index("battle_key")
@@ -261,6 +266,8 @@ def meta_report(paths, ctx, cfg: dict) -> dict:
                      "first_period_hours": float(fc.get("first_period_hours", 24))},
         "assumptions": [
             "Meta = share of ranked deck appearances that include a card form (one side of one battle = one appearance).",
+            "Only battles from leaderboard players' logs are counted, so every period describes the same kind of player. "
+            "Battles collected for the arena sample are left out of the meta history.",
             "A period is the battles played between two collection runs; the first period covers the 24 hours before the first run.",
             "Each battle log holds a player's last 30 battles, so very active players can be cut off within a period; "
             "this applies the same way to every daily period. Per-day counts inside one collection are not used.",
