@@ -92,6 +92,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .chip { display: inline-flex; align-items: center; min-height: 36px; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 0 var(--space-3); font-size: 0.875rem; font-weight: 600; color: var(--muted); }
 .chip:hover { color: var(--ink); border-color: var(--muted); }
 .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.groupbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); flex-basis: 100%; }
+.sel { min-height: 40px; max-width: 100%; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 0.9375rem; }
+#groupsel { min-width: 0; flex: 0 1 380px; }
 .modebar details { font-size: var(--step--1); color: var(--muted); }
 .modebar details summary { cursor: pointer; }
 .modebar details ul { margin: var(--space-2) 0 0; padding-left: 18px; }

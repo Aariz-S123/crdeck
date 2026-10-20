@@ -55,15 +55,39 @@
       <nav class="nav" aria-label="Pages">${PAGES.map(([href, label]) =>
         `<a href="${href}#${esc(slug || "")}"${href === page ? ' aria-current="page"' : ""}>${label}</a>`).join("")}</nav>`;
   }
+  // Mode buttons (Ranked / Trophy Road / All), then a League or Arena list for the chosen mode.
+  // Every configured league and arena is listed with its battle count; ones with too few battles
+  // stay visible but cannot be picked. Sorted by game order or by battles.
+  const MODE_SHORT = { ranked: "Ranked", trophy_road: "Trophy Road", all: "All modes" };
   function modeBar(INDEX, slug, onPick) {
     const el = $("#modebar"); if (!el) return;
-    const ok = INDEX.modes.filter((m) => m.status === "exported"), no = INDEX.modes.filter((m) => m.status !== "exported");
+    const cur = INDEX.modes.find((m) => m.slug === slug) || {};
+    const tops = INDEX.modes.filter((m) => !m.group && m.status === "exported");
+    const groups = INDEX.modes.filter((m) => m.group && m.mode === cur.mode);
+    const sort = store("crdeck.groupSort") === "battles" ? "battles" : "order";
+    const sorted = groups.slice().sort((a, b) => sort === "battles" ? b.ok_battles - a.ok_battles || a.order - b.order : a.order - b.order);
+    const word = groups.length ? groups[0].group_word || "Group" : "";
+    const usable = groups.filter((g) => g.status === "exported").length;
+    const top = tops.find((m) => m.mode === cur.mode);
+    const opt = (g) => {
+      const floor = g.min_trophies !== undefined && g.min_trophies !== null ? ` (${num(g.min_trophies)}+ trophies)` : "";
+      const ok = g.status === "exported";
+      return `<option value="${esc(g.slug)}"${g.slug === slug ? " selected" : ""}${ok ? "" : " disabled"}>${esc(g.group)}${floor} · ${num(g.ok_battles)} battles${ok ? "" : " · too few"}</option>`;
+    };
     el.innerHTML = `<span class="lab" id="modelab">Learn from</span>
-      <div class="modes" role="group" aria-labelledby="modelab">${ok.map((m) => `<button class="chip" data-slug="${esc(m.slug)}" aria-pressed="${m.slug === slug}"
-        title="${num(m.ok_battles)} battles">${esc(m.label)}</button>`).join("")}</div>
-      ${no.length ? `<details><summary>${no.length} arenas have too few battles</summary><ul>${no.map((m) =>
-        `<li>${esc(m.label)}: ${num(m.ok_battles)} battles</li>`).join("")}</ul></details>` : ""}`;
+      <div class="modes" role="group" aria-labelledby="modelab">${tops.map((m) => `<button class="chip" data-slug="${esc(m.slug)}" aria-pressed="${m.mode === cur.mode}"
+        title="${num(m.ok_battles)} battles">${esc(MODE_SHORT[m.mode] || m.label)}</button>`).join("")}</div>
+      ${groups.length ? `<div class="groupbar">
+        <label class="lab" for="groupsel">${esc(word)}</label>
+        <select id="groupsel" class="sel">${top ? `<option value="${esc(top.slug)}"${!cur.group ? " selected" : ""}>Every ${esc(word.toLowerCase())} · ${num(top.ok_battles)} battles</option>` : ""}${sorted.map(opt).join("")}</select>
+        <label class="lab" for="groupsort">Sort</label>
+        <select id="groupsort" class="sel"><option value="order"${sort === "order" ? " selected" : ""}>Game order</option><option value="battles"${sort === "battles" ? " selected" : ""}>Most battles</option></select>
+        <span class="muted small">${usable} of ${groups.length} ${esc(word.toLowerCase())}s have enough battles to build from.</span>
+      </div>` : ""}`;
     el.onclick = (ev) => { const b = ev.target.closest("[data-slug]"); if (b && b.dataset.slug !== slug) onPick(b.dataset.slug); };
+    const gs = $("#groupsel", el), so = $("#groupsort", el);
+    if (gs) gs.onchange = () => { if (gs.value !== slug) onPick(gs.value); };
+    if (so) so.onchange = () => { store("crdeck.groupSort", so.value); modeBar(INDEX, slug, onPick); };
   }
   const getJSON = (u) => fetch(u).then((r) => { if (!r.ok) throw new Error(`${u} answered HTTP ${r.status}`); return r.json(); });
   let INDEX = null;

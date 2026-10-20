@@ -9,7 +9,7 @@ current data, labels, configs and code (data fingerprint), so the site never sho
 report card.
 
 Writes:
-  web/modes.json            every mode (Ranked, Trophy Road, All, Trophy Road per arena) with
+  web/modes.json            every mode (Ranked, Trophy Road, All, then every league and arena) with
                             status (exported / not enough data), meta history and forecast,
                             and the run log for the Model log page
   web/models/<slug>.json    everything web/engine.js needs for one mode
@@ -37,8 +37,8 @@ from crdeck.config import Paths, collection_config, model_config  # noqa: E402
 from crdeck.evaluate import full_report  # noqa: E402
 from crdeck.explain import build_explanation  # noqa: E402
 from crdeck.forecast import meta_report  # noqa: E402
-from crdeck.parse import mode_label, mode_slug  # noqa: E402
-from crdeck.pipeline import NoDataError, _fingerprint, load_context, save_model_outputs  # noqa: E402
+from crdeck.parse import mode_groups, mode_label, mode_slug  # noqa: E402
+from crdeck.pipeline import MIN_BATTLES, NoDataError, _fingerprint, load_context, save_model_outputs  # noqa: E402
 from crdeck.rules import DeckCard, check_deck, check_partial, deck_key  # noqa: E402
 from crdeck.search import Searcher, SeedError, parse_seed  # noqa: E402
 
@@ -135,7 +135,7 @@ def export_model(ctx) -> dict:
     model["form_stats"] = form_stats(ctx)
     model["csv_rows"] = csv_rows(ctx, model["form_stats"])
     model["evaluation"] = fresh_evaluation(ctx)
-    model["meta"].update({"mode": ctx.mode, "arena": ctx.arena, "mode_label": ctx.mode_label, "slug": ctx.slug})
+    model["meta"].update({"mode": ctx.mode, "group": ctx.group, "mode_label": ctx.mode_label, "slug": ctx.slug})
     model["forms"] = forms_list(ctx, model["form_stats"])
     return model
 
@@ -270,12 +270,20 @@ def golden(ctx) -> dict:
     return out
 
 
-def candidate_modes(paths: Paths) -> list[tuple[str, str | None]]:
-    """Ranked, Trophy Road, All, then Trophy Road per arena (every arena seen, largest first)."""
+def candidate_modes(paths: Paths, ccfg: dict) -> list[tuple[str, str | None, dict]]:
+    """Ranked, Trophy Road, All, then every league of Ranked and every arena of Trophy Road in game
+    order (config), followed by any group seen in the data but missing from the config."""
     counts = json.loads((paths.interim / "counts.json").read_text(encoding="utf-8"))
-    arenas = sorted(((k.split("|", 1)[1], n) for k, n in counts.get("ok_by_mode_arena", {}).items()
-                     if k.startswith("trophy_road|")), key=lambda t: -t[1])
-    return [("ranked", None), ("trophy_road", None), ("all", None)] + [("trophy_road", a) for a, _ in arenas]
+    by_group = counts.get("ok_by_mode_group") or {}
+    out = [("ranked", None, {}), ("trophy_road", None, {}), ("all", None, {})]
+    for mode in ("ranked", "trophy_road"):
+        word = ((ccfg["battles"]["modes"].get(mode) or {}).get("group_word") or "Group")
+        known = mode_groups(ccfg, mode)
+        names = {g["name"] for g in known}
+        extra = sorted(k.split("|", 1)[1] for k in by_group if k.startswith(mode + "|") and k.split("|", 1)[1] not in names)
+        for g in known + [{"name": n, "order": len(known) + i + 1, "not_in_config": True} for i, n in enumerate(extra)]:
+            out.append((mode, g["name"], {"group_word": word, **{k: v for k, v in g.items() if k != "name"}}))
+    return out
 
 
 def dump(path: Path, obj) -> None:
@@ -290,14 +298,20 @@ def main() -> None:
     ccfg, mcfg = collection_config(), model_config()
     counts = json.loads((paths.interim / "counts.json").read_text(encoding="utf-8"))
     modes, ranked_ctx = [], None
-    for mode, arena in candidate_modes(paths):
-        slug, label = mode_slug(mode, arena), mode_label(ccfg, mode, arena)
-        n_ok = (counts["ok_by_mode_arena"].get(f"trophy_road|{arena}", 0) if arena else
+    by_group = counts.get("ok_by_mode_group") or {}
+    for mode, group, gmeta in candidate_modes(paths, ccfg):
+        slug, label = mode_slug(mode, group), mode_label(ccfg, mode, group)
+        n_ok = (by_group.get(f"{mode}|{group}", 0) if group else
                 sum(v.get("OK", 0) for k, v in counts["modes"].items() if k in (["ranked", "trophy_road"] if mode == "all" else [mode])))
-        entry = {"slug": slug, "mode": mode, "arena": arena, "label": label, "ok_battles": n_ok}
+        entry = {"slug": slug, "mode": mode, "group": group, "label": label, "ok_battles": n_ok, **gmeta}
         print(f"{label}: {n_ok} usable battles")
+        if n_ok < MIN_BATTLES:
+            # too few battles to train on: listed with its real count, never filled in
+            reason = f"not enough data for {label}: only {n_ok} usable battles (minimum {MIN_BATTLES})"
+            modes.append({**entry, "status": "not_enough_data", "reason": reason})
+            continue
         try:
-            ctx = load_context(source, mode=mode, arena=arena)
+            ctx = load_context(source, mode=mode, group=group)
         except NoDataError as e:
             modes.append({**entry, "status": "not_enough_data", "reason": str(e)})
             print("  not enough data:", e)
@@ -308,7 +322,7 @@ def main() -> None:
         modes.append({**entry, "status": "exported", "file": f"models/{slug}.json",
                       "test_window": list(ctx.split.window("test")), "train_window": list(ctx.split.window("train"))})
         print(f"  wrote models/{slug}.json ({(OUT / 'models' / f'{slug}.json').stat().st_size / 1e6:.2f} MB)")
-        if mode == "ranked" and arena is None:
+        if mode == "ranked" and group is None:
             ranked_ctx = ctx
     labels = json.loads(json.dumps(sorted(set(ranked_ctx.cards.df["label_version"])))) if ranked_ctx is not None else []
     runlog.write_section(paths, "export", {
