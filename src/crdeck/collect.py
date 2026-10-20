@@ -181,6 +181,16 @@ def collect(n_players: int | None = None, client: ApiClient | None = None, progr
     if window_id == "auto":
         window_id = auto_window_id()
     client = client or ApiClient(cfg=cfg, window_id=window_id)
+    # the card list and season list on every collection, so new cards / Evolutions / Heroes are
+    # spotted the day they appear (crdeck.seasons.card_snapshots)
+    snapshot_errors = []
+    for fetch in (client.cards, client.seasons):
+        try:
+            fetch()
+        except ApiError as e:
+            if "403" in str(e):
+                raise
+            snapshot_errors.append(str(e))
     lb_cfg = cfg["leaderboard"]
     boards = [(str(lb_cfg["location_id"]), int(lb_cfg["limit"]))]
     boards += [(str(k), int(v)) for k, v in (lb_cfg.get("extra_locations") or {}).items()]
@@ -201,7 +211,7 @@ def collect(n_players: int | None = None, client: ApiClient | None = None, progr
     if n_players:
         players = players[:n_players]
     summary = {"window_id": client.window_id, "leaderboards": per_board, "players": len(players),
-               "fetched": 0, "cached": 0, "not_found": 0, "errors": []}
+               "fetched": 0, "cached": 0, "not_found": 0, "errors": list(snapshot_errors)}
     for i, p in enumerate(players):
         try:
             r = client.battlelog(p["tag"])

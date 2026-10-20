@@ -191,6 +191,10 @@ class ApiClient:
     def cards(self) -> CachedResponse:
         return self.get("/cards", "cards/cards.json")
 
+    def seasons(self) -> CachedResponse:
+        """Season ids (e.g. "2026-09"); observed 2026-10-20: ids only, no start or end dates."""
+        return self.get("/locations/global/seasons", "seasons/seasons.json")
+
     def pol_leaderboard(self, location_id: str = "global", season_id: str | None = None, limit: int = 1000) -> CachedResponse:
         if season_id:
             endpoint = f"/locations/{location_id}/pathoflegend/{season_id}/rankings/players"
