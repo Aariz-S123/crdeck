@@ -37,6 +37,7 @@ from crdeck.config import Paths, collection_config, model_config  # noqa: E402
 from crdeck.evaluate import full_report  # noqa: E402
 from crdeck.explain import build_explanation  # noqa: E402
 from crdeck.forecast import meta_report  # noqa: E402
+from crdeck.seasons import season_report  # noqa: E402
 from crdeck.parse import mode_groups, mode_label, mode_slug  # noqa: E402
 from crdeck.pipeline import MIN_BATTLES, NoDataError, _fingerprint, load_context, save_model_outputs  # noqa: E402
 from crdeck.rules import DeckCard, check_deck, check_partial, deck_key  # noqa: E402
@@ -333,6 +334,7 @@ def main() -> None:
     index = {
         "default": "ranked", "modes": modes,
         "meta": meta_report(paths, ranked_ctx, mcfg) if ranked_ctx is not None else None,
+        "seasons": season_report(paths, ranked_ctx, mcfg),
         "log": runlog.read(paths),
         "caveats": runlog.model_notes_caveats(),
     }
