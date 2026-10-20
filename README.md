@@ -42,11 +42,19 @@ py -3.12 -m venv .venv
 
 ## Website
 
-The deck builder also runs as a web page: pick up to three cards and get legal decks with archetype, estimated win rate and interval, synergy evidence, warnings and one-click swaps. The page runs the trained model in the browser.
+The deck builder also runs as a small website that runs the trained model in the browser. Each page has one job:
 
-- `web/index.html` is the page and `web/engine.js` is a JavaScript port of the scoring, search, legality, warnings, archetype and explanation code.
-- `python scripts/export_web.py` writes `web/model.json` (the trained model) and `web/golden.json` (Python's own answers for test cases).
-- The page also has a card guide listing all 187 rows of `data/labels/source/cards_meta.csv`: each row's status (used by search, pick only, tower troop, not in the game, duplicate), stats from the training battles, its regression weight, and your CSV's own numbers.
+| Page | What it shows |
+| --- | --- |
+| `web/index.html` (Build decks) | Pick up to three cards, get three legal decks with style, estimated win rate and range, and deck checks |
+| `web/reason.html` (Why this deck) | Opened from a deck: a plain-language summary, card weights, model vs real results, card pairs, warnings, swaps with their breakdown, raw score |
+| `web/cards.html` (All cards) | Every row of `data/labels/source/cards_meta.csv` and every card form: status, battle stats, regression weight, your CSV's numbers |
+| `web/meta.html` (Meta) | Ranked usage history, biggest movers, deck styles per period, forecast status and assumptions |
+| `web/model.html` (How it works) | How the model is built, held-out results against baselines, limits, a glossary, and the full run log |
+
+- `web/common.js` and `web/app.css` are shared by all pages; `web/engine.js` is a JavaScript port of the scoring, search, legality, warnings, archetype and explanation code.
+- `python scripts/export_web.py` writes `web/modes.json` (modes, meta history, run log), one model per mode in `web/models/`, and Python's own answers for test cases in `web/golden/`.
+- Pages pass the mode, deck and picked cards in the link's `#` part, so a "Why this deck" link can be shared.
 - `node scripts/sweep_web_engine.mjs` seeds the engine with every card form and checks every result (legal decks, seeds kept, legal swaps, breakdowns that add up).
 - `node scripts/check_web_engine.mjs` checks that the port agrees with Python on 3,000 random decks (legality and slots) plus searches, swaps and explanations. Python remains the source of truth; re-run the export and the check after retraining.
 - To view it locally, serve the folder (`python -m http.server -d web`) and open http://localhost:8000.
