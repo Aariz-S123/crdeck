@@ -31,7 +31,7 @@ table.cards .csvv { color: var(--hero); }
 .st { display: inline-block; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
 .st.in_search { background: var(--ok-soft); color: var(--ok); }
 .st.seed_only, .st.no_weight { background: var(--hero-soft); color: var(--hero); }
-.st.no_games, .st.tower_troop, .st.not_in_game, .st.duplicate { background: var(--sunken); color: var(--muted); }
+.st.locked, .st.no_games, .st.tower_troop, .st.not_in_game, .st.duplicate { background: var(--sunken); color: var(--muted); }
 .gnote { display: block; font-size: 0.75rem; color: var(--muted); max-width: 240px; margin-top: 2px; }
 .wbar svg { width: 100px; height: 18px; display: block; }
 </style>
@@ -87,7 +87,7 @@ table.cards .csvv { color: var(--hero); }
 (() => {
   "use strict";
   const { $, esc, pct, signed, num } = UI;
-  const STATUS = { in_search: "Used by the builder", seed_only: "Pick only", no_weight: "Too few games", no_games: "Not played in this mode",
+  const STATUS = { locked: "Not unlocked here", in_search: "Used by the builder", seed_only: "Pick only", no_weight: "Too few games", no_games: "Not played in this mode",
     tower_troop: "Tower troop", not_in_game: "Not in the game", duplicate: "Duplicate row" };
   const view = { q: "", status: "all", sort: "name" };
   let ctx = null, E = null, ROWS = null, WDOM = 0.1;
@@ -100,8 +100,11 @@ table.cards .csvv { color: var(--hero); }
     E.m.csv_rows.forEach((r) => { if (r.card_id && r.status !== "duplicate" && !csvByKey[`${r.card_id}:${r.form}`]) csvByKey[`${r.card_id}:${r.form}`] = r; });
     const forms = E.m.forms.map((f) => {
       const c = E.card(f.card_id), e = { id: f.card_id, form: f.form }, ci = E.coefInfo(e), r = csvByKey[f.key];
-      const status = ci.known && f.games >= minc ? "in_search" : ci.known ? "seed_only" : f.games === 0 ? "no_games" : "no_weight";
-      const note = status === "seed_only" ? `${num(f.games)} games here. The builder adds cards with at least ${num(minc)}, but you can still pick it.`
+      const status = !E.isAvailable(e) ? "locked" : ci.known && f.games >= minc ? "in_search" : ci.known ? "seed_only" : f.games === 0 ? "no_games" : "no_weight";
+      const av = E.m.availability, early = av && String(f.card_id) in av.seen_early && status !== "locked";
+      const note = status === "locked" ? `${E.whyNot(e)} (Clash Royale Wiki).`
+        : early ? `The wiki unlocks it at ${av.unlock_name[String(f.card_id)]}, but ${num(av.seen_early[String(f.card_id)])} decks in this arena already use it.`
+        : status === "seed_only" ? `${num(f.games)} games here. The builder adds cards with at least ${num(minc)}, but you can still pick it.`
         : status === "no_weight" ? `${num(f.games)} games here. A card weight needs at least ${num(minf)}.`
         : status === "no_games" ? "Nobody played this form in this mode's battles." : "";
       return { row: f.key, name: E.describe(e), form: f.form, c, e, ok: true, ci: ci.known ? ci : null, status, note,
@@ -151,7 +154,7 @@ table.cards .csvv { color: var(--hero); }
           <td class="wbar">${mini(r.ci)}</td>
           <td class="n">${r.ci ? signed(r.ci.weight, 4) : "n/a"}</td>
           ${r.csv ? `<td class="n csvv">${esc(r.csv.rating)}</td><td class="n csvv">${esc(r.csv.usage)}%</td><td class="n csvv">${esc(r.csv.win_rate)}%</td>` : `<td class="n muted" colspan="3">not in your CSV</td>`}
-          <td>${r.ok ? `<a class="btn small" href="index.html#${UI.token(ctx.entry.slug, null, [r.e])}">Build with it</a>` : ""}</td>
+          <td>${r.ok && r.status !== "locked" ? `<a class="btn small" href="index.html#${UI.token(ctx.entry.slug, null, [r.e])}">Build with it</a>` : ""}</td>
         </tr>`; }).join("") : `<tr><td colspan="12"><div class="empty">No card matches “${esc(view.q)}” with this filter. Clear the search or pick “All rows”.</div></td></tr>`}</tbody>`;
   }
   let t = 0;

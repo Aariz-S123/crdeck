@@ -35,6 +35,10 @@
 .pick:hover { border-color: var(--elixir); }
 .pick[aria-pressed="true"] { border-color: var(--elixir); background: var(--elixir-soft); }
 .pick .pn { display: block; font-size: 0.875rem; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick.locked { opacity: 0.5; cursor: not-allowed; border-style: dashed; }
+.pick.locked:hover { border-color: var(--line); }
+.lockhead { grid-column: 1 / -1; margin: 6px 0 0; font-size: 0.8125rem; font-weight: 600; color: var(--muted); }
+.early { color: var(--hero); font-weight: 700; }
 .pick .pt { display: block; font-size: 0.75rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .results { display: grid; gap: var(--space-4); min-width: 0; }
 .results-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-2) var(--space-4); }
@@ -121,11 +125,14 @@
     const before = seeds.length;
     seeds = seeds.filter((s) => E.card(s.id) && E.allowedForms(E.card(s.id)).includes(s.form));
     const dropped = before - seeds.length;
+    const lockedNow = seeds.filter((s) => !E.isAvailable(s));
+    seeds = seeds.filter((s) => E.isAvailable(s));
     if (loaded) saveLink(); // a mode, league or arena switch goes into the link too
     loaded = true;
     $("#slotkey").innerHTML = UI.SLOT_KEY;
     renderTypes(); renderSeeds(); renderCards(); build();
-    if (dropped) showNote(`${dropped} card${dropped === 1 ? "" : "s"} in the link ${dropped === 1 ? "isn't" : "aren't"} a card form in this game, so ${dropped === 1 ? "it was" : "they were"} left out.`);
+    if (lockedNow.length) showNote(`Left out because ${lockedNow.length === 1 ? "it isn't" : "they aren't"} unlocked in ${E.m.availability.arena}: ${lockedNow.map((s) => E.whyNot(s)).join("; ")}.`);
+    else if (dropped) showNote(`${dropped} card${dropped === 1 ? "" : "s"} in the link ${dropped === 1 ? "isn't" : "aren't"} a card form in this game, so ${dropped === 1 ? "it was" : "they were"} left out.`);
   }, { failTarget: "#decks", onLoading: () => { $("#status").textContent = "Loading this mode…"; } });
 
   const slug = () => ctx.entry.slug;
@@ -145,14 +152,20 @@
       .filter((f) => (view.type === "all" || f.c.type === view.type) &&
         (!q || `${f.c.name} ${UI.FORM_WORD[f.form]} ${f.form === "evo" ? "evo" : ""}`.toLowerCase().includes(q)))
       .sort((a, b) => a.c.name.localeCompare(b.c.name) || FORM_ORDER[a.form] - FORM_ORDER[b.form]);
-    $("#cardlist").innerHTML = list.length ? list.map((f) => `
-      <button class="pick" data-key="${f.key}" aria-pressed="${picked.has(f.key)}" title="${esc(E.describe({ id: f.card_id, form: f.form }))}">
+    // in a single Trophy Road arena, forms not unlocked there are listed apart and can't be picked
+    const av = E.m.availability, open = list.filter((f) => E.isAvailable({ id: f.card_id, form: f.form })), shut = list.filter((f) => !open.includes(f));
+    const early = (f) => (av && String(f.card_id) in av.seen_early ? ` · <span class="early" title="The wiki unlocks it at ${esc(av.unlock_name[String(f.card_id)])}; ${num(av.seen_early[String(f.card_id)])} decks in this arena already use it">early</span>` : "");
+    const btn = (f, locked) => `
+      <button class="pick${locked ? " locked" : ""}" data-key="${f.key}" aria-pressed="${picked.has(f.key)}"${locked ? ` aria-disabled="true" data-why="${esc(E.whyNot({ id: f.card_id, form: f.form }))}"` : ""} title="${esc(locked ? E.whyNot({ id: f.card_id, form: f.form }) : E.describe({ id: f.card_id, form: f.form }))}">
         ${UI.drop(f.c)}<span style="min-width:0"><span class="pn">${esc(f.c.name)}${f.form !== "base" ? ` <span class="fbadge ${f.form}">${f.form === "evo" ? "EVO" : "HERO"}</span>` : ""}</span>
-        <span class="pt">${UI.typeName(f.c)} · ${f.games ? num(f.games) + " games" : "not played here"}</span></span>
-      </button>`).join("") : `<p class="muted small">No card matches “${esc(view.q)}”. Check the spelling or clear the search.</p>`;
+        <span class="pt">${locked ? esc(E.whyNot({ id: f.card_id, form: f.form }).replace(/^.*? unlocks? at /, "Unlocks at ").replace(/^(Evolutions|Heroes) unlock at /, "Unlocks at ")) : `${UI.typeName(f.c)} · ${f.games ? num(f.games) + " games" : "not played here"}${early(f)}`}</span></span>
+      </button>`;
+    $("#cardlist").innerHTML = !list.length ? `<p class="muted small">No card matches “${esc(view.q)}”. Check the spelling or clear the search.</p>`
+      : open.map((f) => btn(f, false)).join("") + (shut.length ? `<p class="lockhead">Not unlocked in ${esc(av.arena)} yet (${shut.length})</p>` + shut.map((f) => btn(f, true)).join("") : "");
   }
   $("#cardlist").onclick = (ev) => {
     const b = ev.target.closest("[data-key]"); if (!b) return;
+    if (b.dataset.why) { showNote(`${b.dataset.why}, so it can't be picked in ${E.m.availability.arena}.`); return; }
     const e = CRDeck.parseKey(b.dataset.key), i = seeds.findIndex((s) => s.id === e.id);
     let note = "";
     if (i >= 0 && seeds[i].form === e.form) seeds.splice(i, 1);
@@ -169,7 +182,7 @@
     for (let i = 0; i < 3; i++) {
       const s = seeds[i];
       if (!s) { rows.push(`<div class="seed"><span class="emp">Empty slot</span></div>`); continue; }
-      const c = E.card(s.id), forms = E.allowedForms(c);
+      const c = E.card(s.id), forms = E.allowedForms(c).filter((f) => E.isAvailable({ id: s.id, form: f }));
       const fb = forms.length > 1 ? `<span class="forms" role="group" aria-label="Form of ${esc(c.name)}">${forms.map((f) =>
         `<button class="f-${f}" data-i="${i}" data-form="${f}" aria-pressed="${s.form === f}">${f === "base" ? "Base" : f === "evo" ? "Evo" : "Hero"}</button>`).join("")}</span>` : "";
       rows.push(`<div class="seed filled">${UI.drop(c)}<span class="nm">${esc(c.name)}</span>${fb}<button class="rm" data-rm="${i}" aria-label="Remove ${esc(c.name)}">×</button></div>`);
