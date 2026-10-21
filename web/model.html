@@ -42,6 +42,19 @@ table.results td { padding: 12px; border-top: 1px solid var(--line); }
 .md { font-size: 0.9375rem; max-width: 80ch; } .md p { margin: 0 0 8px; } .md ul { margin: 0 0 8px; padding-left: 18px; }
 .md code, pre.cfg { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.8125rem; }
 .md code { background: var(--sunken); padding: 1px 4px; border-radius: 4px; }
+.lrow { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+@media (max-width: 900px) { .lrow { grid-template-columns: minmax(0, 1fr); } }
+.surf { touch-action: none; cursor: grab; user-select: none; }
+.surf:active { cursor: grabbing; }
+.surf svg { width: 100%; height: auto; display: block; }
+.surf .axlab { font-size: 12px; fill: var(--muted); }
+.surf .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; fill: var(--ink); }
+.surf .flab { font-size: 15px; font-style: italic; fill: var(--ink); font-family: "Cambria Math", Georgia, serif; }
+.slicepick { display: flex; flex-wrap: wrap; gap: 4px; }
+.slicepick .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.scale-bar { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--muted); max-width: 360px; margin: 0 auto; width: 100%; }
+.scale-bar i { flex: 1; height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--surf-lo), var(--surf-mid), var(--surf-hi)); }
+.formula { white-space: pre-wrap; font: 0.8125rem/1.6 ui-monospace, "Cascadia Mono", Consolas, monospace; background: var(--sunken); padding: 10px 12px; border-radius: 8px; overflow-x: auto; }
 pre.cfg { background: var(--sunken); padding: 12px; border-radius: 8px; overflow: auto; max-height: 340px; margin: 0; }
 </style>
 </head>
@@ -66,6 +79,11 @@ pre.cfg { background: var(--sunken); padding: 12px; border-radius: 8px; overflow
       <header><h2 id="rep-h">How good is it?</h2><p id="rep-sub">Loading…</p></header>
       <div class="panel tblwrap"><table class="results" id="report"></table></div>
       <p class="muted small">A check passes only when its 90% range clears the simple baseline it is compared with. Otherwise it says “not clearly better”.</p>
+    </section>
+
+    <section class="section" aria-labelledby="learn-h">
+      <header><h2 id="learn-h">How the model learns</h2><p>Training means finding the card weights where the loss is lowest: the bottom of a bowl. The gradient says which way is downhill.</p></header>
+      <div id="learn"><div class="panel box"><div class="skel" style="height:300px"></div></div></div>
     </section>
 
     <section class="section" aria-labelledby="lim-h">
@@ -93,8 +111,119 @@ pre.cfg { background: var(--sunken); padding: 12px; border-radius: 8px; overflow
 <script>
 (() => {
   "use strict";
-  const { $, esc, pct, num } = UI;
-  UI.start("model.html", (c) => { UI.setHash(c.entry.slug); steps(c); report(c); notes(c); gloss(c); log(c); }, { failTarget: "#report" });
+  const { $, esc, pct, num, signed } = UI;
+  UI.start("model.html", (c) => { UI.setHash(c.entry.slug); steps(c); report(c); learn(c); notes(c); gloss(c); log(c); }, { failTarget: "#report" });
+
+
+  // ------------------------------------------------------------------ how the model learns (loss surface)
+  const surf = { yaw: -0.75, pitch: 0.55, pick: 0 };
+  function learn({ INDEX, E }) {
+    const L = INDEX.landscape, el = $("#learn");
+    if (!L) { el.innerHTML = `<p class="muted">The loss surface is drawn from the Ranked model, which this export does not have.</p>`; return; }
+    const sl = L.slices[surf.pick], nm = (k) => E.describe(CRDeck.parseKey(k));
+    const A = nm(sl.keys[0]), B = nm(sl.keys[1]), lo = Math.min(...sl.loss.flat()), hi = Math.max(...sl.loss.flat());
+    el.innerHTML = `
+      <div class="lrow">
+        <div class="panel box" style="min-width:0">
+          <div class="slicepick" role="group" aria-label="Which two card weights">${L.slices.map((s, i) => `<button class="chip" data-slice="${i}" aria-pressed="${i === surf.pick}">${esc(s.label)}</button>`).join("")}</div>
+          <div class="surf" id="surf" tabindex="0" aria-label="3D training-loss surface. Drag or use arrow keys to rotate."></div>
+          <div class="scale-bar"><span>${lo.toFixed(5)}</span><i></i><span>${hi.toFixed(5)}</span></div>
+          <p class="muted small" style="text-align:center">Training loss J(a, b): low (blue) to high (orange). Height is stretched so the shape is visible; the whole surface spans ${(hi - lo).toFixed(5)}.</p>
+          <div class="mapctl" style="justify-content:center"><button class="btn small" id="surfreset">Reset view</button></div>
+        </div>
+        <div class="panel box" style="min-width:0">
+          <h3>What you're looking at</h3>
+          <p>The surface is the model's real training loss over the ${num(sl.n_train)} Ranked battles it was fitted on (training and validation windows), as two card weights change: <b>a = ${esc(A)}</b> and <b>b = ${esc(B)}</b>. Every other weight stays exactly as trained, so this is a slice through the full ${num(E.m.strength.coef.length)}-weight landscape.</p>
+          <div class="formula">J(a, b) = mean log loss + ‖w‖² / (2 C N)
+∂J/∂a = mean((p − y) · x_a) + a / (C N)
+∂J/∂b = mean((p − y) · x_b) + b / (C N)</div>
+          <p><b>The dot f(a, b)</b> is where training ended: a = ${signed(sl.fitted[0], 4)}, b = ${signed(sl.fitted[1], 4)}, at the bottom of the bowl, where both slopes are zero.</p>
+          <p><b>White arrows</b> point downhill, along −∇J. They shrink toward the bottom because the slope does.</p>
+          <p><b>The pink path</b> starts in a corner and repeatedly takes a step against the gradient (step size ${sl.learning_rate.toFixed(1)}, set by the surface's steepest curvature). It reaches the bottom in about ${sl.path.findIndex((q) => Math.abs(q[2] - sl.path[sl.path.length - 1][2]) < 1e-7) + 1} of ${sl.path.length - 1} steps. The real fit doesn't walk like this: it uses L-BFGS and then exact Newton steps on all weights at once.</p>
+          <p class="muted small">Ranges shown: each weight ± ${(sl.a[sl.a.length - 1] - sl.fitted[0]).toFixed(3)} (about 4 standard errors). ${esc(A)} was in ${num(sl.games[0])} training decks, ${esc(B)} in ${num(sl.games[1])}.</p>
+        </div>
+      </div>`;
+    el.querySelectorAll("[data-slice]").forEach((b) => { b.onclick = () => { surf.pick = Number(b.dataset.slice); learn({ INDEX, E }); }; });
+    $("#surfreset").onclick = () => { surf.yaw = -0.75; surf.pitch = 0.55; drawSurf(sl, A, B); };
+    const box = $("#surf"); let drag = null;
+    box.onpointerdown = (ev) => { drag = [ev.clientX, ev.clientY, surf.yaw, surf.pitch]; if (box.setPointerCapture) box.setPointerCapture(ev.pointerId); };
+    box.onpointermove = (ev) => { if (!drag) return; surf.yaw = drag[2] + (ev.clientX - drag[0]) * 0.01; surf.pitch = Math.max(0.05, Math.min(1.4, drag[3] + (ev.clientY - drag[1]) * 0.01)); drawSurf(sl, A, B); };
+    box.onpointerup = box.onpointercancel = () => { drag = null; };
+    box.onkeydown = (ev) => {
+      const st = { ArrowLeft: [-0.12, 0], ArrowRight: [0.12, 0], ArrowUp: [0, -0.1], ArrowDown: [0, 0.1] }[ev.key];
+      if (!st) return; ev.preventDefault(); surf.yaw += st[0]; surf.pitch = Math.max(0.05, Math.min(1.4, surf.pitch + st[1])); drawSurf(sl, A, B); };
+    drawSurf(sl, A, B);
+  }
+  // colour scale: blue (low) -> soft neutral -> orange (high); read from the page's tokens so dark mode works
+  function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || "#888888"; }
+  const hex = (h) => { h = h.replace("#", ""); if (h.length === 3) h = h.split("").map((c) => c + c).join(""); return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)); };
+  function ramp(t, shade) {
+    const lo = hex(css("--surf-lo")), mid = hex(css("--surf-mid")), hi = hex(css("--surf-hi"));
+    const [a, b, u] = t < 0.5 ? [lo, mid, t / 0.5] : [mid, hi, (t - 0.5) / 0.5];
+    return `rgb(${[0, 1, 2].map((i) => Math.round((a[i] + (b[i] - a[i]) * u) * shade)).join(",")})`;
+  }
+  function drawSurf(sl, A, B) {
+    const el = $("#surf"); if (!el) return;
+    const W = 560, H = 420, n = sl.a.length, lo = Math.min(...sl.loss.flat()), hi = Math.max(...sl.loss.flat());
+    const amin = sl.a[0], amax = sl.a[n - 1], bmin = sl.b[0], bmax = sl.b[n - 1];
+    // world coordinates: a and b to [-1, 1], height to [0, 0.9] (stretched; see the caption)
+    const X = (a) => -1 + 2 * (a - amin) / (amax - amin), Y = (b) => -1 + 2 * (b - bmin) / (bmax - bmin), Z = (l) => 0.9 * (l - lo) / (hi - lo || 1);
+    const cy = Math.cos(surf.yaw), sy = Math.sin(surf.yaw), cp = Math.cos(surf.pitch), sp = Math.sin(surf.pitch);
+    const proj = (x, y, z) => { const rx = x * cy - y * sy, ry = x * sy + y * cy; return [W / 2 + rx * 165, H / 2 + 40 + ry * sp * 165 - z * cp * 230, ry * cp + z * sp]; };
+    const light = [0.35, -0.55, 0.76], ln = Math.hypot(...light);
+    const quads = [];
+    for (let i = 0; i < n - 1; i++) for (let j = 0; j < n - 1; j++) {
+      const c = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]].map(([u, v]) => [X(sl.a[u]), Y(sl.b[v]), Z(sl.loss[u][v])]);
+      const ux = c[1][0] - c[0][0], uz = c[1][2] - c[0][2], vy = c[3][1] - c[0][1], vz = c[3][2] - c[0][2];
+      const nx = -uz * vy, ny = -ux * vz, nz = ux * vy, nn = Math.hypot(nx, ny, nz) || 1;
+      const lam = Math.max(0, (nx * light[0] + ny * light[1] + nz * light[2]) / (nn * ln));
+      const mean = (sl.loss[i][j] + sl.loss[i + 1][j] + sl.loss[i + 1][j + 1] + sl.loss[i][j + 1]) / 4;
+      const pts = c.map((q) => proj(...q));
+      quads.push({ i, j, pts, depth: pts.reduce((t, q) => t + q[2], 0) / 4, fill: ramp((mean - lo) / (hi - lo || 1), 0.78 + 0.22 * lam), mean });
+    }
+    quads.sort((p, q) => q.depth - p.depth);
+    let g = "";
+    // floor axes
+    const ax = (x1, y1, x2, y2, lab, anchor) => { const p1 = proj(x1, y1, 0), p2 = proj(x2, y2, 0);
+      return `<line x1="${p1[0]}" y1="${p1[1]}" x2="${p2[0]}" y2="${p2[1]}" stroke="var(--muted)" stroke-width="1" opacity="0.6"/><text x="${p2[0]}" y="${p2[1] + 14}" text-anchor="${anchor}" class="axlab">${esc(lab)}</text>`; };
+    g += ax(-1.15, -1.15, 1.2, -1.15, "", "middle") + ax(-1.15, -1.15, -1.15, 1.2, "", "middle");
+    const lab = (x, y, text) => { const p = proj(x, y, 0); return `<text x="${p[0]}" y="${p[1] + 14}" text-anchor="middle" class="axlab halo">${esc(text)}</text>`; };
+    const axes = lab(-0.45, -1.15, `a: ${UI.shorten(A, 20)}`) + lab(-1.15, 1.2, `b: ${UI.shorten(B, 20)}`);
+    for (const q of quads) {
+      const d = q.pts.map((p, k) => `${k ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join("") + "Z";
+      const tip = (q.i % 2 === 0 && q.j % 2 === 0) ? ` ${UI.tipAttr("Training loss", [`a ${signed(sl.a[q.i], 4)}, b ${signed(sl.b[q.j], 4)}`, `J ${q.mean.toFixed(6)}`])}` : "";
+      g += `<path d="${d}" fill="${q.fill}" stroke="${q.fill}" stroke-width="0.6"${tip}/>`;
+    }
+    // thin grid lines every 4 cells, drawn over the surface
+    for (let i = 0; i < n; i += 4) g += `<path d="${sl.b.map((b, j) => { const p = proj(X(sl.a[i]), Y(b), Z(sl.loss[i][j])); return `${j ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`; }).join("")}" fill="none" stroke="var(--surface)" stroke-width="0.6" opacity="0.35"/>`;
+    for (let j = 0; j < n; j += 4) g += `<path d="${sl.a.map((a, i) => { const p = proj(X(a), Y(sl.b[j]), Z(sl.loss[i][j])); return `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`; }).join("")}" fill="none" stroke="var(--surface)" stroke-width="0.6" opacity="0.35"/>`;
+    // downhill arrows (−∇J), on the surface
+    const st = sl.arrow_step, gm = Math.max(...sl.grad_a.flat().map(Math.abs), ...sl.grad_b.flat().map(Math.abs)) || 1;
+    sl.grad_a.forEach((row, ii) => row.forEach((gA, jj) => {
+      const i = ii * st, j = jj * st, gB = sl.grad_b[ii][jj], len = Math.hypot(gA, gB) / gm;
+      if (len < 0.06) return;
+      const a0 = sl.a[i], b0 = sl.b[j], s = 0.2 * Math.max(0.35, len) / Math.hypot(gA, gB);
+      const p0 = proj(X(a0), Y(b0), Z(sl.loss[i][j]) + 0.01), p1 = proj(X(a0) - gA * s, Y(b0) - gB * s, Z(sl.loss[i][j]) + 0.01);
+      const dx = p1[0] - p0[0], dy = p1[1] - p0[1], dl = Math.hypot(dx, dy) || 1, ux = dx / dl, uy = dy / dl;
+      g += `<path d="M${p0[0].toFixed(1)},${p0[1].toFixed(1)}L${p1[0].toFixed(1)},${p1[1].toFixed(1)}M${(p1[0] - 6 * ux - 3.5 * uy).toFixed(1)},${(p1[1] - 6 * uy + 3.5 * ux).toFixed(1)}L${p1[0].toFixed(1)},${p1[1].toFixed(1)}L${(p1[0] - 6 * ux + 3.5 * uy).toFixed(1)},${(p1[1] - 6 * uy - 3.5 * ux).toFixed(1)}" stroke="#ffffff" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>`;
+    }));
+    // gradient-descent path
+    const pp = sl.path.map((q) => proj(X(q[0]), Y(q[1]), Z(q[2]) + 0.015));
+    g += `<path d="${pp.map((p, k) => `${k ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join("")}" fill="none" stroke="var(--elixir)" stroke-width="2.4" stroke-linejoin="round"/>`;
+    pp.forEach((p, k) => { if (k % 4 === 0) g += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="var(--elixir)" ${UI.tipAttr(`Descent step ${k}`, [`a ${signed(sl.path[k][0], 4)}, b ${signed(sl.path[k][1], 4)}`, `J ${sl.path[k][2].toFixed(6)}`, `slope ${sl.path[k][3].toExponential(1)}, ${sl.path[k][4].toExponential(1)}`])}/>`; });
+    // the fitted point f(a, b), labelled like a textbook figure
+    const mid = Math.floor(n / 2), fp = proj(X(sl.fitted[0]), Y(sl.fitted[1]), Z(sl.loss[mid][mid]) + 0.015);
+    const lx = fp[0] - 70, ly = fp[1] - 95;
+    g += `<text x="${lx}" y="${ly}" class="flab" text-anchor="middle">f(a, b)</text>
+      <path d="M${lx + 6},${ly + 8}L${fp[0] - 4},${fp[1] - 8}" stroke="var(--ink)" stroke-width="1.6" fill="none"/>
+      <path d="M${fp[0] - 4},${fp[1] - 8}l-1,-8M${fp[0] - 4},${fp[1] - 8}l-8,-3" stroke="var(--ink)" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      <circle cx="${fp[0]}" cy="${fp[1]}" r="5.5" fill="var(--ink)" stroke="var(--surface)" stroke-width="2" ${UI.tipAttr("f(a, b): the fitted weights", [`a ${signed(sl.fitted[0], 4)}, b ${signed(sl.fitted[1], 4)}`, `J ${sl.fitted_loss.toFixed(6)}`, "slope 0 in both directions: the bottom"])}/>`;
+    g += axes;
+    // vertical axis for the loss
+    const z0 = proj(-1.15, -1.15, 0), z1 = proj(-1.15, -1.15, 1.0);
+    g = `<line x1="${z0[0]}" y1="${z0[1]}" x2="${z1[0]}" y2="${z1[1]}" stroke="var(--muted)" stroke-width="1" opacity="0.6"/><text x="${z1[0]}" y="${z1[1] - 6}" text-anchor="middle" class="axlab">J</text>` + g;
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Training loss surface over the weights of ${esc(A)} and ${esc(B)}; the fitted point is at the bottom.">${g}</svg>`;
+  }
 
   function steps({ entry, m, E }) {
     const ev = m.evaluation || {}, sp = ev.splits || [], part = (p) => sp.find((x) => x.part === p) || {};
