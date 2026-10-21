@@ -133,3 +133,9 @@ What this says about the game, at this level: deck composition barely moves win 
 - **Style colours** in the picture: the style most often predicted for the 3,000 most-played training decks holding each card; only the three most common styles get a colour (a scatter cannot keep more categories apart for colour-blind readers), the rest are grey.
 - **Swap math** on the Why this deck page writes every regular swap out as Δscore = Δwin + 0.5 × Δsynergy + 0.05 × Δplayed-together, with the deck's numbers before and after.
 
+## 16. How the model learns (loss surface) and the Newton finish
+
+- The How it works page draws the Ranked strength model's real training loss, J = mean log loss + ‖w‖² / (2 C N), on the battles the final model is fitted on (training and validation windows), as a 2D slice: two card weights vary over ± about 4 standard errors while every other weight stays as trained. The gradient arrows are exact (∂J/∂a = mean((p − y)·x_a) + a / (C N)). Height is stretched for display; the caption gives the true range (about 0.0004).
+- The pink path is plain gradient descent on that slice, step 0.3 / largest curvature, labelled as an illustration; the real fit is L-BFGS followed by exact Newton steps over all weights.
+- **Newton finish (2026-10-21).** scikit-learn's L-BFGS stops at its tolerance (largest gradient component ≤ 1e-4). In this very flat valley that left card weights up to 0.006 log-odds from the exact minimum. Two Newton steps take the gradient to about 1e-12. Held-out results barely moved (Ranked test log loss 0.69242 → 0.69240, AUC 0.5232 → 0.5234). An earlier reading that L-BFGS had stopped far from the minimum was a measurement mistake (the gradient had been computed on the training window only, not on training + validation).
+
