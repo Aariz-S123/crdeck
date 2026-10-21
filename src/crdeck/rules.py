@@ -76,6 +76,10 @@ class DeckRules:
     def with_max_champions(self, n: int) -> "DeckRules":
         return DeckRules(self.deck_size, self.special_slots, n)
 
+    def with_slots(self, names) -> "DeckRules":
+        """Only the named special slots (e.g. a low Trophy Road arena has no Wild slot yet)."""
+        return DeckRules(self.deck_size, tuple(s for s in self.special_slots if s.name in set(names)), self.max_champions)
+
 
 @dataclass
 class LegalityResult:

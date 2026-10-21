@@ -18,7 +18,7 @@ from dataclasses import dataclass
 
 from .cards import CardTable
 from .explain import has_win_condition
-from .rules import DeckCard, check_deck, check_partial, deck_key
+from .rules import DeckCard, check_deck, check_partial, deck_key, describe
 
 
 class SeedError(ValueError):
@@ -77,6 +77,9 @@ class Searcher:
                 if form == "hero" and not self.ctx.hero_observable:
                     # Strength cannot tell hero from base; offer hero only via the base entry.
                     continue
+                av = getattr(self.ctx, "availability", None)
+                if av is not None and not av.form_ok(e):
+                    continue  # not unlocked in this arena
                 if self.ctx.strength.known(e) and self.ctx.strength.games(e) >= min_games:
                     out.append(e)
         return out
@@ -99,6 +102,11 @@ class Searcher:
         seeds = list(dict.fromkeys(seeds))
         if len(seeds) > size:
             raise SeedError(f"{len(seeds)} seed cards; a deck has {size}")
+        av = getattr(self.ctx, "availability", None)
+        if av is not None:
+            locked = [av.why_not(s, describe(s, self.cards)) for s in seeds if not av.form_ok(s)]
+            if locked:
+                raise SeedError(f"not unlocked in {av.arena}: " + "; ".join(locked))
         res = check_partial(seeds, self.cards, self.rules)
         if not res.legal:
             raise SeedError("seed cards cannot form a legal deck: " + "; ".join(res.details))

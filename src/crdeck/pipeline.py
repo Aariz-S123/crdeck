@@ -186,6 +186,7 @@ class Context:
     group: str | None = None  # one group of the mode: an arena (Trophy Road) or a league (Ranked)
     mode_label: str = "Ranked (Path of Legends)"
     candidates: pd.DataFrame | None = None  # every strength model and C tried, with validation scores
+    availability: object | None = None  # crdeck.availability.Availability for a single Trophy Road arena
 
     @property
     def arena(self) -> str | None:
@@ -345,6 +346,10 @@ def _train_context(paths: Paths, verbose: bool, mode: str = "ranked", group: str
         raise NoDataError("interim tables predate modes; run `python -m crdeck build` again")
     mb = model_battles(battles, dib, modes_for(ccfg, mode), group)
     label = mode_label(ccfg, mode, group)
+    from .availability import for_group
+    availability = for_group(ccfg, mode, group, battles, dib)
+    if availability is not None:
+        rules = rules.with_slots(availability.slots)
     if len(mb) < MIN_BATTLES:
         raise NoDataError(f"not enough data for {label}: only {len(mb)} usable battles (minimum {MIN_BATTLES})")
     split = time_split(mb, ccfg["split"]["train_frac"], ccfg["split"]["valid_frac"])
@@ -378,7 +383,8 @@ def _train_context(paths: Paths, verbose: bool, mode: str = "ranked", group: str
     appearances = all_sides["deck_key"].value_counts().to_dict()
     ctx = Context(paths, cfg, rules, cards, split, syn_tv, strength, scorer, am, hero_obs, comp, decks, counts,
                   test_deck_records=test_records, deck_appearances=appearances, archetype_labels=labels,
-                  synergy_choice=syn_choice, mode=mode, group=group, mode_label=label, candidates=candidates)
+                  synergy_choice=syn_choice, mode=mode, group=group, mode_label=label, candidates=candidates,
+                  availability=availability)
     if verbose:
         print(paths.banner())
         print(split.describe().to_string(index=False))
