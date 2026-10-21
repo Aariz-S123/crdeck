@@ -55,6 +55,7 @@ The deck builder also runs as a small website that runs the trained model in the
 
 - `web/common.js` and `web/app.css` are shared by all pages; `web/engine.js` is a JavaScript port of the scoring, search, legality, warnings, archetype and explanation code.
 - `python scripts/export_web.py` writes `web/modes.json` (modes, meta history, run log), one model per mode in `web/models/`, and Python's own answers for test cases in `web/golden/`.
+- The Why this deck page also has a **card map**: every card form as a learned vector (SVD of positive PMI from the training decks, size chosen on validation), a rotatable 3D PCA picture, and swaps that stay close to the deck in the full-dimensional space and raise the win rate (`src/crdeck/embedding.py`). Each regular swap shows its score math written out.
 - In a single Trophy Road arena the builder only offers what a player there could own: card unlock arenas and slot unlocks come from the Clash Royale Wiki (`python scripts/fetch_wiki_unlocks.py` writes `config/card_unlocks.yaml`), plus cards that at least 3 decks in that arena's battles already use.
 - Pages pass the mode, deck and picked cards in the link's `#` part, so a "Why this deck" link can be shared.
 - `node scripts/sweep_web_engine.mjs` seeds the engine with every card form and checks every result (legal decks, seeds kept, legal swaps, breakdowns that add up).
