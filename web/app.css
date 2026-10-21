@@ -182,7 +182,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #tip b { display: block; }
 
 /* tables */
-.tblwrap { overflow-x: auto; }
+.tblwrap { overflow-x: auto; position: relative; } /* keeps screen-reader-only labels inside the scroll box */
 table.nums { border-collapse: collapse; font-size: 0.875rem; width: 100%; }
 table.nums th, table.nums td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); }
 table.nums th { font-size: 0.8125rem; color: var(--muted); font-weight: 600; background: var(--sunken); }

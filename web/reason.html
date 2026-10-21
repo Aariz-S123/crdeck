@@ -22,7 +22,7 @@
 .short .big { font-family: var(--display); font-size: 2.25rem; font-weight: 700; line-height: 1; }
 .short .line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px var(--space-2); }
 .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(330px, 100%), 1fr)); gap: var(--space-4); align-items: start; }
-.chartbox { padding: var(--space-4); display: grid; gap: var(--space-3); min-width: 0; }
+.chartbox { padding: var(--space-4); display: grid; gap: var(--space-3); min-width: 0; grid-template-columns: minmax(0, 1fr); }
 .chartbox h3 { font-size: 1.125rem; }
 .chartbox p { color: var(--muted); font-size: 0.9375rem; }
 .pairs { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-2); }
