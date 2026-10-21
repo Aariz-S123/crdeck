@@ -73,7 +73,7 @@
         <p class="notice" id="seed-note" role="status" hidden></p>
         <div class="filters">
           <label class="sr" for="q">Search cards</label>
-          <input class="search" id="q" type="search" placeholder="Search, for example Hog Rider" autocomplete="off">
+          <input class="search" id="q" type="search" placeholder="Search cards" autocomplete="off">
           <div class="types" role="group" aria-label="Card type" id="types"></div>
         </div>
         <div class="cardlist" id="cardlist" aria-label="Cards to pick"></div>
@@ -107,23 +107,25 @@
   const { $, esc, pct, num } = UI;
   const TYPES = [["all", "All"], ["troop", "Troops"], ["spell", "Spells"], ["building", "Buildings"]];
   const FORM_ORDER = { base: 0, evo: 1, hero: 2 };
-  const EXAMPLE = [{ id: 26000021, form: "base" }];
-  let ctx = null, E = null, seeds = null, example = false, decks = [], loaded = false;
+  let ctx = null, E = null, seeds = null, decks = [], loaded = false;
   const view = { type: "all", q: "" };
   let timer = 0;
 
   UI.start("index.html", (c) => {
     ctx = c; E = c.E;
     if (seeds === null) {
-      // first load: cards from the link, else a marked example so the page opens with decks
+      // first load: cards from the link, else none (the builder then finds the strongest decks)
       if (c.hash.seeds !== null) seeds = c.hash.seeds;
-      else { seeds = EXAMPLE.slice(); example = true; }
+      else seeds = [];
     }
+    const before = seeds.length;
     seeds = seeds.filter((s) => E.card(s.id) && E.allowedForms(E.card(s.id)).includes(s.form));
+    const dropped = before - seeds.length;
     if (loaded) saveLink(); // a mode, league or arena switch goes into the link too
     loaded = true;
     $("#slotkey").innerHTML = UI.SLOT_KEY;
     renderTypes(); renderSeeds(); renderCards(); build();
+    if (dropped) showNote(`${dropped} card${dropped === 1 ? "" : "s"} in the link ${dropped === 1 ? "isn't" : "aren't"} a card form in this game, so ${dropped === 1 ? "it was" : "they were"} left out.`);
   }, { failTarget: "#decks", onLoading: () => { $("#status").textContent = "Loading this mode…"; } });
 
   const slug = () => ctx.entry.slug;
@@ -159,7 +161,7 @@
     else { showNote("You already picked 3 cards. Remove one to pick another."); return; }
     changed(); if (note) showNote(note);
   };
-  function changed() { example = false; showNote(""); renderSeeds(); renderCards(); saveLink(); schedule(); }
+  function changed() { showNote(""); renderSeeds(); renderCards(); saveLink(); schedule(); }
   function showNote(msg) { const el = $("#seed-note"); el.textContent = msg; el.hidden = !msg; }
 
   function renderSeeds() {
@@ -173,9 +175,8 @@
       rows.push(`<div class="seed filled">${UI.drop(c)}<span class="nm">${esc(c.name)}</span>${fb}<button class="rm" data-rm="${i}" aria-label="Remove ${esc(c.name)}">×</button></div>`);
     }
     $("#seeds").innerHTML = rows.join("");
-    $("#seed-hint").textContent = example
-      ? `Starting example: ${E.describe(EXAMPLE[0])}. Remove it, or pick up to two more cards.`
-      : seeds.length ? `${3 - seeds.length ? `${3 - seeds.length} slot${3 - seeds.length === 1 ? "" : "s"} free.` : "All 3 slots used."} Press × to remove a card, or switch its form.`
+    $("#seed-hint").textContent = seeds.length
+      ? `${3 - seeds.length ? `${3 - seeds.length} slot${3 - seeds.length === 1 ? "" : "s"} free.` : "All 3 slots used."} Press × to remove a card, or switch its form.`
       : "Optional. With no cards picked, it builds the strongest decks it can find.";
   }
   $("#seeds").onclick = (ev) => {
