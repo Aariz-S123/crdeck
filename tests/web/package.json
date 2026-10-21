@@ -1,0 +1,6 @@
+{
+  "name": "crdeck-web-tests",
+  "private": true,
+  "description": "Headless checks of the website pages (jsdom). npm install here once, then: node page_test.cjs / node site_check.cjs",
+  "dependencies": { "jsdom": "24.1.3" }
+}

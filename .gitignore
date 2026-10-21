@@ -20,3 +20,4 @@ web/golden.json
 web/models/
 web/golden/
 web/modes.json
+tests/web/node_modules/

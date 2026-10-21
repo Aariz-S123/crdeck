@@ -60,6 +60,7 @@ The deck builder also runs as a small website that runs the trained model in the
 - Pages pass the mode, deck and picked cards in the link's `#` part, so a "Why this deck" link can be shared.
 - `node scripts/sweep_web_engine.mjs` seeds the engine with every card form and checks every result (legal decks, seeds kept, legal swaps, breakdowns that add up).
 - `node scripts/check_web_engine.mjs` checks that the port agrees with Python on 3,000 random decks (legality and slots) plus searches, swaps and explanations. Python remains the source of truth; re-run the export and the check after retraining.
+- Headless page checks (jsdom): `cd tests/web && npm install` once, then `node page_test.cjs` (every page, a few minutes) or `node site_check.cjs` (every mode on every page, about 15 minutes). Run them after an export.
 - To view it locally, serve the folder (`python -m http.server -d web`) and open http://localhost:8000.
 
 The spec (section 3) listed a web UI as deferred; it was built on request after the core results were in.
