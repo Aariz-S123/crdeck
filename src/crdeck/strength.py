@@ -148,7 +148,23 @@ class CardModel:
         y = df["a_won"].astype(int).to_numpy()
         self.lr = LogisticRegression(fit_intercept=False, C=self.C, max_iter=self.max_iter, solver="lbfgs")
         self.lr.fit(X, y)
-        full = self.lr.coef_.ravel()
+        # Finish with exact Newton steps on the same objective (mean log loss + ||w||^2 / (2 C N)).
+        # L-BFGS stops at its tolerance (largest gradient component <= 1e-4); in this very flat valley that
+        # leaves card weights up to ~0.006 from the exact minimum (Ranked, 2026-10-21). Newton steps take the
+        # gradient to ~1e-12, so the fitted point is exactly the bottom of the loss surface the site draws.
+        full = self.lr.coef_.ravel().astype(float)
+        n = X.shape[0]
+        self.newton_steps, self.max_gradient = 0, float("nan")
+        for _ in range(25):
+            p = sigmoid(X @ full)
+            g = X.T @ (p - y) / n + full / (self.C * n)
+            self.max_gradient = float(np.abs(g).max())
+            if self.max_gradient < 1e-10:
+                break
+            H = (X.T @ sparse.diags(p * (1 - p)) @ X).toarray() / n + np.eye(X.shape[1]) / (self.C * n)
+            full = full - np.linalg.solve(H, g)
+            self.newton_steps += 1
+        self.lr.coef_ = full.reshape(1, -1)
         n_deck = self.n_card_features + len(self.pairs)
         self.coef = full[:n_deck]  # deck-only weights: utilities and deck scores never include skill
         self.skill_coef = float(full[n_deck]) * self._skill_scale if self.skill_control else 0.0  # per 100 rating
