@@ -227,7 +227,12 @@ table.near td.good, table.nums td.good { color: var(--ok); font-weight: 700; } t
     const movable = deck.filter((e) => !lockedIds.has(e.id) && E.embVec(e));
     if (!map.sel || !deck.some((e) => CRDeck.keyOf(e) === map.sel)) map.sel = sugg.length ? CRDeck.keyOf(sugg[0].replace_entry) : (movable[0] ? CRDeck.keyOf(movable[0]) : null);
     const ev = em.evaluation, kept = em.pca_explained.reduce((a, b) => a + b, 0);
+    const earned = ev.difference_ci90 && ev.difference_ci90[0] > 0;
+    const verdict = earned
+      ? `<span class="pill good">Beats popular cards in this mode</span>`
+      : `<span class="pill weak">Not clearly better than popular cards in this mode</span>`;
     sec.innerHTML = `<header><h2 id="map-h">Card map</h2>
+      <p>${verdict} On held-out ${esc(ctx.entry.label)} decks, the 10 cards closest to a deck found its hidden cards ${pct(ev.recall, 1)} of the time; the 10 most popular cards found them ${pct(ev.recall_popular, 1)}.${earned ? "" : " Treat card-map suggestions here with caution; the regular swaps above don't depend on it."}</p>
       <p>Every card form is a list of ${em.dim} numbers (a vector) learned from which cards are played together in the training battles. Cards used in the same kinds of decks end up close. The deck's center is the average of its cards' vectors. <span class="src model">model</span></p></header>
       <div class="mapgrid">
         <div class="panel chartbox">
@@ -308,6 +313,8 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
     const centerPts = deck.filter((e) => CRDeck.keyOf(e) !== map.sel && E.embVec(e)).map((e) => P[em.keys.indexOf(CRDeck.keyOf(e))]);
     const cpt = centerPts.length ? proj([0, 1, 2].map((j) => centerPts.reduce((t, p) => t + p[j], 0) / centerPts.length)) : null;
     let g = "";
+    const placed = []; // label boxes already drawn: skip a label that would overlap (its tooltip still names it)
+    const free = (x, y, w) => !placed.some((q) => x < q[0] + q[2] && x + w > q[0] && Math.abs(y - q[1]) < 13);
     for (const { k, xy } of pts) {
       const e = CRDeck.parseKey(k), inDeck = deckKeys.has(k), cand = candKeys.has(k), sel = k === map.sel;
       const r = inDeck ? 6 : cand ? 5 : 3.2, fill = inDeck ? "var(--ink)" : colorOf(k);
@@ -318,7 +325,11 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
       if (row) lines.push(`distance ${row.distance.toFixed(3)} (all ${em.dim} dimensions)`, `win rate ${pct(row.win_after, 2)} after swapping`);
       const stroke = sel ? `stroke="var(--hero)" stroke-width="3"` : cand && !inDeck ? `stroke="var(--elixir)" stroke-width="2.5"` : `stroke="var(--surface)" stroke-width="1"`;
       g += `<circle cx="${xy[0].toFixed(1)}" cy="${xy[1].toFixed(1)}" r="${r}" fill="${fill}" ${stroke} opacity="${inDeck || cand ? 1 : 0.75}" ${UI.tipAttr(E.describe(e), lines)}/>`;
-      if (inDeck || (row && row.delta_win_prob > 0)) g += `<text x="${(xy[0] + 8).toFixed(1)}" y="${(xy[1] - 6).toFixed(1)}" font-size="11" fill="var(--ink)" font-weight="${inDeck ? 700 : 400}">${esc(UI.shorten(E.describe(e), 22))}</text>`;
+      const label = UI.shorten(E.describe(e), 22), lw = label.length * 6.2, lx = xy[0] + 8, ly = xy[1] - 6;
+      if ((inDeck || (row && row.delta_win_prob > 0)) && free(lx, ly, lw)) {
+        placed.push([lx, ly, lw]);
+        g += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="11" fill="var(--ink)" font-weight="${inDeck ? 700 : 400}">${esc(label)}</text>`;
+      }
     }
     if (cpt) g += `<path d="M${cpt[0] - 7},${cpt[1]}h14M${cpt[0]},${cpt[1] - 7}v14" stroke="var(--elixir)" stroke-width="3" stroke-linecap="round"/>
       <circle cx="${cpt[0]}" cy="${cpt[1]}" r="9" fill="transparent" stroke="var(--elixir)" stroke-width="1.5" ${UI.tipAttr("Center of the other 7 cards", ["drawn in the 3D picture; distances use the full vectors"])}/>`;
@@ -336,10 +347,10 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
   function swapMath(newKey) {
     const b = E.evaluate(deck), a = E.evaluate(CRDeck.parseDeckKey(newKey));
     const tw = (a.win_prob - b.win_prob) * 100, ts = E.weight * (a.mean_synergy - b.mean_synergy) * 100, tc = E.coWeight * (a.mean_log_lift - b.mean_log_lift) * 100;
-    const f = (v) => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(2);
+    const f = (v) => (Math.abs(v) < 0.0005 ? "0.000" : (v > 0 ? "+" : "−") + Math.abs(v).toFixed(3));
     return `<span class="math" aria-label="Score change worked out">Δscore = Δwin + ${E.weight} × Δsynergy + ${E.coWeight} × Δplayed-together
-= (${pct(b.win_prob, 2)} → ${pct(a.win_prob, 2)}) + ${E.weight} × (${signed(b.mean_synergy, 4)} → ${signed(a.mean_synergy, 4)}) + ${E.coWeight} × (${b.mean_log_lift.toFixed(3)} → ${a.mean_log_lift.toFixed(3)})
-= ${f(tw)} ${f(ts)} ${f(tc)} = <b>${f(tw + ts + tc)} points</b></span>`;
+= (${pct(b.win_prob, 3)} → ${pct(a.win_prob, 3)}) + ${E.weight} × (${signed(b.mean_synergy, 4)} → ${signed(a.mean_synergy, 4)}) + ${E.coWeight} × (${b.mean_log_lift.toFixed(3)} → ${a.mean_log_lift.toFixed(3)})
+= (${f(tw)}) + (${f(ts)}) + (${f(tc)}) = <b>${f(tw + ts + tc)} points</b></span>`;
   }
 
   function renderSwaps() {
