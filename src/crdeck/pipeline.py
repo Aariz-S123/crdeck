@@ -187,6 +187,7 @@ class Context:
     mode_label: str = "Ranked (Path of Legends)"
     candidates: pd.DataFrame | None = None  # every strength model and C tried, with validation scores
     availability: object | None = None  # crdeck.availability.Availability for a single Trophy Road arena
+    embedding: object | None = None  # crdeck.embedding.CardEmbedding (None if too little data)
 
     @property
     def arena(self) -> str | None:
@@ -385,6 +386,8 @@ def _train_context(paths: Paths, verbose: bool, mode: str = "ranked", group: str
                   test_deck_records=test_records, deck_appearances=appearances, archetype_labels=labels,
                   synergy_choice=syn_choice, mode=mode, group=group, mode_label=label, candidates=candidates,
                   availability=availability)
+    from . import embedding as emb_mod
+    ctx.embedding = emb_mod.train(ctx)
     if verbose:
         print(paths.banner())
         print(split.describe().to_string(index=False))
