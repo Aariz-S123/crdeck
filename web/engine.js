@@ -109,6 +109,21 @@
     name(id) { const c = this.card(id); return c ? c.name : `<unknown ${id}>`; }
     describe(e) { const n = this.name(e.id); return e.form === "base" ? n : `${n} (${e.form === "evo" ? "Evolution" : "Hero"})`; }
     allowedForms(c) { const f = ["base"]; if (c.evo) f.push("evo"); if (c.hero) f.push("hero"); return f; }
+    // crdeck.availability: what a player in this Trophy Road arena can use (null = no restriction)
+    cardUnlocked(id) { const a = this.m.availability; return !a || (a.unlock[String(id)] || 0) <= a.number || String(id) in a.seen_early; }
+    isAvailable(e) {
+      const a = this.m.availability;
+      if (!a) return true;
+      if (!this.cardUnlocked(e.id)) return false;
+      if (e.form === "evo") return a.slots.includes("evo");
+      if (e.form === "hero") return a.slots.includes("hero");
+      return true;
+    }
+    whyNot(e) {
+      const a = this.m.availability, name = this.describe(e);
+      if (!this.cardUnlocked(e.id)) return `${name} unlocks at ${a.unlock_name[String(e.id)] || "a later arena"} (Arena ${a.unlock[String(e.id)]})`;
+      return `${e.form === "evo" ? "Evolutions" : "Heroes"} unlock at Arena ${a.slot_unlock[e.form]}`;
+    }
     byNameLookup(name) { const c = this.byName.get(norm(name)); if (!c) throw new SeedError(`no card named ${name}`); return c; }
 
     // ------------------------------------------------------------------ rules (crdeck.rules)
@@ -232,6 +247,7 @@
       for (const id of this.ids) for (const form of this.allowedForms(this.card(id))) {
         const e = { id, form };
         if (form === "hero" && !this.m.hero_observable) continue;
+        if (!this.isAvailable(e)) continue; // not unlocked in this arena
         if (this.known(e) && this.games(e) >= minGames) out.push(e);
       }
       return out;
@@ -254,6 +270,8 @@
       for (const s of seeds) { const k = keyOf(s); if (!seenSeed.has(k)) { seenSeed.add(k); uniq.push(s); } }
       seeds = uniq;
       if (seeds.length > size) throw new SeedError(`${seeds.length} seed cards; a deck has ${size}`);
+      const locked = seeds.filter((s) => !this.isAvailable(s)).map((s) => this.whyNot(s));
+      if (locked.length) throw new SeedError(`not unlocked in ${this.m.availability.arena}: ${locked.join("; ")}`);
       const res = this.checkPartial(seeds);
       if (!res.legal) throw new SeedError("seed cards cannot form a legal deck: " + res.details.join("; "));
       const perParent = Math.max(2, Math.floor(width / Number(sc.beam_parents_min || 10)));

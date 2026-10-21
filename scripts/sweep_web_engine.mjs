@@ -17,12 +17,15 @@ let model, E;
 const problems = [];
 const bad = (m) => { problems.push(m); if (problems.length <= 30) console.log("PROBLEM", m); };
 const finite = (x) => typeof x === "number" && Number.isFinite(x);
+// no search result or swap may use a card form that is not unlocked in the model's arena
+function lockedUse(label, entries) { for (const e of entries) if (!E.isAvailable(e)) bad(`${label}: uses locked ${keyOf(e)}`); }
 let searches = 0, refused = 0, swapsChecked = 0;
 
 function checkResult(seeds, res, label) {
   if (!res.length) bad(`${label}: no decks returned`);
   const keys = new Set();
   for (const d of res) {
+    lockedUse(`${label} deck`, d.entries);
     const r = E.checkDeck(d.entries);
     if (!r.legal) bad(`${label}: illegal deck ${d.key} ${r.reasons}`);
     for (const s of seeds) if (!d.entries.some((e) => e.id === s.id && e.form === s.form)) bad(`${label}: seed ${keyOf(s)} missing from ${d.key}`);
@@ -45,6 +48,7 @@ function checkResult(seeds, res, label) {
   for (const s of sw) {
     swapsChecked++;
     const nd = parseDeckKey(s.new_deck_key);
+    lockedUse(`${label} swap`, nd);
     if (!E.checkDeck(nd).legal) bad(`${label}: illegal swap result ${s.new_deck_key}`);
     for (const sd of seeds) if (!nd.some((e) => e.id === sd.id && e.form === sd.form)) bad(`${label}: swap removed seed ${keyOf(sd)}`);
     const x = E.explainSwap(res[0].entries, s.replace_entry, s.with_entry);
@@ -71,8 +75,11 @@ for (const entry of index.modes.filter((m) => m.status === "exported" && (!onlyS
 model = JSON.parse(readFileSync(join(root, "web", entry.file), "utf8"));
 E = new Engine(model);
 const before = { searches, refused, swapsChecked, problems: problems.length };
+// in a single Trophy Road arena, forms not unlocked there (and combinations needing slots not
+// unlocked yet) must be refused; elsewhere the fixed expectations below apply
+const refusedHere = (seeds, base) => (model.availability ? seeds.some((s) => !E.isAvailable(s)) || !E.checkPartial(seeds).legal : base);
 // 1. every card form alone
-for (const c of model.cards) for (const f of E.allowedForms(c)) run([{ id: c.id, form: f }], `${c.name}@${f}`, false);
+for (const c of model.cards) for (const f of E.allowedForms(c)) run([{ id: c.id, form: f }], `${c.name}@${f}`, refusedHere([{ id: c.id, form: f }], false));
 // 2. forms that do not exist must be refused
 for (const c of model.cards) {
   if (!c.evo) run([{ id: c.id, form: "evo" }], `${c.name}@evo (no such form)`, true);
@@ -80,13 +87,14 @@ for (const c of model.cards) {
 }
 // 3. hard combinations
 const champs = model.cards.filter((c) => c.champion);
-run(champs.slice(0, 2).map((c) => ({ id: c.id, form: "base" })), "two champions", false);
-run(champs.slice(0, 3).map((c) => ({ id: c.id, form: "base" })), "three champions", true);
+const combo = (seeds, label, base) => run(seeds, label, refusedHere(seeds, base));
+combo(champs.slice(0, 2).map((c) => ({ id: c.id, form: "base" })), "two champions", false);
+combo(champs.slice(0, 3).map((c) => ({ id: c.id, form: "base" })), "three champions", true);
 const evos = model.cards.filter((c) => c.evo), heroes = model.cards.filter((c) => c.hero && !c.evo);
-run([evos[0], evos[1]].map((c) => ({ id: c.id, form: "evo" })).concat([{ id: heroes[0].id, form: "hero" }]), "2 evo + 1 hero", false);
-run(evos.slice(0, 3).map((c) => ({ id: c.id, form: "evo" })), "three evolutions", true);
-run([{ id: heroes[0].id, form: "hero" }, { id: heroes[1].id, form: "hero" }, { id: champs[0].id, form: "base" }], "2 heroes + champion", true);
-run([{ id: champs[0].id, form: "base" }, { id: heroes[0].id, form: "hero" }, { id: evos[0].id, form: "evo" }], "champion + hero + evo", false);
+combo([evos[0], evos[1]].map((c) => ({ id: c.id, form: "evo" })).concat([{ id: heroes[0].id, form: "hero" }]), "2 evo + 1 hero", false);
+combo(evos.slice(0, 3).map((c) => ({ id: c.id, form: "evo" })), "three evolutions", true);
+combo([{ id: heroes[0].id, form: "hero" }, { id: heroes[1].id, form: "hero" }, { id: champs[0].id, form: "base" }], "2 heroes + champion", true);
+combo([{ id: champs[0].id, form: "base" }, { id: heroes[0].id, form: "hero" }, { id: evos[0].id, form: "evo" }], "champion + hero + evo", false);
 run([], "no seeds", false);
 // 4. the regression-line bins
 const cal = E.calibration(8);

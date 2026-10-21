@@ -138,7 +138,21 @@ def export_model(ctx) -> dict:
     model["evaluation"] = fresh_evaluation(ctx)
     model["meta"].update({"mode": ctx.mode, "group": ctx.group, "mode_label": ctx.mode_label, "slug": ctx.slug})
     model["forms"] = forms_list(ctx, model["form_stats"])
+    model["availability"] = availability_dict(ctx)
     return model
+
+
+def availability_dict(ctx) -> dict | None:
+    """What a player in this Trophy Road arena can use (crdeck.availability); None = no restriction."""
+    av = getattr(ctx, "availability", None)
+    if av is None:
+        return None
+    from crdeck.availability import MIN_SEEN_DECKS, load_unlocks
+    u = load_unlocks()
+    return {"arena": av.arena, "number": av.number, "slots": sorted(av.slots), "slot_unlock": av.slot_unlock,
+            "unlock": {str(k): v for k, v in av.unlock.items()}, "unlock_name": {str(k): v for k, v in av.unlock_name.items()},
+            "seen_early": {str(k): v for k, v in av.seen_early.items()}, "min_seen_decks": MIN_SEEN_DECKS,
+            "source": u.get("source"), "fetched_at": u.get("fetched_at")}
 
 
 def fresh_evaluation(ctx) -> dict:
