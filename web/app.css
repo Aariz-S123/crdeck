@@ -85,7 +85,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .nav a[aria-current="page"] { color: var(--ink); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
 
 /* page head + mode switch */
-.pagehead { display: grid; gap: var(--space-3); }
+.pagehead { display: grid; gap: var(--space-3); grid-template-columns: minmax(0, 1fr); }
+.pagehead > * { min-width: 0; }
 .modebar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
 .modebar .lab { font-size: var(--step--1); color: var(--muted); font-weight: 600; }
 .modes { display: flex; flex-wrap: wrap; gap: var(--space-1); }
@@ -94,7 +95,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .groupbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); flex-basis: 100%; }
 .sel { min-height: 40px; max-width: 100%; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 0.9375rem; }
-#groupsel { min-width: 0; flex: 0 1 380px; }
+#groupsel { min-width: 0; flex: 0 1 380px; max-width: 100%; }
+.modebar > *, .groupbar > * { min-width: 0; max-width: 100%; }
 .modebar details { font-size: var(--step--1); color: var(--muted); }
 .modebar details summary { cursor: pointer; }
 .modebar details ul { margin: var(--space-2) 0 0; padding-left: 18px; }
