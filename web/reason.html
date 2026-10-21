@@ -42,6 +42,18 @@
 .mult { display: grid; gap: 4px; }
 .mult h4 { margin: 0; font-size: 0.875rem; display: flex; justify-content: space-between; gap: 8px; }
 .mult .pc { font-size: 0.8125rem; color: var(--muted); }
+.math { grid-column: 1 / -1; display: block; white-space: pre-wrap; font: 0.78rem/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace; color: var(--muted); background: var(--surface); border-radius: 6px; padding: 6px 8px; overflow-x: auto; }
+.math b { color: var(--ink); }
+.mapgrid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+@media (max-width: 900px) { .mapgrid { grid-template-columns: minmax(0, 1fr); } }
+.map3d { touch-action: none; cursor: grab; user-select: none; }
+.map3d:active { cursor: grabbing; }
+.map3d svg { width: 100%; height: auto; display: block; }
+.mapctl { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.cardsel { display: flex; flex-wrap: wrap; gap: 4px; }
+.cardsel .chip[aria-pressed="true"] { background: var(--elixir); border-color: var(--elixir); color: var(--surface); }
+table.near td.good, table.nums td.good { color: var(--ok); font-weight: 700; } table.near td.bad { color: var(--warn); }
+.formula { white-space: pre-wrap; }
 .formula { font-size: 0.875rem; background: var(--sunken); padding: 10px 12px; border-radius: 8px; overflow-x: auto; }
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 </style>
@@ -191,6 +203,8 @@
         ${renderSwaps()}
       </section>
 
+      <section class="section" aria-labelledby="map-h" id="mapsec"></section>
+
       <section class="section" aria-labelledby="raw-h">
         <header><h2 id="raw-h">Raw numbers</h2></header>
         <div class="panel chartbox">
@@ -200,11 +214,132 @@
         </div>
       </section>`;
     document.querySelectorAll("details.why[open]").forEach(renderWhy);
+    renderMap();
+  }
+
+  // ------------------------------------------------------------------ card map (embedding)
+  const map = { yaw: -0.6, pitch: 0.35, sel: null, colorBy: "style" };
+  function renderMap() {
+    const sec = $("#mapsec"), em = E.m.embedding;
+    if (!sec) return;
+    if (!em) { sec.innerHTML = `<header><h2 id="map-h">Card map</h2><p>This mode has too few battles to learn card vectors.</p></header>`; return; }
+    const sugg = E.embeddingSwaps(deck, seeds), lockedIds = new Set(seeds.map((e) => e.id));
+    const movable = deck.filter((e) => !lockedIds.has(e.id) && E.embVec(e));
+    if (!map.sel || !deck.some((e) => CRDeck.keyOf(e) === map.sel)) map.sel = sugg.length ? CRDeck.keyOf(sugg[0].replace_entry) : (movable[0] ? CRDeck.keyOf(movable[0]) : null);
+    const ev = em.evaluation, kept = em.pca_explained.reduce((a, b) => a + b, 0);
+    sec.innerHTML = `<header><h2 id="map-h">Card map</h2>
+      <p>Every card form is a list of ${em.dim} numbers (a vector) learned from which cards are played together in the training battles. Cards used in the same kinds of decks end up close. The deck's center is the average of its cards' vectors. <span class="src model">model</span></p></header>
+      <div class="mapgrid">
+        <div class="panel chartbox">
+          <h3>The cards in 3D</h3>
+          <p>Drag to turn it (arrow keys work too). The picture squashes ${em.dim} dimensions into 3 and keeps ${pct(kept, 0)} of the spread, so closeness here is only a rough guide. Every distance in the tables is measured in all ${em.dim} dimensions.</p>
+          <div class="mapctl"><button class="btn small" id="mapreset">Reset view</button>
+            <label class="small muted" for="mapcolor">Color</label><select id="mapcolor" class="sel" style="min-height:32px"><option value="style">by deck style</option><option value="plain">deck only</option></select></div>
+          <div class="map3d" id="map3d" tabindex="0" aria-label="3D card map. Drag or use arrow keys to rotate."></div>
+          <div class="key" id="mapkey"></div>
+        </div>
+        <div class="panel chartbox">
+          <h3>Close and stronger: suggested swaps</h3>
+          <p>For each card, the ${em.near} legal cards closest to the center of the other 7 are checked; a swap is suggested when it also raises the estimated win rate.</p>
+          ${sugg.length ? `<div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Replace</th><th scope="col">With</th><th scope="col">Distance</th><th scope="col">Win rate</th><th scope="col"><span class="sr">Action</span></th></tr></thead><tbody>
+            ${sugg.map((w, i) => `<tr><td>${esc(w.replace)}</td><td>${esc(w.with)}</td><td>${w.distance.toFixed(3)}</td><td class="good">${pct(w.win_before, 2)} → ${pct(w.win_after, 2)}</td>
+              <td><button class="btn small" data-emb="${i}">Swap</button></td></tr>`).join("")}</tbody></table></div>`
+            : `<p class="muted">None of the closest cards raises the estimated win rate for this deck.</p>`}
+          <details class="more"><summary>Show the math</summary><div class="body small">
+            <div class="formula">center c = average of the other 7 cards' vectors
+distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same direction, 2 = opposite)
+Δwin = estimated win rate after the swap − before</div>
+            <p class="muted">Vectors: the positive part of each pair's log-lift (how much more often two card forms share a training deck than chance), factorized with an SVD and scaled to length 1. The size ${em.dim} was picked on the validation battles (${em.choice.map((c) => `${c.dim}: ${pct(c.valid_recall, 0)}`).join(", ")}).</p>
+            <p class="muted">Held-out check: hiding 2 cards of ${num(ev.decks)} frequent test decks, the 10 cards closest to the rest of the deck included them ${pct(ev.recall, 1)} of the time (90%: ${pct(ev.recall_ci90[0], 1)} to ${pct(ev.recall_ci90[1], 1)}); the 10 most popular cards did ${pct(ev.recall_popular, 1)}. <span class="src measured">measured</span></p>
+          </div></details>
+        </div>
+      </div>
+      <div class="panel chartbox">
+        <h3>Nearest cards for one card</h3>
+        <div class="cardsel" role="group" aria-label="Card to replace">${movable.map((e) => `<button class="chip" data-mapsel="${CRDeck.keyOf(e)}" aria-pressed="${CRDeck.keyOf(e) === map.sel}">${esc(E.describe(e))}</button>`).join("")}</div>
+        <div id="neartable"></div>
+      </div>`;
+    drawNear(); drawMap();
+    $("#mapreset").onclick = () => { map.yaw = -0.6; map.pitch = 0.35; drawMap(); };
+    $("#mapcolor").value = map.colorBy;
+    $("#mapcolor").onchange = (ev) => { map.colorBy = ev.target.value; drawMap(); };
+    sec.querySelectorAll("[data-mapsel]").forEach((b) => { b.onclick = () => { map.sel = b.dataset.mapsel; renderMap(); }; });
+    sec.querySelectorAll("[data-emb]").forEach((b) => { b.onclick = () => {
+      const w = sugg[Number(b.dataset.emb)]; past.push(deck); deck = CRDeck.parseDeckKey(w.new_deck_key); render();
+      $("#sub").textContent = `Swapped ${w.replace} for ${w.with} from the card map. Every number on this page is recomputed for the new deck.`;
+      $("#main").scrollIntoView({ behavior: "smooth" }); }; });
+    const el = $("#map3d"); let drag = null;
+    el.onpointerdown = (ev) => { drag = [ev.clientX, ev.clientY, map.yaw, map.pitch]; if (el.setPointerCapture) el.setPointerCapture(ev.pointerId); };
+    el.onpointermove = (ev) => { if (!drag) return; map.yaw = drag[2] + (ev.clientX - drag[0]) * 0.01; map.pitch = Math.max(-1.5, Math.min(1.5, drag[3] + (ev.clientY - drag[1]) * 0.01)); drawMap(); };
+    el.onpointerup = el.onpointercancel = () => { drag = null; };
+    el.onkeydown = (ev) => {
+      const st = { ArrowLeft: [-0.15, 0], ArrowRight: [0.15, 0], ArrowUp: [0, -0.15], ArrowDown: [0, 0.15] }[ev.key];
+      if (!st) return; ev.preventDefault(); map.yaw += st[0]; map.pitch = Math.max(-1.5, Math.min(1.5, map.pitch + st[1])); drawMap(); };
+  }
+  function nearInfo() {
+    const old = deck.find((e) => CRDeck.keyOf(e) === map.sel);
+    return old ? E.embNear(deck, old) : null;
+  }
+  function drawNear() {
+    const n = nearInfo(), el = $("#neartable");
+    if (!n) { el.innerHTML = `<p class="muted">Every card here is one you picked, so there is nothing to replace.</p>`; return; }
+    el.innerHTML = `<p class="small muted">Closest of ${num(n.considered)} legal${E.m.availability ? ", unlocked" : ""} cards to the center of the other 7, measured in all ${E.m.embedding.dim} dimensions. Current estimated win rate ${pct(n.base, 2)}.</p>
+      <div class="tblwrap"><table class="nums near"><thead><tr><th scope="col">#</th><th scope="col">Card</th><th scope="col">Distance</th><th scope="col">Win rate after</th><th scope="col">Change</th><th scope="col">Suggested?</th></tr></thead><tbody>
+      ${n.rows.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.with)}</td><td>${r.distance.toFixed(3)}</td><td>${pct(r.win_after, 2)}</td>
+        <td class="${r.delta_win_prob > 0 ? "good" : "bad"}">${r.delta_win_prob >= 0 ? "+" : "−"}${(Math.abs(r.delta_win_prob) * 100).toFixed(2)} pts</td><td>${r.delta_win_prob > 0 ? "yes" : "no, lowers the win rate"}</td></tr>`).join("")}
+      </tbody></table></div>`;
+  }
+  function drawMap() {
+    const em = E.m.embedding, el = $("#map3d"); if (!el) return;
+    const W = 520, H = 400, cy = Math.cos(map.yaw), sy = Math.sin(map.yaw), cp = Math.cos(map.pitch), sp = Math.sin(map.pitch);
+    const P = em.pca3, scale = Math.max(...P.map((p) => Math.hypot(p[0], p[1], p[2]))) || 1;
+    const proj = (p) => {
+      const x = p[0] * cy - p[2] * sy, z0 = p[0] * sy + p[2] * cy, y = p[1] * cp - z0 * sp, z = p[1] * sp + z0 * cp;
+      return [W / 2 + (x / scale) * (W * 0.42), H / 2 - (y / scale) * (H * 0.42), z];
+    };
+    const deckKeys = new Set(deck.map(CRDeck.keyOf)), n = nearInfo(), candKeys = new Set(n ? n.rows.map((r) => CRDeck.keyOf(r.with_entry)) : []);
+    // colour: the three most common styles among the cards shown (a scatter can't keep more categories apart)
+    const shown = em.keys.map((k, i) => ({ k, i })).filter(({ k }) => E.isAvailable(CRDeck.parseKey(k)));
+    const cnt = {};
+    shown.forEach(({ k }) => { const st = em.style[k]; if (st && st !== CRDeck.UNCERTAIN) cnt[st] = (cnt[st] || 0) + 1; });
+    const top3 = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([st]) => st);
+    const colorOf = (k) => (map.colorBy === "style" && top3.includes(em.style[k]) ? `var(--cat${top3.indexOf(em.style[k]) + 1})` : "var(--map-other)");
+    const pts = shown.map(({ k, i }) => ({ k, xy: proj(P[i]) })).sort((a, b) => a.xy[2] - b.xy[2]);
+    const centerPts = deck.filter((e) => CRDeck.keyOf(e) !== map.sel && E.embVec(e)).map((e) => P[em.keys.indexOf(CRDeck.keyOf(e))]);
+    const cpt = centerPts.length ? proj([0, 1, 2].map((j) => centerPts.reduce((t, p) => t + p[j], 0) / centerPts.length)) : null;
+    let g = "";
+    for (const { k, xy } of pts) {
+      const e = CRDeck.parseKey(k), inDeck = deckKeys.has(k), cand = candKeys.has(k), sel = k === map.sel;
+      const r = inDeck ? 6 : cand ? 5 : 3.2, fill = inDeck ? "var(--ink)" : colorOf(k);
+      const row = n && cand ? n.rows.find((x) => CRDeck.keyOf(x.with_entry) === k) : null;
+      const st = em.style[k];
+      const lines = [inDeck ? (sel ? "in this deck: the card being replaced" : "in this deck") : cand ? "a nearby candidate" : "another card",
+        st ? `most often in ${st === CRDeck.UNCERTAIN ? "mixed-style" : st} decks` : "no style data"];
+      if (row) lines.push(`distance ${row.distance.toFixed(3)} (all ${em.dim} dimensions)`, `win rate ${pct(row.win_after, 2)} after swapping`);
+      const stroke = sel ? `stroke="var(--hero)" stroke-width="3"` : cand && !inDeck ? `stroke="var(--elixir)" stroke-width="2.5"` : `stroke="var(--surface)" stroke-width="1"`;
+      g += `<circle cx="${xy[0].toFixed(1)}" cy="${xy[1].toFixed(1)}" r="${r}" fill="${fill}" ${stroke} opacity="${inDeck || cand ? 1 : 0.75}" ${UI.tipAttr(E.describe(e), lines)}/>`;
+      if (inDeck || (row && row.delta_win_prob > 0)) g += `<text x="${(xy[0] + 8).toFixed(1)}" y="${(xy[1] - 6).toFixed(1)}" font-size="11" fill="var(--ink)" font-weight="${inDeck ? 700 : 400}">${esc(UI.shorten(E.describe(e), 22))}</text>`;
+    }
+    if (cpt) g += `<path d="M${cpt[0] - 7},${cpt[1]}h14M${cpt[0]},${cpt[1] - 7}v14" stroke="var(--elixir)" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="${cpt[0]}" cy="${cpt[1]}" r="9" fill="transparent" stroke="var(--elixir)" stroke-width="1.5" ${UI.tipAttr("Center of the other 7 cards", ["drawn in the 3D picture; distances use the full vectors"])}/>`;
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="3D map of ${shown.length} card forms; the deck's cards are dark and labelled">${g}</svg>`;
+    $("#mapkey").innerHTML = `<span><i style="background:var(--ink)"></i>This deck</span><span><i style="background:transparent;box-shadow:inset 0 0 0 2px var(--elixir)"></i>Nearby candidates</span><span><i style="background:transparent;box-shadow:inset 0 0 0 2px var(--hero)"></i>Card being replaced</span><span>✛ center of the other 7</span>` +
+      (map.colorBy === "style" ? top3.map((st, j) => `<span><i style="background:var(--cat${j + 1})"></i>${esc(st)} decks</span>`).join("") + `<span><i style="background:var(--map-other)"></i>other styles</span>` : "");
   }
 
   function pairList(rows) {
     return `<ul class="pairs">${rows.map((p) => `<li><span>${esc(p.pair)}</span><span class="pv ${p.synergy >= 0 ? "pos" : "neg"}">${signed(p.synergy)}</span>
       <span class="ev">won ${pct(p.shrunk_wr)} of ${num(p.games)} games together · 90% range ${signed(p.interval[0])} to ${signed(p.interval[1])} · played together ${p.lift.toFixed(2)}× as often as chance</span></li>`).join("")}</ul>`;
+  }
+
+  // The swap's score change written out: Δscore = Δwin + w·Δsynergy + c·Δplayed-together, with this swap's numbers
+  function swapMath(newKey) {
+    const b = E.evaluate(deck), a = E.evaluate(CRDeck.parseDeckKey(newKey));
+    const tw = (a.win_prob - b.win_prob) * 100, ts = E.weight * (a.mean_synergy - b.mean_synergy) * 100, tc = E.coWeight * (a.mean_log_lift - b.mean_log_lift) * 100;
+    const f = (v) => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(2);
+    return `<span class="math" aria-label="Score change worked out">Δscore = Δwin + ${E.weight} × Δsynergy + ${E.coWeight} × Δplayed-together
+= (${pct(b.win_prob, 2)} → ${pct(a.win_prob, 2)}) + ${E.weight} × (${signed(b.mean_synergy, 4)} → ${signed(a.mean_synergy, 4)}) + ${E.coWeight} × (${b.mean_log_lift.toFixed(3)} → ${a.mean_log_lift.toFixed(3)})
+= ${f(tw)} ${f(ts)} ${f(tc)} = <b>${f(tw + ts + tc)} points</b></span>`;
   }
 
   function renderSwaps() {
@@ -217,7 +352,7 @@
         ${rows.map(([s, j]) => `<div class="swaprow"><span>${esc(s.with)}</span>
           <span class="d ${s.delta_objective >= 0 ? "pos" : "neg"}">score ${fmtPts(s.delta_objective)} · win ${s.delta_win_prob >= 0 ? "+" : "−"}${(Math.abs(s.delta_win_prob) * 100).toFixed(2)}</span>
           <button class="btn small" data-apply="${j}">Swap</button>
-          <span class="why">${esc(s.reason)}</span></div>`).join("")}
+          <span class="why">${esc(s.reason)}</span>${swapMath(s.new_deck_key)}</div>`).join("")}
         <details class="more why" data-why="${rows.map(([, j]) => j).join(",")}"${gi === 0 ? " open" : ""}>
           <summary>Why these cards?</summary><div class="body whybody"></div></details>
       </div>`).join("")}</div>`;

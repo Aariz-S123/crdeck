@@ -24,6 +24,7 @@
   --neg: #b9531a;
   --grid: #e6eaf0;
   --focus: #a8247f;
+  --cat1: #2a78d6; --cat2: #eb6834; --cat3: #1baf7a; --map-other: #b6bdc9;
   --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
   --body: "Figtree", "Segoe UI", system-ui, sans-serif;
   --step--1: 0.8125rem;
@@ -39,6 +40,7 @@
     --elixir: #f07ccf; --elixir-soft: #3a1f36; --evo: #ad91ff; --evo-soft: #2a2347; --hero: #f0a640; --hero-soft: #3a2c16;
     --wild: #45cbb8; --wild-soft: #15342f; --warn: #f29a6b; --warn-soft: #3b2418; --ok: #74cc81; --ok-soft: #183222;
     --pos: #5f9be0; --neg: #e0813f; --grid: #232c3d; --focus: #f07ccf;
+    --cat1: #3987e5; --cat2: #d95926; --cat3: #199e70; --map-other: #4a5468;
     color-scheme: dark;
   }
 }
@@ -47,6 +49,7 @@
   --elixir: #f07ccf; --elixir-soft: #3a1f36; --evo: #ad91ff; --evo-soft: #2a2347; --hero: #f0a640; --hero-soft: #3a2c16;
   --wild: #45cbb8; --wild-soft: #15342f; --warn: #f29a6b; --warn-soft: #3b2418; --ok: #74cc81; --ok-soft: #183222;
   --pos: #5f9be0; --neg: #e0813f; --grid: #232c3d; --focus: #f07ccf;
+  --cat1: #3987e5; --cat2: #d95926; --cat3: #199e70; --map-other: #4a5468;
   color-scheme: dark;
 }
 
