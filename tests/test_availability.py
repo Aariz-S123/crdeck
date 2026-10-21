@@ -33,7 +33,7 @@ def test_forms_follow_slot_unlocks():
     a = av(4, {1: 0})
     assert a.form_ok(DeckCard(1, "base")) and a.form_ok(DeckCard(1, "evo"))
     assert not a.form_ok(DeckCard(1, "hero"))
-    assert a.why_not(DeckCard(1, "hero"), "x") == "Heroes unlock at Arena 5"
+    assert a.why_not(DeckCard(1, "hero"), "x") == "x: Heroes unlock at Arena 5"
     assert not av(2, {1: 0}).form_ok(DeckCard(1, "evo"))
 
 

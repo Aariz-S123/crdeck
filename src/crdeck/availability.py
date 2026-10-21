@@ -53,7 +53,7 @@ class Availability:
         if not self.card_ok(e.card_id):
             return f"{name} unlocks at {self.unlock_name.get(e.card_id, 'a later arena')} (Arena {self.unlock.get(e.card_id)})"
         kind = {"evo": "Evolutions", "hero": "Heroes"}[e.form]
-        return f"{kind} unlock at Arena {self.slot_unlock[e.form]}"
+        return f"{name}: {kind} unlock at Arena {self.slot_unlock[e.form]}"
 
 
 def load_unlocks() -> dict:

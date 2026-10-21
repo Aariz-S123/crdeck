@@ -158,7 +158,7 @@
     const btn = (f, locked) => `
       <button class="pick${locked ? " locked" : ""}" data-key="${f.key}" aria-pressed="${picked.has(f.key)}"${locked ? ` aria-disabled="true" data-why="${esc(E.whyNot({ id: f.card_id, form: f.form }))}"` : ""} title="${esc(locked ? E.whyNot({ id: f.card_id, form: f.form }) : E.describe({ id: f.card_id, form: f.form }))}">
         ${UI.drop(f.c)}<span style="min-width:0"><span class="pn">${esc(f.c.name)}${f.form !== "base" ? ` <span class="fbadge ${f.form}">${f.form === "evo" ? "EVO" : "HERO"}</span>` : ""}</span>
-        <span class="pt">${locked ? esc(E.whyNot({ id: f.card_id, form: f.form }).replace(/^.*? unlocks? at /, "Unlocks at ").replace(/^(Evolutions|Heroes) unlock at /, "Unlocks at ")) : `${UI.typeName(f.c)} · ${f.games ? num(f.games) + " games" : "not played here"}${early(f)}`}</span></span>
+        <span class="pt">${locked ? esc(E.whyNot({ id: f.card_id, form: f.form }).replace(/^.*? unlocks? at /, "Unlocks at ")) : `${UI.typeName(f.c)} · ${f.games ? num(f.games) + " games" : "not played here"}${early(f)}`}</span></span>
       </button>`;
     $("#cardlist").innerHTML = !list.length ? `<p class="muted small">No card matches “${esc(view.q)}”. Check the spelling or clear the search.</p>`
       : open.map((f) => btn(f, false)).join("") + (shut.length ? `<p class="lockhead">Not unlocked in ${esc(av.arena)} yet (${shut.length})</p>` + shut.map((f) => btn(f, true)).join("") : "");

@@ -122,7 +122,7 @@
     whyNot(e) {
       const a = this.m.availability, name = this.describe(e);
       if (!this.cardUnlocked(e.id)) return `${name} unlocks at ${a.unlock_name[String(e.id)] || "a later arena"} (Arena ${a.unlock[String(e.id)]})`;
-      return `${e.form === "evo" ? "Evolutions" : "Heroes"} unlock at Arena ${a.slot_unlock[e.form]}`;
+      return `${name}: ${e.form === "evo" ? "Evolutions" : "Heroes"} unlock at Arena ${a.slot_unlock[e.form]}`;
     }
     byNameLookup(name) { const c = this.byName.get(norm(name)); if (!c) throw new SeedError(`no card named ${name}`); return c; }
 
