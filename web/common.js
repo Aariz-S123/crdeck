@@ -325,8 +325,18 @@
     try {
       await loadIndex();
       const h = readHash(), slug = pickSlug(INDEX, h.slug);
+      if (h.slug && h.slug !== slug) {
+        // the link named a mode that can't be shown: say so instead of switching silently
+        const asked = INDEX.modes.find((m) => m.slug === h.slug), shown = INDEX.modes.find((m) => m.slug === slug);
+        const msg = asked ? `${asked.label} has too few battles to build from (${num(asked.ok_battles)}), so this page shows ${shown.label}.`
+          : `The link's mode wasn't recognized, so this page shows ${shown.label}.`;
+        const head = $(".pagehead"), note = document.createElement("p");
+        note.className = "notice"; note.id = "fallback-note"; note.setAttribute("role", "status"); note.textContent = msg;
+        if (head) head.appendChild(note);
+      }
       const go = async (s, first) => {
         if (opts.onLoading) opts.onLoading();
+        if (!first && $("#fallback-note")) $("#fallback-note").remove();
         const ctx = await loadMode(s);
         ctx.INDEX = INDEX; ctx.hash = first ? h : { slug: s, deck: null, seeds: null };
         siteBar(page, s); modeBar(INDEX, s, (n) => go(n, false).catch((e) => failed(opts.failTarget || "main", e)));

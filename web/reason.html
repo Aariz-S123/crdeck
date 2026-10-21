@@ -96,7 +96,7 @@
     if (deck.some((e) => !E.card(e.id) || !E.allowedForms(E.card(e.id)).includes(e.form)))
       return emptyState(`This deck has a card form that ${ctx.entry.label} has no data for. Switch back to the mode you built it in.`);
     const chk = E.checkDeck(deck);
-    if (!chk.legal) return emptyState(`This link holds a deck that breaks the deck rules (${chk.reasons.join("; ")}). Build a new one on the first page.`);
+    if (!chk.legal) return emptyState(`This link holds a deck that breaks the deck rules: ${[...new Set(chk.details)].join("; ")}. Build a new one on the first page.`);
     UI.setHash(UI.token(slug(), deck, seeds));
     swaps = E.swaps(deck, { locked: seeds });
     draw();
