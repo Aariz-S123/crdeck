@@ -64,6 +64,13 @@ for (const s of golden.searches) {
     checks++;
     if (!close(sum, w.delta_objective, 1e-9) || !close(x.total, w.delta_objective, 1e-9)) fail(`swap breakdown ${w.new_deck_key}: parts ${sum} total ${x.total} vs ${w.delta_objective}`);
   });
+  // card-map swaps: same suggestions, distances and win-rate changes as Python
+  if (s.embedding_swaps) {
+    const ej = eng.embeddingSwaps(res[0].entries, seeds);
+    checks++;
+    if (!same(ej.map((w) => w.new_deck_key), s.embedding_swaps.map((w) => w.new_deck_key))) fail(`embedding swaps ${s.seeds}: js ${ej.map((w) => w.new_deck_key).length} py ${s.embedding_swaps.length} differ`);
+    ej.forEach((w, i) => { const p = s.embedding_swaps[i]; if (p && (!close(w.distance, p.distance, 1e-9) || !close(w.delta_win_prob, p.delta_win_prob, 1e-9))) fail(`embedding swap ${w.new_deck_key}: distance ${w.distance} vs ${p.distance}, dwin ${w.delta_win_prob} vs ${p.delta_win_prob}`); });
+  }
   console.log(`search ${s.seeds.join(",") || "(none)"}: ${res.length} decks and ${sw.length} swaps match`);
 }
 

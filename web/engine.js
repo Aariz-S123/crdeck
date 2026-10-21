@@ -368,6 +368,59 @@
       return { old: cOld, new: cNew, parts, total: aft.objective - before.objective, d_logodds: uNew - uOld,
                d_card_logodds: dCard, d_pair_logodds: dPair, win_before: wpOld, win_after: wpNew, pair_changes: pairChanges };
     }
+    // ------------------------------------------------------------------ card map (crdeck.embedding)
+    embVec(e) {
+      const em = this.m.embedding; if (!em) return null;
+      if (!this._embIdx) this._embIdx = new Map(em.keys.map((k, i) => [k, i]));
+      const i = this._embIdx.get(keyOf(e));
+      return i === undefined ? null : em.vectors[i];
+    }
+    embCenter(entries) {
+      const vs = entries.map((e) => this.embVec(e)).filter(Boolean);
+      if (!vs.length) return null;
+      const c = new Array(vs[0].length).fill(0);
+      for (const v of vs) for (let j = 0; j < v.length; j++) c[j] += v[j];
+      return c.map((x) => x / vs.length);
+    }
+    embDistance(v, c) {
+      let dot = 0, nn = 0;
+      for (let j = 0; j < v.length; j++) { dot += v[j] * c[j]; nn += c[j] * c[j]; }
+      const n = Math.sqrt(nn);
+      return n > 0 ? 1 - dot / n : 1;
+    }
+    // The em.near legal, unlocked candidates closest to the center of the deck without `old`, with
+    // their full-dimensional distance and win-rate change (crdeck.embedding.embedding_swaps, per card).
+    embNear(entries, old, base) {
+      const em = this.m.embedding; if (!em) return null;
+      base = base || this.evaluate(entries);
+      const rest = entries.filter((e) => !(e.id === old.id && e.form === old.form)), c = this.embCenter(rest);
+      if (!c) return null;
+      const ids = new Set(rest.map((e) => e.id)), near = [];
+      for (const cand of this.candidates) {
+        if (ids.has(cand.id) || cand.id === old.id) continue;
+        const v = this.embVec(cand); if (!v) continue;
+        const nw = rest.concat([cand]);
+        if (!this.checkDeck(nw).legal) continue;
+        near.push([this.embDistance(v, c), keyOf(cand), cand, nw]);
+      }
+      near.sort((a, b) => a[0] - b[0] || (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0));
+      return { center: c, considered: near.length, base: base.win_prob,
+        rows: near.slice(0, em.near).map(([d, , cand, nw]) => { const after = this.evaluate(nw);
+          return { replace_entry: old, with_entry: cand, replace: this.describe(old), with: this.describe(cand), distance: d,
+                   win_before: base.win_prob, win_after: after.win_prob, delta_win_prob: after.win_prob - base.win_prob, new_deck_key: after.key }; }) };
+    }
+    // Swaps that stay close to the deck (full-dimensional distance) and raise the estimated win rate.
+    embeddingSwaps(entries, locked = []) {
+      const em = this.m.embedding; if (!em) return [];
+      const lockedIds = new Set(locked.map((e) => e.id)), base = this.evaluate(entries), out = [];
+      for (const old of entries) {
+        if (lockedIds.has(old.id)) continue;
+        const n = this.embNear(entries, old, base);
+        if (n) for (const r of n.rows) if (r.delta_win_prob > 0) out.push(r);
+      }
+      out.sort((a, b) => b.delta_win_prob - a.delta_win_prob || a.distance - b.distance || (a.new_deck_key < b.new_deck_key ? -1 : 1));
+      return out.slice(0, em.top);
+    }
     // Held-out check of the regression: decks played in the test window, grouped into
     // bins of equal battle count by model strength (sum of weights), with their real win share.
     calibration(nBins = 8) {

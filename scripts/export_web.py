@@ -139,7 +139,19 @@ def export_model(ctx) -> dict:
     model["meta"].update({"mode": ctx.mode, "group": ctx.group, "mode_label": ctx.mode_label, "slug": ctx.slug})
     model["forms"] = forms_list(ctx, model["form_stats"])
     model["availability"] = availability_dict(ctx)
+    model["embedding"] = embedding_dict(ctx)
     return model
+
+
+def embedding_dict(ctx) -> dict | None:
+    """Card vectors for the card map and embedding swaps (crdeck.embedding); None if not trained."""
+    e = ctx.embedding
+    if e is None:
+        return None
+    from crdeck.embedding import NEAR, TOP_SWAPS
+    return {"dim": e.dim, "keys": e.keys, "vectors": [[round(float(x), 7) for x in row] for row in e.vectors],
+            "pca3": [[round(float(x), 4) for x in row] for row in e.pca3], "pca_explained": e.pca_explained,
+            "style": e.style, "choice": e.choice, "evaluation": e.evaluation, "near": NEAR, "top": TOP_SWAPS}
 
 
 def availability_dict(ctx) -> dict | None:
@@ -270,6 +282,10 @@ def golden(ctx) -> dict:
             sw = s.swaps(top.entries, locked=entries)
             rec["swaps"] = [{"replace": w["replace"], "with": w["with"], "new_deck_key": w["new_deck_key"],
                              "delta_objective": w["delta_objective"]} for w in sw]
+            if ctx.embedding is not None:
+                from crdeck.embedding import embedding_swaps
+                rec["embedding_swaps"] = [{"new_deck_key": w["new_deck_key"], "distance": w["distance"],
+                                           "delta_win_prob": w["delta_win_prob"]} for w in embedding_swaps(ctx, s, top.entries, entries)]
         except SeedError as e:
             rec["error"] = str(e)
         out["searches"].append(rec)

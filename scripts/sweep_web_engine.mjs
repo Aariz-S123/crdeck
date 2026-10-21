@@ -43,6 +43,14 @@ function checkResult(seeds, res, label) {
     const diff = res[j].entries.filter((e) => !a.has(e.id)).length;
     if (diff < Number(model.config.search.min_diff_cards)) bad(`${label}: decks ${i} and ${j} differ by only ${diff} cards`);
   }
+  // card-map swaps on the first deck: legal, unlocked, keep the picks, distance in [0, 2], win rate up
+  for (const w of E.embeddingSwaps(res[0].entries, seeds)) {
+    const nd = parseDeckKey(w.new_deck_key);
+    if (!E.checkDeck(nd).legal) bad(`${label}: illegal card-map swap ${w.new_deck_key}`);
+    lockedUse(`${label} card-map swap`, nd);
+    for (const sd of seeds) if (!nd.some((e) => e.id === sd.id && e.form === sd.form)) bad(`${label}: card-map swap removed seed ${keyOf(sd)}`);
+    if (!(w.distance >= -1e-9 && w.distance <= 2 + 1e-9) || !(w.delta_win_prob > 0)) bad(`${label}: card-map swap numbers ${w.distance} ${w.delta_win_prob}`);
+  }
   // swaps on the first deck
   const sw = E.swaps(res[0].entries, { locked: seeds });
   for (const s of sw) {
