@@ -23,6 +23,7 @@ deck's estimated win rate are suggested, each with its distance and win-rate cha
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -37,6 +38,11 @@ TOP_SWAPS = 6      # suggestions shown
 EVAL_DECKS = 100
 EVAL_MASK = 2
 EVAL_K = 10
+
+
+def tie(x: float, places: float = 1e10) -> int:
+    """Sort key at fixed precision: values equal up to float noise sort as ties (same in the website)."""
+    return math.floor(x * places + 0.5)
 
 
 def _form_key(e: DeckCard) -> str:
@@ -218,12 +224,12 @@ def embedding_swaps(ctx, searcher, entries: list[DeckCard], locked: list[DeckCar
             if not check_deck(new, ctx.cards, ctx.rules).legal:
                 continue
             near.append((emb.distance(v, c), _form_key(cand), cand, new))
-        near.sort(key=lambda t: (t[0], t[1]))
+        near.sort(key=lambda t: (tie(t[0]), t[1]))
         for dist, _, cand, new in near[:NEAR]:
             after = searcher.evaluate(new)
             dw = after.win_prob - base.win_prob
             if dw > 0:
                 out.append({"replace_entry": old, "with_entry": cand, "distance": dist, "delta_win_prob": dw,
                             "new_deck_key": after.key})
-    out.sort(key=lambda s: (-s["delta_win_prob"], s["distance"], s["new_deck_key"]))
+    out.sort(key=lambda s: (-tie(s["delta_win_prob"]), tie(s["distance"]), s["new_deck_key"]))
     return out[:TOP_SWAPS]

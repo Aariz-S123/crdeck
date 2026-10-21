@@ -16,6 +16,7 @@
 
   const FORMS = ["base", "evo", "hero"];
   const KIND_ORDER = { evo: 0, hero: 1, champion: 2 };
+  const tie = (x) => Math.floor(x * 1e10 + 0.5); // crdeck.embedding.tie
   const UNCERTAIN = "HYBRID / UNCERTAIN";
   const NO_LABELS = "NO_LABELS";
   const GROUP_TITLES = {
@@ -403,7 +404,8 @@
         if (!this.checkDeck(nw).legal) continue;
         near.push([this.embDistance(v, c), keyOf(cand), cand, nw]);
       }
-      near.sort((a, b) => a[0] - b[0] || (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0));
+      // fixed-precision comparison so values equal up to float noise tie exactly as in Python (embedding.tie)
+      near.sort((a, b) => tie(a[0]) - tie(b[0]) || (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0));
       return { center: c, considered: near.length, base: base.win_prob,
         rows: near.slice(0, em.near).map(([d, , cand, nw]) => { const after = this.evaluate(nw);
           return { replace_entry: old, with_entry: cand, replace: this.describe(old), with: this.describe(cand), distance: d,
@@ -418,7 +420,7 @@
         const n = this.embNear(entries, old, base);
         if (n) for (const r of n.rows) if (r.delta_win_prob > 0) out.push(r);
       }
-      out.sort((a, b) => b.delta_win_prob - a.delta_win_prob || a.distance - b.distance || (a.new_deck_key < b.new_deck_key ? -1 : 1));
+      out.sort((a, b) => tie(b.delta_win_prob) - tie(a.delta_win_prob) || tie(a.distance) - tie(b.distance) || (a.new_deck_key < b.new_deck_key ? -1 : 1));
       return out.slice(0, em.top);
     }
     // Held-out check of the regression: decks played in the test window, grouped into
