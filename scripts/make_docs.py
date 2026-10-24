@@ -815,9 +815,12 @@ if MU:
       "next to the deck's normal win rate against all top decks.")
     snippet("Counter-deck search: precomputed per-card effects make each step cheap", "src/crdeck/matchup.py",
             py_func("src/crdeck/matchup.py", "counter_search", 40),
-            "Each candidate card's contribution against every opponent deck (w_c plus its K with that deck's cards) is computed "
-            "once. A partial deck's total is then a running sum, so scoring a child deck is one vector addition and a sigmoid "
-            "per opponent deck, and legality is checked with the same rules as everywhere else.")
+            [("What it does.", "Each candidate card's contribution against every opponent deck (w_c plus its K with that "
+              "deck's cards) is computed once. A partial deck's total is then a running sum, so scoring a child deck is one "
+              "vector addition and a sigmoid per opponent deck."),
+             ("Why.", "The beam search scores many thousands of partial decks; this keeps a search under a second. Legality "
+              "and arena unlocks are checked with the same rules as everywhere else, and ties are broken at a fixed "
+              "precision so the website returns the same decks.")])
 
 # ------------------------------------------------------------------ 7 website
 doc.add_heading("9. The website", 1)
