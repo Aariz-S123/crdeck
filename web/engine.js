@@ -541,7 +541,9 @@
         if (!cur.n) return;
         const p = cur.w / cur.n, n = cur.n, den = 1 + z * z / n, c = (p + z * z / (2 * n)) / den;
         const h = (z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n))) / den;
-        bins.push({ u: cur.su / cur.n, uLo: cur.uLo, uHi: cur.uHi, battles: n, wins: cur.w, decks: cur.decks, win: p, lo: c - h, hi: c + h,
+        // the Wilson range always contains p; min/max only undo rounding (1 win of 1 gave hi = 0.9999999999999999)
+        bins.push({ u: cur.su / cur.n, uLo: cur.uLo, uHi: cur.uHi, battles: n, wins: cur.w, decks: cur.decks, win: p,
+                    lo: Math.max(0, Math.min(c - h, p)), hi: Math.min(1, Math.max(c + h, p)),
                     model: this.winProbFromU(cur.su / cur.n) });
         cur = { n: 0, w: 0, su: 0, decks: 0, uLo: Infinity, uHi: -Infinity };
       };
