@@ -785,6 +785,40 @@ p("Δwin is the change in estimated win rate (in percentage points), Δsynergy t
   "values before and after the swap, so the three parts visibly add up to the number the swaps are sorted by.")
 
 
+MU = RANKED.get("matchup")
+if MU:
+    ev, pd_ = MU["evaluation"], MU["evaluation"].get("player_disjoint")
+    doc.add_heading("8.15 Counters: the matchup model", 2)
+    p("The strength model gives every card one weight, so it cannot say that a card is good against a particular opponent. "
+      "The matchup model adds a weight for each pair of cards on opposite sides:")
+    formula("z(A, B) = Σ_{i∈A} w_i − Σ_{j∈B} w_j + Σ_{i∈A, j∈B} K(i, j) + β · rating gap,      P(A wins) = σ(z)")
+    p(f"K(i, j) is how much better decks with i did against decks with j than the two cards' own weights predict. It is "
+      f"antisymmetric, K(i, j) = −K(j, i), so the model gives the same answer from either side. Only pairs that met in at "
+      f"least {n(MU['min_pair_battles'])} training battles get a K ({n(len(MU['pairs']))} on Ranked); the rest are zero. The "
+      f"same log loss plus L2 penalty is minimized as for the strength model, with C = {MU['C']} chosen on the validation window.")
+    p("For an opponent set (a style's most-played decks, one deck, or the decks holding chosen cards, weighted by how often "
+      "each was played), a card's counter effect and a deck's win rate are:")
+    formula("effect(i) = w_i + Σ_o n_o Σ_{j∈o} K(i, j) / Σ_o n_o")
+    formula("win rate(A) = Σ_o n_o · σ(z(A, o)) / Σ_o n_o")
+    p("Counter decks come from the same beam search as the deck builder, restricted to legal, unlocked partial decks, "
+      "scoring this win rate instead of the field win rate.")
+    rows = [["Later battles, same pool of players", n(ev["battles"]), f"{ev['auc_strength']:.3f}", f"{ev['auc_matchup']:.3f}",
+             f"{ev['difference']:+.4f} ({ev['difference_ci90'][0]:+.4f} to {ev['difference_ci90'][1]:+.4f})"]]
+    if pd_:
+        rows.append(["Trained without any player from those battles", n(pd_["battles"]), f"{pd_['auc_strength']:.3f}",
+                     f"{pd_['auc_matchup']:.3f}", f"{pd_['difference']:+.4f} ({pd_['difference_ci90'][0]:+.4f} to {pd_['difference_ci90'][1]:+.4f})"])
+    table(["Held-out check (Ranked)", "Battles", "AUC without", "AUC with", "Log-loss change (90%)"], rows, widths=[5.6, 2.2, 2.2, 2.2, 4.8])
+    p("The first row looks strong, but the same top players appear in every collection, so part of it is the model "
+      "recognizing regulars. The second row removes every player of the test battles from training: the gain shrinks to "
+      "about a tenth, yet its whole 90% range stays below zero. That is the honest number for a new player, and the page "
+      "bases its verdict on it. The counter-deck win rate is the best of a large search, so it runs high; the page shows it "
+      "next to the deck's normal win rate against all top decks.")
+    snippet("Counter-deck search: precomputed per-card effects make each step cheap", "src/crdeck/matchup.py",
+            py_func("src/crdeck/matchup.py", "counter_search", 40),
+            "Each candidate card's contribution against every opponent deck (w_c plus its K with that deck's cards) is computed "
+            "once. A partial deck's total is then a running sum, so scoring a child deck is one vector addition and a sigmoid "
+            "per opponent deck, and legality is checked with the same rules as everywhere else.")
+
 # ------------------------------------------------------------------ 7 website
 doc.add_heading("9. The website", 1)
 p("The website runs the trained model entirely in the browser; it needs no server beyond serving files. Each page has one job:")
@@ -793,6 +827,7 @@ table(["Page", "What it shows"], [
     ["Why this deck (reason.html)", "Opened from a deck: a plain-language summary, each card's weight, the model compared with real results, card pairs, warnings, swaps with their math written out, a rotatable 3D card map with card-map swaps and nearest-card tables, and the raw score."],
     ["All cards (cards.html)", "Every card form and every row of your card CSV: battle stats, learned weight, and your CSV's own numbers."],
     ["Meta (meta.html)", "How ranked card usage changed between collections, deck styles per period, and the forecast's status and assumptions."],
+    ["Counters (counters.html)", "Pick a deck style or the cards you face; get counter cards with their matchups and 3 legal, unlocked counter decks, with an honest verdict that includes a player-disjoint check."],
     ["Next season (seasons.html)", "Today's most-played ranked decks with their trend, new cards between saved card lists, and a next-season prediction that stays locked until enough seasons are collected."],
     ["How it works (model.html)", "The method in five steps, held-out results against baselines, limits, a glossary, and the full model log."],
 ], widths=[4.4, 12.6])
@@ -823,7 +858,7 @@ bullets([
     ("Website vs Python:", "the golden check after each export."),
     ("Rule sweep:", "every card form alone, forms that do not exist (must be refused), hard combinations such as three champions, and every swap."),
     ("Notebooks:", "each notebook runs twice in fresh kernels with caches off and must give identical outputs."),
-    ("Headless page test:", "loads all five pages with the real data and checks picks, refusals, mode switches, swaps and undo, broken links and empty states."),
+    ("Headless page test:", "loads every page with the real data and checks picks, refusals, mode switches, swaps and undo, broken links and empty states."),
 ])
 
 # ------------------------------------------------------------------ 10 limits
