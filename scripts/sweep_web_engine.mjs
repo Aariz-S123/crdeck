@@ -104,6 +104,20 @@ combo(evos.slice(0, 3).map((c) => ({ id: c.id, form: "evo" })), "three evolution
 combo([{ id: heroes[0].id, form: "hero" }, { id: heroes[1].id, form: "hero" }, { id: champs[0].id, form: "base" }], "2 heroes + champion", true);
 combo([{ id: champs[0].id, form: "base" }, { id: heroes[0].id, form: "hero" }, { id: evos[0].id, form: "evo" }], "champion + hero + evo", false);
 run([], "no seeds", false);
+// 3b. counter search against every deck style: legal, unlocked decks; win rates are probabilities
+if (model.matchup) for (const st of Object.keys(model.matchup.styles)) {
+  const opps = E.opponentsFor({ style: st });
+  if (!opps.length) continue;
+  searches++;
+  const res = E.counterSearch(opps, []);
+  if (!res.length) bad(`${entry.slug}: no counter deck for ${st}`);
+  for (const d of res) {
+    if (!E.checkDeck(d.entries).legal) bad(`${entry.slug}: illegal counter deck vs ${st} ${d.key}`);
+    lockedUse(`${entry.slug} counter vs ${st}`, d.entries);
+    if (!(d.win_vs > 0 && d.win_vs < 1)) bad(`${entry.slug}: counter win rate ${d.win_vs} vs ${st}`);
+  }
+  for (const c of E.counterCards(opps, model.matchup.top_cards)) if (!finite(c.effect) || !E.isAvailable(c.entry)) bad(`${entry.slug}: counter card ${c.card} vs ${st}`);
+}
 // 4. the regression-line bins
 const cal = E.calibration(8);
 if (cal.total !== model.meta.test_battles_total * 2) bad(`calibration total ${cal.total}`);

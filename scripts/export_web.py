@@ -141,7 +141,25 @@ def export_model(ctx) -> dict:
     model["forms"] = forms_list(ctx, model["form_stats"])
     model["availability"] = availability_dict(ctx)
     model["embedding"] = embedding_dict(ctx)
+    model["matchup"] = matchup_dict(ctx)
     return model
+
+
+def matchup_dict(ctx) -> dict | None:
+    """Card-vs-card weights and opponent decks for the counter search (crdeck.matchup); None if not trained."""
+    m = ctx.matchup
+    if m is None:
+        return None
+    from crdeck.matchup import opponent_sets
+    cfg = ctx.cfg["matchup"]
+    sets = opponent_sets(ctx, int(cfg["opponents_per_set"]))
+    r = lambda x: None if x != x else round(float(x), 7)  # noqa: E731  (NaN -> None)
+    return {"C": m.C, "min_pair_battles": m.min_pair_battles,
+            "cards": {k: [r(v), r(m.w_se.get(k, float("nan")))] for k, v in m.w.items()},
+            "pairs": [[i, j, r(m.K[(i, j)]), r(m.K_se.get((i, j), float("nan"))), m.pair_battles[(i, j)]] for i, j in m.pairs],
+            "choice": ctx.matchup_choice, "evaluation": ctx.matchup_eval,
+            "styles": sets["styles"], "decks": sets["decks"][:1000],
+            "opponents_per_set": int(cfg["opponents_per_set"]), "n_results": int(cfg["n_results"]), "top_cards": int(cfg["top_cards"])}
 
 
 def embedding_dict(ctx) -> dict | None:
@@ -290,6 +308,7 @@ def golden(ctx) -> dict:
         except SeedError as e:
             rec["error"] = str(e)
         out["searches"].append(rec)
+    out["counters"] = golden_counters(ctx, s)
     rng = np.random.default_rng(0)
     pool = [DeckCard(cid, f) for cid in cards.ids for f in cards[cid].allowed_forms()]
     for _ in range(3000):
@@ -299,6 +318,35 @@ def golden(ctx) -> dict:
         rp = check_partial(deck[: max(1, n - 3)], cards, ctx.rules)
         out["legality"].append({"deck": [e.key for e in deck], "legal": r.legal, "reasons": r.reasons,
                                 "slots": r.slots, "partial_legal": rp.legal})
+    return out
+
+
+def golden_counters(ctx, s) -> list:
+    """Python's own counter results the website must reproduce: two deck styles, the most-played test
+    deck, and one card (the decks holding it)."""
+    if ctx.matchup is None:
+        return []
+    from crdeck.matchup import counter_cards, counter_search, decks_with, opponent_sets
+    m, cfg = ctx.matchup, ctx.cfg["matchup"]
+    per = int(cfg["opponents_per_set"])
+    sets = opponent_sets(ctx, per)
+    decks = sets["decks"][:1000]
+    cases = [("style", st, sets["styles"][st]) for st in sorted(sets["styles"])[:2]]
+    if decks:
+        cases.append(("deck", decks[0][0], [decks[0]]))
+        first = decks[0][0].split("|")[0]
+        cases.append(("cards", first, decks_with(decks, [first], per)))
+    cands = [f"{c.card_id}:{c.form}" for c in s.candidates]
+    out = []
+    for kind, what, opp in cases:
+        if not opp:
+            continue
+        res = counter_search(ctx, m, s, opp, [], int(cfg["n_results"]), int(ctx.cfg["search"]["beam_width"]),
+                             int(ctx.cfg["search"]["min_diff_cards"]))
+        cards = counter_cards(m, cands, opp, int(cfg["top_cards"]))
+        out.append({"kind": kind, "what": what, "opponents": opp,
+                    "decks": [{"key": r["key"], "win_vs": r["win_vs"]} for r in res],
+                    "cards": [{"card": c["card"], "effect": c["effect"]} for c in cards]})
     return out
 
 

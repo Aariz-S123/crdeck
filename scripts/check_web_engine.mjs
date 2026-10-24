@@ -74,6 +74,17 @@ for (const s of golden.searches) {
   console.log(`search ${s.seeds.join(",") || "(none)"}: ${res.length} decks and ${sw.length} swaps match`);
 }
 
+// 2b. counter search: same counter decks, win rates against the opponents, and counter cards as Python
+for (const c of golden.counters || []) {
+  checks++;
+  const dj = eng.counterSearch(c.opponents, []), cj = eng.counterCards(c.opponents, model.matchup.top_cards);
+  if (!same(dj.map((d) => d.key), c.decks.map((d) => d.key))) fail(`counter decks ${c.kind} ${c.what}: js ${dj.map((d) => d.key).join(" / ")} vs py ${c.decks.map((d) => d.key).join(" / ")}`);
+  dj.forEach((d, i) => { if (c.decks[i] && !close(d.win_vs, c.decks[i].win_vs, 1e-9)) fail(`counter deck win ${d.key}: ${d.win_vs} vs ${c.decks[i].win_vs}`); });
+  if (!same(cj.map((x) => x.card), c.cards.map((x) => x.card))) fail(`counter cards ${c.kind} ${c.what}: js ${cj.map((x) => x.card)} vs py ${c.cards.map((x) => x.card)}`);
+  cj.forEach((x, i) => { if (c.cards[i] && !close(x.effect, c.cards[i].effect, 1e-9)) fail(`counter card effect ${x.card}: ${x.effect} vs ${c.cards[i].effect}`); });
+  console.log(`counters ${c.kind} ${String(c.what).slice(0, 30)}: ${dj.length} decks and ${cj.length} cards match`);
+}
+
 // 3. explanations of each search's top deck
 for (const x of golden.explanations) {
   const e = eng.explain(x.key.split("|").map(parseKey));
