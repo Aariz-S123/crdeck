@@ -188,6 +188,9 @@ class Context:
     candidates: pd.DataFrame | None = None  # every strength model and C tried, with validation scores
     availability: object | None = None  # crdeck.availability.Availability for a single Trophy Road arena
     embedding: object | None = None  # crdeck.embedding.CardEmbedding (None if too little data)
+    matchup: object | None = None    # crdeck.matchup.MatchupModel (card-vs-card weights, counter search)
+    matchup_choice: list | None = None
+    matchup_eval: dict | None = None
 
     @property
     def arena(self) -> str | None:
@@ -388,6 +391,10 @@ def _train_context(paths: Paths, verbose: bool, mode: str = "ranked", group: str
                   availability=availability)
     from . import embedding as emb_mod
     ctx.embedding = emb_mod.train(ctx)
+    from . import matchup as mu_mod
+    players = mu_mod.players_by_battle(dib[["battle_key", "player_tag"]])
+    ctx.matchup, ctx.matchup_choice = mu_mod.choose_and_fit(split, cfg, int(cfg["strength"]["min_feature_games"]), players)
+    ctx.matchup_eval = mu_mod.evaluate(ctx, ctx.matchup, players=players)
     if verbose:
         print(paths.banner())
         print(split.describe().to_string(index=False))

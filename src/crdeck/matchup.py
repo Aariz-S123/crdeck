@@ -135,10 +135,12 @@ class MatchupModel:
             cov_diag = np.clip(np.diag(np.linalg.inv(H)), 0, None)
         nc = len(self.card_index)
         keys = sorted(self.card_index, key=self.card_index.get)
-        self.w = {k: float(full[i]) for k, i in self.card_index.items()}
-        self.w_se = {k: float(np.sqrt(cov_diag[i])) for k, i in self.card_index.items()}
-        self.K = {pp: float(full[nc + t]) for t, pp in enumerate(self.pairs)}
-        self.K_se = {pp: float(np.sqrt(cov_diag[nc + t])) for t, pp in enumerate(self.pairs)}
+        # the counter search reads these, rounded to 7 decimals so the website (which gets the same
+        # rounded numbers) computes identical win rates; predictions use the unrounded coefficients
+        self.w = {k: round(float(full[i]), 7) for k, i in self.card_index.items()}
+        self.w_se = {k: round(float(np.sqrt(cov_diag[i])), 7) for k, i in self.card_index.items()}
+        self.K = {pp: round(float(full[nc + t]), 7) for t, pp in enumerate(self.pairs)}
+        self.K_se = {pp: round(float(np.sqrt(cov_diag[nc + t])), 7) for t, pp in enumerate(self.pairs)}
         self.rating_coef = float(full[-1]) * self._scale
         self._coef, self._keys = full, keys
         return self
@@ -311,8 +313,17 @@ def counter_search(ctx, model: MatchupModel, searcher, opponents: list, seeds: l
     For speed, each card form's log-odds effect against every opponent deck is computed once:
     e_c[o] = w_c + Σ_{j∈o} K(c, j), and u_o = Σ_{j∈o} w_j. A deck's score is then
     Σ_o n_o σ(Σ_{c∈A} e_c[o] − u_o) / Σ_o n_o, exactly W(A | O)."""
+    from .rules import describe
+    from .search import SeedError
     size = ctx.rules.deck_size
     seeds = list(dict.fromkeys(seeds))
+    av = getattr(ctx, "availability", None)
+    if av is not None:
+        locked = [av.why_not(e, describe(e, ctx.cards)) for e in seeds if not av.form_ok(e)]
+        if locked:
+            raise SeedError(f"not unlocked in {av.arena}: " + "; ".join(locked))
+    if not check_partial(seeds, ctx.cards, ctx.rules).legal:
+        raise SeedError("seed cards cannot form a legal deck")
     opp = [(_keys(o), n) for o, n in opponents]
     nvec = np.array([n for _, n in opp], float)
     u = np.array([sum(model.w.get(j, 0.0) for j in set(o)) for o, _ in opp])
