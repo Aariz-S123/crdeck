@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Counter a Deck · crdeck</title>
+<meta name="description" content="Pick a Clash Royale deck style or the cards you keep losing to, and get counter cards and counter decks learned from card-vs-card matchups in real battles.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z' fill='%23a8247f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="app.css">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.box { padding: var(--space-4) var(--space-5); display: grid; gap: var(--space-3); min-width: 0; grid-template-columns: minmax(0, 1fr); }
+.box h3 { font-size: 1.125rem; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tabs .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.styles { display: flex; flex-wrap: wrap; gap: 6px; }
+.styles .chip { min-height: 40px; }
+.styles .chip[aria-pressed="true"] { background: var(--elixir); border-color: var(--elixir); color: var(--surface); }
+.styles .chip small { font-weight: 400; margin-left: 6px; opacity: 0.8; }
+.oppcards { display: flex; flex-wrap: wrap; gap: 6px; }
+.oppcard { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunken); font-size: 0.875rem; font-weight: 600; }
+.oppcard button { border: 0; background: transparent; color: var(--muted); width: 28px; height: 28px; border-radius: 6px; font-size: 18px; }
+.search { width: 100%; min-height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--sunken); color: var(--ink); font: inherit; }
+.cardlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); gap: 6px; max-height: 300px; overflow-y: auto; padding: 2px; }
+.pick { display: flex; align-items: center; gap: 8px; text-align: left; min-height: 44px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); min-width: 0; }
+.pick:hover { border-color: var(--elixir); }
+.pick[aria-pressed="true"] { border-color: var(--elixir); background: var(--elixir-soft); }
+.pick .pn { font-size: 0.875rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: var(--space-4); align-items: start; }
+@media (max-width: 960px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.ccard { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px var(--space-3); align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.ccard:first-of-type { border-top: 0; }
+.ccard .nm { font-weight: 700; }
+.ccard .eff { font-family: var(--display); font-weight: 700; font-size: 1.125rem; }
+.ccard .why { grid-column: 2 / -1; font-size: 0.8125rem; color: var(--muted); display: grid; gap: 2px; }
+.ccard .why b { color: var(--ink); font-weight: 600; }
+.decks { display: grid; gap: var(--space-4); }
+.deck { padding: var(--space-4); display: grid; gap: var(--space-3); min-width: 0; }
+.deck-top { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: var(--space-2); }
+.wins { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); align-items: baseline; }
+.wins div { display: grid; }
+.wins b { font-family: var(--display); font-size: 1.5rem; line-height: 1.1; }
+.wins span { font-size: 0.8125rem; color: var(--muted); }
+.formula { white-space: pre-wrap; font: 0.8125rem/1.6 ui-monospace, "Cascadia Mono", Consolas, monospace; background: var(--sunken); padding: 10px 12px; border-radius: 8px; overflow-x: auto; }
+.opps { display: grid; gap: 6px; }
+.opps .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); font-size: 0.8125rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the counter search</a>
+<div class="wrap">
+  <header class="site" id="site"></header>
+  <main id="main" class="wrap">
+    <div class="pagehead">
+      <h1>Counter a deck</h1>
+      <p class="lede">Pick the kind of deck you keep losing to, or the exact cards. The builder suggests cards and decks that did well against it in real battles, learned from card-vs-card matchups.</p>
+      <div class="modebar" id="modebar"></div>
+      <div class="facts" id="facts"></div>
+    </div>
+    <section class="panel box" id="verdict" aria-labelledby="verdict-h"><div class="skel" style="height:60px"></div></section>
+    <section class="panel box" aria-labelledby="who-h">
+      <h2 id="who-h" style="font-size:1.25rem">1. Who are you up against?</h2>
+      <div class="tabs" role="group" aria-label="Pick the opponent by"><button class="chip" data-tab="style" aria-pressed="true">A deck style</button><button class="chip" data-tab="cards" aria-pressed="false">Specific cards</button></div>
+      <div id="whobody"></div>
+    </section>
+    <div id="results" class="wrap" aria-live="polite"></div>
+  </main>
+  <footer class="site-foot">
+    <span>Win rates here are estimates at equal player skill against the opponent decks shown, from top-player battles. They are not a promise about your games.</span>
+    <span>A fan-made learning project. Not affiliated with, endorsed by or sponsored by Supercell. Battle data from the official Clash Royale API.</span>
+  </footer>
+</div>
+
+<script src="engine.js"></script>
+<script src="common.js"></script>
+<script>
+(() => {
+  "use strict";
+  const { $, esc, pct, num, signed } = UI;
+  let ctx = null, E = null;
+  const sel = { tab: "style", style: null, cards: [], q: "" };
+  const styleName = (s) => (s === CRDeck.UNCERTAIN ? "Mixed style" : s);
+
+  UI.start("counters.html", (c) => { ctx = c; E = c.E; UI.setHash(c.entry.slug); sel.cards = sel.cards.filter((k) => E.m.matchup && k in E.m.matchup.cards); render(); },
+    { failTarget: "#results", onLoading: () => { $("#results").innerHTML = `<div class="panel box"><div class="skel" style="height:120px"></div></div>`; } });
+
+  function render() {
+    const mu = E.m.matchup;
+    if (!mu) {
+      $("#verdict").innerHTML = `<p>${esc(ctx.entry.label)} has too few battles for a matchup model.</p>`;
+      $("#whobody").innerHTML = ""; $("#results").innerHTML = ""; return;
+    }
+    renderVerdict(mu); renderWho(mu); run();
+  }
+
+  function renderVerdict(mu) {
+    const ev = mu.evaluation, pd = ev.player_disjoint;
+    const newOk = pd && pd.difference_ci90[1] < 0, allOk = ev.difference_ci90[1] < 0;
+    const pill = newOk ? `<span class="pill good">Real but modest for new players</span>` : allOk ? `<span class="pill weak">Helps on familiar players; unproven for new ones</span>` : `<span class="pill bad">Not clearly better than ignoring matchups</span>`;
+    $("#verdict").innerHTML = `<h2 id="verdict-h" style="font-size:1.25rem">How much can you trust these counters?</h2>
+      <p>${pill}</p>
+      <div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Held-out check (${esc(ctx.entry.label)})</th><th scope="col">Battles</th><th scope="col">AUC without matchups</th><th scope="col">AUC with matchups</th><th scope="col">Log-loss change (90%)</th></tr></thead><tbody>
+        <tr><td>Later battles, same pool of players</td><td>${num(ev.battles)}</td><td>${ev.auc_strength.toFixed(3)}</td><td>${ev.auc_matchup.toFixed(3)}</td><td>${signed(ev.difference, 4)} (${signed(ev.difference_ci90[0], 4)} to ${signed(ev.difference_ci90[1], 4)})</td></tr>
+        ${pd ? `<tr><td>Trained without any player from those later battles</td><td>${num(pd.battles)}</td><td>${pd.auc_strength.toFixed(3)}</td><td>${pd.auc_matchup.toFixed(3)}</td><td>${signed(pd.difference, 4)} (${signed(pd.difference_ci90[0], 4)} to ${signed(pd.difference_ci90[1], 4)})</td></tr>` : ""}
+      </tbody></table></div>
+      <p class="muted small">Negative log-loss change means better predictions. The same top players appear in every collection, so part of the first row's gain is the model recognizing regulars. The second row is what a new player can expect: ${pd ? `trained on ${num(pd.training_battles)} battles with no shared players, matchups still help${newOk ? "" : " only unclearly"}.` : "too few battles were left to run it in this mode."} <span class="src measured">measured</span></p>`;
+  }
+
+  function renderWho(mu) {
+    document.querySelectorAll("[data-tab]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tab === sel.tab)));
+    if (sel.tab === "style") {
+      const styles = Object.entries(mu.styles).filter(([s]) => s !== CRDeck.UNCERTAIN && s !== CRDeck.NO_LABELS).sort((a, b) => b[1].length - a[1].length);
+      if (!sel.style || !mu.styles[sel.style]) sel.style = styles.length ? styles[0][0] : null;
+      $("#whobody").innerHTML = styles.length ? `<div class="styles" role="group" aria-label="Deck style">${styles.map(([s, decks]) => `<button class="chip" data-style="${esc(s)}" aria-pressed="${s === sel.style}">${esc(styleName(s))}<small>${num(decks.length)} decks</small></button>`).join("")}</div>
+        <p class="muted small">Each style stands for its most-played decks in this mode's latest battles, weighted by how often they were played. Styles come from the deck-style classifier. <span class="src model">model</span></p>`
+        : `<p class="muted">No deck styles are available in this mode.</p>`;
+    } else {
+      const q = sel.q.trim().toLowerCase();
+      const forms = E.m.forms.filter((f) => f.key in mu.cards).map((f) => Object.assign({}, f, { c: E.card(f.card_id) }))
+        .filter((f) => !q || E.describe({ id: f.card_id, form: f.form }).toLowerCase().includes(q))
+        .sort((a, b) => a.c.name.localeCompare(b.c.name) || a.form.localeCompare(b.form));
+      $("#whobody").innerHTML = `
+        <div class="oppcards" aria-label="Opponent cards picked">${sel.cards.length ? sel.cards.map((k) => `<span class="oppcard">${esc(E.describe(CRDeck.parseKey(k)))}<button data-rm="${k}" aria-label="Remove ${esc(E.describe(CRDeck.parseKey(k)))}">×</button></span>`).join("") : `<span class="muted small">No cards picked yet. Pick 1 to 8 cards your opponent plays.</span>`}</div>
+        <label class="sr" for="oq">Search opponent cards</label><input class="search" id="oq" type="search" placeholder="Search cards" autocomplete="off" value="${esc(sel.q)}">
+        <div class="cardlist" aria-label="Opponent cards">${forms.map((f) => `<button class="pick" data-key="${f.key}" aria-pressed="${sel.cards.includes(f.key)}">${UI.drop(f.c)}<span class="pn">${esc(E.describe({ id: f.card_id, form: f.form }))}</span></button>`).join("") || `<p class="muted small">No card matches.</p>`}</div>
+        <p class="muted small">With all 8 cards, the counters target that exact deck. With fewer, they target the most-played decks holding all of them.</p>`;
+      const oq = $("#oq"); oq.oninput = () => { sel.q = oq.value; renderWho(mu); const n = $("#oq"); n.focus(); n.setSelectionRange(n.value.length, n.value.length); };
+    }
+  }
+  document.addEventListener("click", (ev) => {
+    const t = ev.target.closest("[data-tab],[data-style],[data-key],[data-rm],[data-copy]"); if (!t || !E) return;
+    if (t.dataset.tab) { sel.tab = t.dataset.tab; renderWho(E.m.matchup); run(); }
+    else if (t.dataset.style) { sel.style = t.dataset.style; renderWho(E.m.matchup); run(); }
+    else if (t.dataset.key && t.closest(".cardlist")) {
+      const k = t.dataset.key, i = sel.cards.indexOf(k), id = k.split(":")[0];
+      if (i >= 0) sel.cards.splice(i, 1);
+      else { sel.cards = sel.cards.filter((x) => x.split(":")[0] !== id); if (sel.cards.length < 8) sel.cards.push(k); }
+      renderWho(E.m.matchup); run();
+    } else if (t.dataset.rm) { sel.cards = sel.cards.filter((x) => x !== t.dataset.rm); renderWho(E.m.matchup); run(); }
+    else if (t.dataset.copy) {
+      const text = t.dataset.copy; t.textContent = "Copied";
+      try { navigator.clipboard.writeText(text).catch(() => {}); } catch { /* clipboard blocked */ }
+      setTimeout(() => { t.textContent = "Copy card list"; }, 1600);
+    }
+  });
+
+  function opponents() {
+    if (sel.tab === "style") return sel.style ? { opps: E.opponentsFor({ style: sel.style }), what: `${styleName(sel.style)} decks` } : { opps: [], what: "" };
+    if (!sel.cards.length) return { opps: [], what: "" };
+    if (sel.cards.length === 8 && E.checkDeck(sel.cards.map(CRDeck.parseKey)).legal) return { opps: E.opponentsFor({ deck: sel.cards.slice().sort().join("|") }), what: "this exact deck" };
+    return { opps: E.opponentsFor({ cards: sel.cards }), what: `decks with ${sel.cards.map((k) => E.describe(CRDeck.parseKey(k))).join(", ")}` };
+  }
+
+  function run() {
+    const mu = E.m.matchup, { opps, what } = opponents(), el = $("#results");
+    if (!opps.length) {
+      el.innerHTML = sel.tab === "cards" && sel.cards.length ? `<div class="panel empty"><b>No collected deck holds all of these cards.</b><span>Remove a card to widen the search.</span></div>` : "";
+      return;
+    }
+    el.innerHTML = `<div class="panel box"><div class="skel" style="height:140px"></div><p class="muted small">Searching counter decks…</p></div>`;
+    setTimeout(() => {
+      const t0 = performance.now();
+      let decks = [], cards = [];
+      try { decks = E.counterSearch(opps, []); cards = E.counterCards(opps, mu.top_cards); }
+      catch (e) { el.innerHTML = `<div class="panel empty"><b>The counter search hit an error.</b><span>${esc(e.message)}</span></div>`; return; }
+      const nOpp = opps.reduce((t, [, n]) => t + n, 0), name = (k) => E.describe(CRDeck.parseKey(k));
+      const atEven = (z) => 100 * (1 / (1 + Math.exp(-z)) - 0.5);   // points away from 50% in an even battle
+      el.innerHTML = `
+        <div class="two">
+          <section class="panel box" aria-labelledby="cc-h">
+            <h2 id="cc-h" style="font-size:1.25rem">2. Counter cards</h2>
+            <p class="muted small">Cards whose matchups did best against ${esc(what)}. The effect is in log-odds; next to it, what it means for an otherwise even battle. <span class="src model">model</span></p>
+            ${cards.map((c, i) => `<div class="ccard">
+              <span class="muted small">${i + 1}</span>
+              <span class="nm">${esc(name(c.card))}</span>
+              <span class="eff" title="log-odds effect against these decks">${signed(c.effect, 3)}</span>
+              <span class="why"><span>≈ ${atEven(c.effect) >= 0 ? "+" : "−"}${Math.abs(atEven(c.effect)).toFixed(1)} points of win rate in an even battle (own strength ${signed(c.own_weight, 3)})</span>
+                ${c.best_against.length ? `<span>Best against: ${c.best_against.map((t) => `<b>${esc(name(t.card))}</b> ${signed(t.weight, 3)}${t.ci90 ? ` (90% ${signed(t.ci90[0], 3)} to ${signed(t.ci90[1], 3)})` : ""}${t.share < 0.999 ? ` in ${pct(t.share, 0)} of them` : ""}`).join("; ")}</span>` : ""}
+                ${c.worst_against.length ? `<span>Weak against: ${c.worst_against.map((t) => `<b>${esc(name(t.card))}</b> ${signed(t.weight, 3)}`).join("; ")}</span>` : ""}</span>
+            </div>`).join("") || `<p class="muted">No card has matchup data against these decks.</p>`}
+          </section>
+          <section class="section" aria-labelledby="cd-h">
+            <header><h2 id="cd-h" style="font-size:1.25rem">3. Counter decks</h2>
+              <p>The legal${E.m.availability ? ", unlocked" : ""} decks with the highest estimated win rate against ${esc(what)}. That estimate is the best of thousands of tries, so it runs high; the normal win rate against all top decks is shown next to it.</p></header>
+            <div class="decks">${decks.map((d, i) => {
+              const x = E.explain(d.entries, E.objectiveDict(E.evaluate(d.entries)));
+              return `<article class="panel deck" aria-label="Counter deck ${i + 1}">
+                <div class="deck-top"><b>Counter deck ${i + 1} · ${esc(UI.archName(x.archetype))}</b><span class="muted small">avg elixir ${x.avg_elixir === null ? "n/a" : x.avg_elixir.toFixed(1)}</span></div>
+                <div class="grid8">${x.entries.map((e) => UI.tile(E, e, x.legality.slots, null, null)).join("")}</div>
+                <div class="wins"><div><b>${pct(d.win_vs)}</b><span>vs ${esc(what)} <span class="src model">optimistic</span></span></div>
+                  <div><b>${pct(x.score.meta_win_prob)}</b><span>vs all top decks</span></div></div>
+                ${x.warnings.length ? `<div class="notice"><b>Watch out:</b> ${x.warnings.map((g) => esc(g.root_cause)).join(". ")}</div>` : ""}
+                <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn small primary" href="reason.html#${UI.token(ctx.entry.slug, d.entries, [])}">Why this deck →</a>
+                  <button class="btn small" data-copy="${esc(d.entries.map((e) => E.describe(e)).join(", "))}">Copy card list</button></div>
+              </article>`; }).join("") || `<div class="panel empty">No legal counter deck was found.</div>`}</div>
+          </section>
+        </div>
+        <section class="panel box" aria-labelledby="opp-h">
+          <h3 id="opp-h">The opponent decks used</h3>
+          <p class="muted small">${num(opps.length)} deck${opps.length === 1 ? "" : "s"}, weighted by ${num(nOpp)} appearances in this mode's latest battles. Search took ${Math.round(performance.now() - t0)} ms.</p>
+          <details class="more"><summary>Show them</summary><div class="body opps">${opps.slice(0, 40).map(([dk, n]) => `<div class="row"><span>${esc(dk.split("|").map(name).join(", "))}</span><span>${num(n)}×</span></div>`).join("")}</div></details>
+          <details class="more"><summary>Show the math</summary><div class="body small">
+            <div class="formula">z(A, B) = Σ_{i∈A} w_i − Σ_{j∈B} w_j + Σ_{i∈A, j∈B} K(i, j)        (equal player skill)
+P(A beats B) = σ(z(A, B))
+win rate vs the opponents = Σ_o n_o · σ(z(A, o)) / Σ_o n_o
+card effect(i) = w_i + Σ_o n_o Σ_{j∈o} K(i, j) / Σ_o n_o</div>
+            <p class="muted">w is a card's overall strength, K(i, j) how much better a deck with i did against decks with j than both cards' strengths predict (K(i, j) = −K(j, i)). ${num(mu.pairs.length)} card pairings with at least ${num(mu.min_pair_battles)} battles have a K. Ranges shown for single matchups are exact 90% ranges for that weight; no range is shown for a card's total effect, because its parts move together.</p>
+          </div></details>
+        </section>`;
+    }, 20);
+  }
+})();
+</script>
+</body>
+</html>

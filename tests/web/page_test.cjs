@@ -1,6 +1,6 @@
 // Headless test of every website page with the real engine and exported data: picks, refusals,
 // mode/league/arena switching, locked cards in a low arena, swaps and swap math, the card map, the
-// meta and next-season pages, and the loss surface. Run after an export:
+// meta and next-season pages, the counter search, and the loss surface. Run after an export:
 //   cd tests/web && npm install && node page_test.cjs     (prints JSON; exit 1 if any check fails)
 const fs = require("fs");
 const path = require("path");
@@ -221,6 +221,43 @@ function clean(name, d, errors) {
   expect(out.seasons.trends === out.seasons.decks, "seasons: one trend chart per deck");
   expect(out.seasons.navHasSeason, "seasons: menu link");
   clean("seasons", d, p.errors);
+
+  // ---------------- counters page: a style, then specific cards, then a low arena with locked cards
+  p = await open("counters.html", "ranked"); d = p.d;
+  await until(() => d.querySelectorAll(".deck .tile").length >= 8);
+  const Er = new (require(path.join(WEB, "engine.js")).Engine)(JSON.parse(fs.readFileSync(path.join(WEB, "models", "ranked.json"), "utf8")));
+  const deckOk = (doc, E) => [...doc.querySelectorAll(".deck a.btn.primary")].every((a) => {
+    const ents = a.getAttribute("href").split("~")[1].split("-").map((t) => { const m = /^(\d+)([beh])$/.exec(t); return { id: Number(m[1]), form: { b: "base", e: "evo", h: "hero" }[m[2]] }; });
+    return ents.length === 8 && E.checkDeck(ents).legal && ents.every((e) => E.isAvailable(e));
+  });
+  const cardNames = () => [...d.querySelectorAll(".ccard .nm")].map((x) => x.textContent).join();
+  out.counters = { verdict: d.querySelector("#verdict .pill") && d.querySelector("#verdict .pill").textContent,
+    verdictRows: d.querySelectorAll("#verdict tbody tr").length, styles: d.querySelectorAll("[data-style]").length,
+    cards: d.querySelectorAll(".ccard").length, decks: d.querySelectorAll(".deck").length,
+    navHas: !![...d.querySelectorAll(".nav a")].find((a) => a.textContent === "Counters") };
+  expect(out.counters.verdict && out.counters.verdictRows >= 1, "counters: honest verdict shown");
+  expect(out.counters.styles > 0 && out.counters.cards > 0, "counters: styles and counter cards shown");
+  expect(out.counters.decks === Er.m.matchup.n_results, "counters: n_results counter decks");
+  expect(deckOk(d, Er), "counters: decks are legal and unlocked");
+  expect(out.counters.navHas, "counters: menu link");
+  clean("counters style", d, p.errors);
+  const before = cardNames(), second = d.querySelectorAll("[data-style]")[1];
+  if (second) { second.click(); await until(() => cardNames() !== before && d.querySelectorAll(".deck").length > 0); }
+  out.counters.secondStyleChanged = cardNames() !== before;
+  d.querySelector('[data-tab="cards"]').click(); await wait(50);
+  d.querySelector(".cardlist .pick").click();
+  await until(() => d.querySelectorAll(".oppcard").length === 1 && (d.querySelectorAll(".deck").length > 0 || d.querySelector("#results .empty")));
+  out.counters.byCard = { picked: d.querySelector(".oppcard").textContent.replace("×", "").trim(), decks: d.querySelectorAll(".deck").length };
+  expect(out.counters.byCard.decks > 0, "counters: one picked card gives counter decks");
+  expect(deckOk(d, Er), "counters: card-based decks are legal");
+  d.querySelector(".oppcard button").click(); await wait(50);
+  expect(d.querySelectorAll(".oppcard").length === 0 && d.querySelector("#results").textContent.trim() === "", "counters: removing the card clears results");
+  clean("counters cards", d, p.errors);
+  p = await open("counters.html", "trophy_road__bone_pit"); d = p.d;
+  await until(() => d.querySelectorAll(".deck .tile").length >= 8 || /too few/.test(d.querySelector("#verdict").textContent));
+  out.counters.lowArenaDecks = d.querySelectorAll(".deck").length;
+  expect(deckOk(d, Ew), "counters: low-arena counter decks use only unlocked cards");
+  clean("counters arena", d, p.errors);
 
   out.fails = fails;
   console.log(JSON.stringify(out, null, 1));
