@@ -241,9 +241,9 @@ function clean(name, d, errors) {
   expect(deckOk(d, Er), "counters: decks are legal and unlocked");
   expect(out.counters.navHas, "counters: menu link");
   clean("counters style", d, p.errors);
-  const before = cardNames(), second = d.querySelectorAll("[data-style]")[1];
-  if (second) { second.click(); await until(() => cardNames() !== before && d.querySelectorAll(".deck").length > 0); }
-  out.counters.secondStyleChanged = cardNames() !== before;
+  const styleBefore = cardNames(), second = d.querySelectorAll("[data-style]")[1];
+  if (second) { second.click(); await until(() => cardNames() !== styleBefore && d.querySelectorAll(".deck").length > 0); }
+  out.counters.secondStyleChanged = cardNames() !== styleBefore;
   d.querySelector('[data-tab="cards"]').click(); await wait(50);
   d.querySelector(".cardlist .pick").click();
   await until(() => d.querySelectorAll(".oppcard").length === 1 && (d.querySelectorAll(".deck").length > 0 || d.querySelector("#results .empty")));
