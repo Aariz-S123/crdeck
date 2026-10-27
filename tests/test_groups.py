@@ -75,6 +75,25 @@ def test_samples_tagged_and_leaderboard_wins_duplicates(cards, rules, tmp_path):
     assert len(mb) == 1
 
 
+def test_chunked_parsing_keeps_the_same_rows(cards, rules, tmp_path, monkeypatch):
+    shared = battle(cards, "trail", "Ladder", arena="Spell Valley", t="20261019T120000.000Z")
+    other = battle(cards, "trail", "Ladder", arena="Bone Pit", t="20261019T130000.000Z")
+    (tmp_path / "w" / "battlelog").mkdir(parents=True)
+    (tmp_path / "w" / "battlelog_arena").mkdir(parents=True)
+    # the shared battle appears in three files and two samples, fetched at different times
+    (tmp_path / "w" / "battlelog" / "AAA.json").write_text(json.dumps(_wrap([shared], "2026-10-19T17:00:00Z")))
+    (tmp_path / "w" / "battlelog" / "CCC.json").write_text(json.dumps(_wrap([other, shared], "2026-10-19T16:30:00Z")))
+    (tmp_path / "w" / "battlelog_arena" / "BBB.json").write_text(json.dumps(_wrap([shared, other], "2026-10-19T15:00:00Z")))
+    files = sorted(tmp_path.glob("*/battlelog*/*.json"))
+    whole = parse_files(files, cards, FormConfig(), None, 8, (None, None), rules)
+    monkeypatch.setattr(P, "CHUNK_FILES", 1)
+    chunked = parse_files(files, cards, FormConfig(), None, 8, (None, None), rules)
+    for a, b in [(whole.battles, chunked.battles), (whole.decks_in_battle, chunked.decks_in_battle),
+                 (whole.decks, chunked.decks), (whole.slot_cards, chunked.slot_cards)]:
+        pd.testing.assert_frame_equal(a.reset_index(drop=True), b.reset_index(drop=True))
+    assert whole.counts == chunked.counts and whole.counts["battle_rows_before_dedupe"] == 5
+
+
 def test_meta_history_uses_the_leaderboard_sample_only(cards, rules):
     from crdeck.forecast import period_data
     bs = [battle(cards, "pathOfLegend", "Ranked1v1_NewArena", league=7, t="20261019T120000.000Z"),

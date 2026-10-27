@@ -295,9 +295,33 @@ def parse_files(
     window: tuple[datetime | None, datetime | None] = (None, None),
     modes: ModeRules | None = None,
 ) -> Parsed:
+    # Rows are turned into DataFrames and de-duplicated every CHUNK_FILES files: holding every raw row of
+    # ~50,000 logs as Python dicts no longer fits in memory. Keeping the first row per key inside each chunk
+    # (in file order, battles after the same sort as dedupe) and then again over all chunks keeps exactly
+    # the rows a single dedupe would keep.
     all_b, all_d, all_s = [], [], []
+    frames_b, frames_d, frames_s = [], [], []
+    in_leaderboard: set[str] = set()
+    n_raw = 0
+
+    def flush():
+        nonlocal all_b, all_d, all_s, n_raw
+        if all_b:
+            f = pd.DataFrame(all_b, columns=BATTLE_COLS)
+            n_raw += len(f)
+            in_leaderboard.update(f.loc[f["sample"] == "leaderboard", "battle_key"])
+            f = f.sort_values(["battle_key", "fetched_at", "source_player_tag"], kind="mergesort")
+            frames_b.append(f.drop_duplicates("battle_key", keep="first"))
+        if all_d:
+            frames_d.append(pd.DataFrame(all_d, columns=DIB_COLS).drop_duplicates(["battle_key", "side"], keep="first"))
+        if all_s:
+            frames_s.append(pd.DataFrame(all_s, columns=SLOT_COLS).drop_duplicates(["deck_key", "card_id"], keep="first"))
+        all_b, all_d, all_s = [], [], []
+
     n_files = n_404 = 0
     for p in sorted(files):
+        if n_files and n_files % CHUNK_FILES == 0:
+            flush()
         w = load_wrapped(p)
         n_files += 1
         if w.get("status") != 200 or not isinstance(w.get("body"), list):
@@ -310,24 +334,39 @@ def parse_files(
         all_b += b
         all_d += d
         all_s += s
-    return dedupe(all_b, all_d, all_s, extra_counts={"files": n_files, "files_without_battles": n_404})
+    flush()
+    cat = lambda fr, cols: pd.concat(fr, ignore_index=True) if fr else pd.DataFrame(columns=cols)  # noqa: E731
+    return dedupe(cat(frames_b, BATTLE_COLS), cat(frames_d, DIB_COLS), cat(frames_s, SLOT_COLS),
+                  extra_counts={"files": n_files, "files_without_battles": n_404}, n_raw=n_raw, in_leaderboard=in_leaderboard)
 
 
-def dedupe(battles: list[dict], dib: list[dict], slots: list[dict], extra_counts: dict | None = None) -> Parsed:
-    bdf = pd.DataFrame(battles, columns=["battle_key", "battle_time", "battle_type", "game_mode", "mode", "arena", "league",
-                                         "group", "sample", "deck_selection", "source_player_tag", "fetched_at", "status", "unknown_card_ids"])
-    n_raw = len(bdf)
+BATTLE_COLS = ["battle_key", "battle_time", "battle_type", "game_mode", "mode", "arena", "league",
+               "group", "sample", "deck_selection", "source_player_tag", "fetched_at", "status", "unknown_card_ids"]
+DIB_COLS = ["battle_key", "side", "player_tag", "deck_key", "won", "crowns",
+            "trophies_or_rank", "global_rank", "level_deficit", "form_unknown"]
+SLOT_COLS = ["deck_key", "card_id", "form", "slot", "position"]
+CHUNK_FILES = 2000
+
+
+def dedupe(battles, dib, slots, extra_counts: dict | None = None, n_raw: int | None = None,
+           in_leaderboard: set | None = None) -> Parsed:
+    """battles, dib, slots: lists of row dicts or DataFrames. n_raw and in_leaderboard are passed when the rows
+    were already de-duplicated in chunks (parse_files): the raw row count and every battle key seen in the
+    leaderboard sample before that."""
+    bdf = pd.DataFrame(battles, columns=BATTLE_COLS)
+    if n_raw is None:
+        n_raw = len(bdf)
     if bdf["sample"].isna().all():
         bdf["sample"] = "leaderboard"
-    in_leaderboard = set(bdf.loc[bdf["sample"] == "leaderboard", "battle_key"])
+    if in_leaderboard is None:
+        in_leaderboard = set(bdf.loc[bdf["sample"] == "leaderboard", "battle_key"])
     bdf = bdf.sort_values(["battle_key", "fetched_at", "source_player_tag"], kind="mergesort")
     bdf = bdf.drop_duplicates("battle_key", keep="first").reset_index(drop=True)
     # a battle seen in both samples counts as a leaderboard battle, so the leaderboard sample stays whole
     bdf["sample"] = bdf["battle_key"].isin(in_leaderboard).map({True: "leaderboard", False: "arena_sample"})
-    ddf = pd.DataFrame(dib, columns=["battle_key", "side", "player_tag", "deck_key", "won", "crowns",
-                                     "trophies_or_rank", "global_rank", "level_deficit", "form_unknown"])
+    ddf = pd.DataFrame(dib, columns=DIB_COLS)
     ddf = ddf.drop_duplicates(["battle_key", "side"], keep="first").reset_index(drop=True)
-    sdf = pd.DataFrame(slots, columns=["deck_key", "card_id", "form", "slot", "position"])
+    sdf = pd.DataFrame(slots, columns=SLOT_COLS)
     sdf = sdf.drop_duplicates(["deck_key", "card_id"], keep="first").reset_index(drop=True)
     decks = (
         ddf.groupby("deck_key", as_index=False)
