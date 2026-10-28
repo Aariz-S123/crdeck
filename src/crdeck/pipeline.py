@@ -290,13 +290,20 @@ def train_strength(split: Split, syn_train: SynergyTable, cfg: dict, hero_observ
     return final, comp, syn_tv
 
 
-def _fingerprint(paths: Paths) -> str:
-    """Hash of everything a Context depends on: interim data, card table, labels, configs, code."""
+# Code and settings that only run after training (the counter page). They never change a Context and
+# nothing used while building one imports them, so editing them must not force a retrain.
+POST_TRAINING = ("counters.py", "counters.yaml")
+
+
+def _fingerprint(paths: Paths, code_dir: Path | None = None, config_dir: Path | None = None) -> str:
+    """Hash of everything a Context depends on: interim data, card table, labels, configs, code
+    (except the POST_TRAINING files)."""
     import hashlib
     from .config import CONFIG_DIR
     h = hashlib.sha256()
     files = sorted(paths.interim.glob("*")) + [paths.processed / "cards.parquet", paths.archetype_labels]
-    files += sorted(CONFIG_DIR.glob("*.yaml")) + sorted(Path(__file__).parent.glob("*.py"))
+    files += sorted((config_dir or CONFIG_DIR).glob("*.yaml")) + sorted((code_dir or Path(__file__).parent).glob("*.py"))
+    files = [f for f in files if f.name not in POST_TRAINING]
     for f in files:
         h.update(str(f.name).encode())
         if f.exists():

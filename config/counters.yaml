@@ -1,0 +1,12 @@
+# Counter page (src/crdeck/counters.py). These settings only run after training: they and counters.py are
+# left out of the model cache fingerprint, so changing them does not retrain anything. Read at export time.
+opponents_per_set: 40    # most-played test-window decks standing for a deck style or a set of opponent cards
+top_cards: 10            # counter cards listed
+n_results: 3             # counter decks shown
+pool:                    # counter decks are real decks:
+  min_battles: 5         #   played at least this often in the training battles (training + validation windows)
+  max_decks: 3000        #   the most-played ones only, so the website stays fast
+tech_swap: true          # suggest one like-for-like card change per counter deck
+backtest:                # held-out check of the ranking on the test window
+  top: 20                #   best-ranked counter decks per style, compared with as many of the deck builder's strongest decks
+  min_games: 30          #   fewer pooled games than this: too few to judge

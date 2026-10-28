@@ -58,11 +58,9 @@ forecast:
   first_period_hours: 24   # the first collection has no previous fetch: use the 24 h before it
 
 matchup:
-  # Card-vs-card matchup model for the counter search (src/crdeck/matchup.py). Adds one weight per
-  # common card-vs-card pairing to the card weights; settings chosen on validation log loss.
+  # Card-vs-card matchup model behind the counter page (src/crdeck/matchup.py). Adds one weight per
+  # common card-vs-card pairing to the card weights; settings chosen on validation log loss. The counter
+  # page's own settings are in config/counters.yaml.
   min_pair_battles: 500    # a pairing needs this many training battles (cards on opposite sides) to get a weight
   C_grid: [0.003, 0.01, 0.03]   # Ranked 2026-10-24: 0.001..0.1 tried, 0.01 best; neighbours kept to bound export time
   max_iter: 3000
-  opponents_per_set: 40    # most-played test-window decks used to stand for a deck style or a set of opponent cards
-  n_results: 3             # counter decks returned
-  top_cards: 10            # counter cards listed

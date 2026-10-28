@@ -1,4 +1,4 @@
-"""Card-vs-card matchups and the counter search.
+"""Card-vs-card matchups: the model behind the counter page.
 
 The strength model adds up each deck's card weights, so it ranks decks the same way against every
 opponent and cannot say what counters what. The matchup model adds one weight per common pairing of a
@@ -14,15 +14,7 @@ L2, the rating column scaled so it is barely penalized, L-BFGS finished with New
 on validation log loss from `C_grid`, refitted on train + validation, then tested once on the test
 window against the strength model (paired bootstrap).
 
-Counter search, against an opponent set O (one deck, the most-played decks holding some chosen cards,
-or the most-played decks of a style; each with a weight n_o = test-window appearances):
-
-    W(A | O) = Σ_o n_o σ(z(A, o)) / Σ_o n_o           (equal player rating)
-
-Counter cards rank each card form i by its average effect against O in log-odds,
-effect(i) = w_i + Σ_o n_o Σ_{j∈o} K(i, j) / Σ_o n_o, listing the matchups behind it, each with its own
-exact 90% range. Counter decks come from a beam search
-over legal, unlocked decks maximizing W(A | O).
+Counter cards and counter decks are computed from this model after training, in crdeck.counters.
 """
 
 from __future__ import annotations
@@ -34,8 +26,6 @@ import pandas as pd
 from scipy import sparse
 from sklearn.linear_model import LogisticRegression
 
-from .dataset import side_rows
-from .rules import DeckCard, check_deck, check_partial, deck_key, parse_deck_key
 from .strength import rating_diff, sigmoid
 
 Z90 = 1.6448536269514722
@@ -245,131 +235,3 @@ def evaluate(ctx, model: MatchupModel, seed: int = 0, n_boot: int = 1000, player
     out.update({"pairs": len(model.pairs), "C": model.C, "test_battles": out["battles"]})
     out["player_disjoint"] = player_disjoint_check(ctx, model, players, seed, n_boot) if players is not None else None
     return out
-
-
-# ---------------------------------------------------------------- opponent sets
-def opponent_sets(ctx, per_set: int) -> dict:
-    """The most-played test-window decks of each predicted style, with appearances (shared with the website)."""
-    sides = side_rows(ctx.split.test)
-    freq = sides["deck_key"].value_counts()
-    styles: dict[str, list] = {}
-    if ctx.archetype.fitted:
-        for d, n in freq.head(3000).items():
-            lab = ctx.archetype.predict(parse_deck_key(d)).label
-            styles.setdefault(lab, [])
-            if len(styles[lab]) < per_set:
-                styles[lab].append([d, int(n)])
-    return {"styles": styles, "decks": [[d, int(n)] for d, n in freq.head(3000).items()]}
-
-
-def decks_with(all_decks: list, cards: list[str], per_set: int) -> list:
-    """Most-played decks holding every chosen card form (cards as 'id:form')."""
-    need = set(cards)
-    return [[d, n] for d, n in all_decks if need <= set(_keys(d))][:per_set]
-
-
-# ---------------------------------------------------------------- counters
-def counter_cards(model: MatchupModel, candidates: list[str], opponents: list, top: int) -> list[dict]:
-    """Card forms ranked by their average log-odds effect against the opponent set:
-    effect(i) = w_i + Σ_o n_o Σ_{j∈o} K(i, j) / Σ_o n_o.
-
-    No combined range is given for the effect: its parts are strongly correlated and the full covariance
-    is too large to ship to the website, so each card instead lists the matchups behind it, each with its
-    own exact 90% range (Laplace standard error of that one weight)."""
-    tot = sum(n for _, n in opponents)
-    out = []
-    for c in candidates:
-        if c not in model.w:
-            continue
-        terms: dict[str, float] = {}
-        for o, n in opponents:
-            for j in set(_keys(o)):
-                kk = model.k(c, j)
-                if kk:
-                    terms[j] = terms.get(j, 0.0) + n * kk / tot
-        eff = model.w[c] + sum(terms.values())
-
-        def term(j):
-            kk = model.k(c, j)
-            se = model.K_se.get((c, j) if c < j else (j, c), float("nan"))
-            return {"card": j, "weight": kk, "ci90": [kk - Z90 * se, kk + Z90 * se], "share": terms[j] / kk}
-        best = [term(j) for j, v in sorted(terms.items(), key=lambda t: (-t[1], t[0]))[:3] if v > 0]
-        worst = [term(j) for j, v in sorted(terms.items(), key=lambda t: (t[1], t[0]))[:2] if v < 0]
-        out.append({"card": c, "effect": float(eff), "own_weight": model.w[c], "best_against": best, "worst_against": worst})
-    out.sort(key=lambda r: (-tie(r["effect"]), r["card"]))
-    return out[:top]
-
-
-def tie(x: float) -> int:
-    """Sort key at fixed precision, identical in the website (values equal up to float noise tie)."""
-    import math
-    return math.floor(x * 1e10 + 0.5)
-
-
-def counter_search(ctx, model: MatchupModel, searcher, opponents: list, seeds: list[DeckCard],
-                   n_results: int, beam_width: int, min_diff: int) -> list[dict]:
-    """Legal, unlocked decks (holding the seeds) with the highest estimated win rate against the opponents.
-
-    For speed, each card form's log-odds effect against every opponent deck is computed once:
-    e_c[o] = w_c + Σ_{j∈o} K(c, j), and u_o = Σ_{j∈o} w_j. A deck's score is then
-    Σ_o n_o σ(Σ_{c∈A} e_c[o] − u_o) / Σ_o n_o, exactly W(A | O)."""
-    from .rules import describe
-    from .search import SeedError
-    size = ctx.rules.deck_size
-    seeds = list(dict.fromkeys(seeds))
-    av = getattr(ctx, "availability", None)
-    if av is not None:
-        locked = [av.why_not(e, describe(e, ctx.cards)) for e in seeds if not av.form_ok(e)]
-        if locked:
-            raise SeedError(f"not unlocked in {av.arena}: " + "; ".join(locked))
-    if not check_partial(seeds, ctx.cards, ctx.rules).legal:
-        raise SeedError("seed cards cannot form a legal deck")
-    opp = [(_keys(o), n) for o, n in opponents]
-    nvec = np.array([n for _, n in opp], float)
-    u = np.array([sum(model.w.get(j, 0.0) for j in set(o)) for o, _ in opp])
-    key = lambda e: f"{e.card_id}:{e.form}"  # noqa: E731
-    def evec(e):
-        c = key(e)
-        return np.array([model.w.get(c, 0.0) + sum(model.k(c, j) for j in set(o)) for o, _ in opp])
-    cands = [c for c in searcher.candidates if key(c) in model.w]
-    E = {key(c): evec(c) for c in cands}
-    for e in seeds:
-        E.setdefault(key(e), evec(e))
-    def score(total):
-        return float((nvec * sigmoid(total - u)).sum() / nvec.sum())
-    start = sum((E[key(e)] for e in seeds), np.zeros(len(opp)))
-    beam = [(seeds, start)]
-    last: list = []
-    for _ in range(size - len(seeds)):
-        seen, children = set(), []
-        for d, tot in beam:
-            ids = {e.card_id for e in d}
-            for c in cands:
-                if c.card_id in ids:
-                    continue
-                new = d + [c]
-                k = deck_key(new)
-                if k in seen or not check_partial(new, ctx.cards, ctx.rules).legal:
-                    continue
-                seen.add(k)
-                t2 = tot + E[key(c)]
-                children.append((score(t2), k, new, t2))
-        if not children:
-            return []
-        children.sort(key=lambda t: (-tie(t[0]), t[1]))
-        last = children
-        beam = [(d, t) for _, _, d, t in children[:beam_width]]
-    if len(seeds) == size:
-        last = [(score(start), deck_key(seeds), seeds, start)]
-    chosen = []
-    for s_, k, d, _ in last:
-        if not check_deck(d, ctx.cards, ctx.rules).legal:
-            continue
-        ids = {e.card_id for e in d}
-        if all(len(ids - {e.card_id for e in c["entries"]}) >= min_diff for c in chosen):
-            chosen.append({"entries": d, "key": k, "win_vs": s_})
-        if len(chosen) == n_results:
-            break
-    for c in chosen:     # never return an illegal deck
-        assert check_deck(c["entries"], ctx.cards, ctx.rules).legal
-    return chosen
