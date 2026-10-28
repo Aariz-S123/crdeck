@@ -800,8 +800,20 @@ if MU:
       "each was played), a card's counter effect and a deck's win rate are:")
     formula("effect(i) = w_i + Σ_o n_o Σ_{j∈o} K(i, j) / Σ_o n_o")
     formula("win rate(A) = Σ_o n_o · σ(z(A, o)) / Σ_o n_o")
-    p("Counter decks come from the same beam search as the deck builder, restricted to legal, unlocked partial decks, "
-      "scoring this win rate instead of the field win rate.")
+    p("Counter decks are real decks. The first version searched every legal card combination for the highest win rate "
+      "against the opponents and returned decks nobody plays: on Ranked, all 24 suggested decks had never been played, "
+      "shared at most 2 to 4 cards with any real deck, used cards that are rarely played together, mostly carried deck "
+      "warnings such as four tanks and no air defense, and claimed 85 to 93% win rates. The model adds up card effects "
+      "and was only ever checked on decks people play, so a search over arbitrary combinations exploits it.")
+    pool_min = MU.get("pool_min_battles", 5)
+    p(f"Now the candidates are the decks played at least {pool_min} times in the training battles, legal and unlocked "
+      "in the mode (the 3,000 most played). They are ranked with the deck builder's own objective, with its win term "
+      "replaced by the win rate against the opponents:")
+    formula(f"score(A) = win rate(A) + {RANKED['config']['search']['synergy_weight']} × mean pair synergy "
+            f"+ {RANKED['config']['search']['cooccurrence_weight']} × mean log-lift")
+    p("Each counter deck also gets one optional tech swap: one card for a card of the same type (troop, spell or "
+      "building) and the same win-condition role, only if it raises both the win rate against the opponents and the "
+      "score, and adds no deck warning. The deck shown stays the real one; the swap is a suggestion.")
     rows = [["Later battles, same pool of players", n(ev["battles"]), f"{ev['auc_strength']:.3f}", f"{ev['auc_matchup']:.3f}",
              f"{ev['difference']:+.4f} ({ev['difference_ci90'][0]:+.4f} to {ev['difference_ci90'][1]:+.4f})"]]
     if pd_:
@@ -809,18 +821,34 @@ if MU:
                      f"{pd_['auc_matchup']:.3f}", f"{pd_['difference']:+.4f} ({pd_['difference_ci90'][0]:+.4f} to {pd_['difference_ci90'][1]:+.4f})"])
     table(["Held-out check (Ranked)", "Battles", "AUC without", "AUC with", "Log-loss change (90%)"], rows, widths=[5.6, 2.2, 2.2, 2.2, 4.8])
     p("The first row looks strong, but the same top players appear in every collection, so part of it is the model "
-      "recognizing regulars. The second row removes every player of the test battles from training: the gain shrinks to "
-      "about a tenth, yet its whole 90% range stays below zero. That is the honest number for a new player, and the page "
-      "bases its verdict on it. The counter-deck win rate is the best of a large search, so it runs high; the page shows it "
-      "next to the deck's normal win rate against all top decks.")
-    snippet("Counter-deck search: precomputed per-card effects make each step cheap", "src/crdeck/matchup.py",
-            py_func("src/crdeck/matchup.py", "counter_search", 40),
-            [("What it does.", "Each candidate card's contribution against every opponent deck (w_c plus its K with that "
-              "deck's cards) is computed once. A partial deck's total is then a running sum, so scoring a child deck is one "
-              "vector addition and a sigmoid per opponent deck."),
-             ("Why.", "The beam search scores many thousands of partial decks; this keeps a search under a second. Legality "
-              "and arena unlocks are checked with the same rules as everywhere else, and ties are broken at a fixed "
-              "precision so the website returns the same decks.")])
+      "recognizing regulars. The second row removes every player of the test battles from training: the gain shrinks, "
+      "yet its whole 90% range stays below zero. That is the honest number for a new player.")
+    bt = MU.get("backtest")
+    if bt:
+        p(f"The ranking itself is checked too. For every deck style, the {bt['top']} decks ranked best against it, the "
+          f"{bt['top']} decks the deck builder ranks strongest overall, and every real deck are compared on how often they "
+          "actually beat that style in the test window, which no model was trained on:")
+        def cellv(g):
+            return f"{100 * g['rate']:.1f}% ({n(g['wins'])} of {n(g['games'])})" if g and g["games"] else "no games"
+        brows = [["Every player"] + [cellv(bt["pooled"][g]) for g in ("counter", "field", "all")]]
+        if bt.get("pooled_new"):
+            brows.append(["Players the model never saw"] + [cellv(bt["pooled_new"][g]) for g in ("counter", "field", "all")])
+        table(["Ranked, games won vs the target style", f"Top {bt['top']} counter decks", f"Top {bt['top']} strongest decks",
+               "All real decks"], brows, widths=[5.0, 4.0, 4.0, 4.0])
+        words = {"beats_strongest": "the counter decks beat the strongest decks overall against their target style",
+                 "beats_average": "the counter decks beat an average real deck, but not clearly the strongest decks overall",
+                 "not_shown": "the counter decks were not shown to beat an average real deck",
+                 "too_few": "there were too few games to judge"}
+        p(f"Verdict for Ranked: {words[bt['verdict']]}. The website shows this check for every league and arena "
+          "separately; in some, such as Trophy Road as a whole, the strongest decks did better.")
+    snippet("Counter decks: ranking real decks against the opponents", "src/crdeck/counters.py",
+            py_func("src/crdeck/counters.py", "counter_decks", 30),
+            [("What it does.", "Every real deck in the pool is scored against the opponent decks with the counter score "
+              "(win rate against them plus synergy and played-together terms); the best ones that differ by enough cards "
+              "are kept, and each gets its tech swap."),
+             ("Why.", "Ranking real decks keeps the model where it was tested. Each card's effect against every opponent "
+              "deck is computed once, so scoring a deck is a sum and one sigmoid per opponent deck, and the website "
+              "reproduces the same ranking exactly.")])
 
 # ------------------------------------------------------------------ 7 website
 doc.add_heading("9. The website", 1)
@@ -830,7 +858,7 @@ table(["Page", "What it shows"], [
     ["Why this deck (reason.html)", "Opened from a deck: a plain-language summary, each card's weight, the model compared with real results, card pairs, warnings, swaps with their math written out, a rotatable 3D card map with card-map swaps and nearest-card tables, and the raw score."],
     ["All cards (cards.html)", "Every card form and every row of your card CSV: battle stats, learned weight, and your CSV's own numbers."],
     ["Meta (meta.html)", "How ranked card usage changed between collections, deck styles per period, and the forecast's status and assumptions."],
-    ["Counters (counters.html)", "Pick a deck style or the cards you face; get counter cards with their matchups and 3 legal, unlocked counter decks, with an honest verdict that includes a player-disjoint check."],
+    ["Counters (counters.html)", "Pick a deck style or the cards you face; get counter cards with their matchups and 3 real counter decks (played at least 5 times, legal, unlocked) with their real record against the style and a tech swap, plus a held-out check of the ranking."],
     ["Next season (seasons.html)", "Today's most-played ranked decks with their trend, new cards between saved card lists, and a next-season prediction that stays locked until enough seasons are collected."],
     ["How it works (model.html)", "The method in five steps, held-out results against baselines, limits, a glossary, and the full model log."],
 ], widths=[4.4, 12.6])

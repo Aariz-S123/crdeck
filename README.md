@@ -51,7 +51,7 @@ The deck builder also runs as a small website that runs the trained model in the
 | `web/cards.html` (All cards) | Every row of `data/labels/source/cards_meta.csv` and every card form: status, battle stats, regression weight, your CSV's numbers |
 | `web/meta.html` (Meta) | Ranked usage history, biggest movers, deck styles per period, forecast status and assumptions |
 | `web/seasons.html` (Next season) | Today's most-played ranked decks with their trend, new cards / Evolutions / Heroes between saved card lists, and a next-season prediction that stays locked until 3 seasons are collected and it beats "no change" on a held-out season |
-| `web/counters.html` (Counters) | Pick a deck style or the cards you face; shows counter cards (with each matchup and its 90% range) and 3 legal, unlocked counter decks from the card-vs-card matchup model, plus an honest verdict including a player-disjoint held-out check (docs/model-notes.md §17) |
+| `web/counters.html` (Counters) | Pick a deck style or the cards you face; shows counter cards (with each matchup and its 90% range) and 3 counter decks that are real decks (played at least 5 times, legal, unlocked) ranked against them by the card-vs-card matchup model, each with its real record against the style after training and one like-for-like tech swap, plus a held-out check of the ranking (docs/model-notes.md §17) |
 | `web/model.html` (How it works) | How the model is built, held-out results against baselines, limits, a glossary, and the full run log |
 
 - `web/common.js` and `web/app.css` are shared by all pages; `web/engine.js` is a JavaScript port of the scoring, search, legality, warnings, archetype and explanation code.
@@ -85,7 +85,7 @@ Or open `notebooks/07_demo.ipynb`.
    schtasks /Create /SC DAILY /ST 20:00 /TN crdeck-collect /TR "C:\Users\simty\crdeck\.venv\Scripts\python.exe -m crdeck collect --window auto"
    ```
    For lower arenas, also run `python -m crdeck collect --arenas --window auto`: it finds players in every Trophy Road arena through clan search (and their ladder opponents), up to `arena_sample.players_per_arena` each, and prints how many each arena got. Those logs are kept apart (`battlelog_arena/`) and are not used for the meta history.
-4. Refresh order: `collect` → `build` → `evaluate` → `python scripts/export_web.py` → `node scripts/check_web_engine.mjs` → `node scripts/sweep_web_engine.mjs`. The export re-runs the evaluation for any mode whose saved one is stale. Then the notebooks. Models retrain automatically when data, labels, configs or code change (cache: `data/processed/context_cache_<mode>.pkl`; `CRDECK_NO_CACHE=1` forces a retrain). `data/raw_manifest.csv` (tracked) records every raw file's fetch time, since `data/raw` itself is not committed.
+4. Refresh order: `collect` → `build` → `evaluate` → `python scripts/export_web.py` → `node scripts/check_web_engine.mjs` → `node scripts/sweep_web_engine.mjs`. The export re-runs the evaluation for any mode whose saved one is stale. Then the notebooks. Models retrain automatically when data, labels, configs or code change (cache: `data/processed/context_cache_<mode>.pkl`; `CRDECK_NO_CACHE=1` forces a retrain); the counter page's `src/crdeck/counters.py` and `config/counters.yaml` run after training and never trigger a retrain. `data/raw_manifest.csv` (tracked) records every raw file's fetch time, since `data/raw` itself is not committed.
 5. Re-check notebook 02's slot audit and notebook 06's co-occurrence tuning after each new window.
 
 ## Synthetic data (pipeline testing only)
