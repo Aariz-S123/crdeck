@@ -104,17 +104,27 @@ combo(evos.slice(0, 3).map((c) => ({ id: c.id, form: "evo" })), "three evolution
 combo([{ id: heroes[0].id, form: "hero" }, { id: heroes[1].id, form: "hero" }, { id: champs[0].id, form: "base" }], "2 heroes + champion", true);
 combo([{ id: champs[0].id, form: "base" }, { id: heroes[0].id, form: "hero" }, { id: evos[0].id, form: "evo" }], "champion + hero + evo", false);
 run([], "no seeds", false);
-// 3b. counter search against every deck style: legal, unlocked decks; win rates are probabilities
+// 3b. counters against every deck style: only real decks (in the pool), legal and unlocked, win rates are
+// probabilities; every tech swap is like-for-like, legal, unlocked, an improvement, and adds no deck warning
 if (model.matchup) for (const st of Object.keys(model.matchup.styles)) {
   const opps = E.opponentsFor({ style: st });
   if (!opps.length) continue;
   searches++;
-  const res = E.counterSearch(opps, []);
-  if (!res.length) bad(`${entry.slug}: no counter deck for ${st}`);
+  const res = E.counterDecks(opps), pool = new Set(E.counterPool().map((p) => p.key));
+  if (!res.length && pool.size) bad(`${entry.slug}: no counter deck for ${st}`);
   for (const d of res) {
+    if (!pool.has(d.key)) bad(`${entry.slug}: counter deck vs ${st} is not a real deck ${d.key}`);
     if (!E.checkDeck(d.entries).legal) bad(`${entry.slug}: illegal counter deck vs ${st} ${d.key}`);
     lockedUse(`${entry.slug} counter vs ${st}`, d.entries);
     if (!(d.win_vs > 0 && d.win_vs < 1)) bad(`${entry.slug}: counter win rate ${d.win_vs} vs ${st}`);
+    const w = d.swap; if (!w) continue;
+    swapsChecked++;
+    const a = E.card(w.replace.id), b = E.card(w.with.id), codes = (x) => new Set(E.structuralWarnings(x).map((y) => y.code)), before = codes(d.entries);
+    if (a.type !== b.type || Boolean(a.wincon) !== Boolean(b.wincon)) bad(`${entry.slug}: tech swap vs ${st} is not like-for-like ${keyOf(w.replace)} > ${keyOf(w.with)}`);
+    if (!E.checkDeck(w.entries).legal) bad(`${entry.slug}: illegal tech swap vs ${st} ${w.key}`);
+    lockedUse(`${entry.slug} tech swap vs ${st}`, w.entries);
+    if (!(w.win_vs > d.win_vs && w.score > d.score)) bad(`${entry.slug}: tech swap vs ${st} does not improve ${w.key}`);
+    if (![...codes(w.entries)].every((x) => before.has(x))) bad(`${entry.slug}: tech swap vs ${st} adds a deck warning ${w.key}`);
   }
   for (const c of E.counterCards(opps, model.matchup.top_cards)) if (!finite(c.effect) || !E.isAvailable(c.entry)) bad(`${entry.slug}: counter card ${c.card} vs ${st}`);
 }

@@ -34,6 +34,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from crdeck import runlog  # noqa: E402
 from crdeck.config import Paths, collection_config, model_config  # noqa: E402
+from crdeck.counters import counters_config  # noqa: E402
 from crdeck.evaluate import full_report  # noqa: E402
 from crdeck.explain import build_explanation  # noqa: E402
 from crdeck.forecast import meta_report  # noqa: E402
@@ -145,20 +146,41 @@ def export_model(ctx) -> dict:
     return model
 
 
+def counter_inputs(ctx) -> dict:
+    """Settings, real-deck pool, its evaluations and the opponent sets for the counter page
+    (crdeck.counters), computed once per mode and kept on the Context for the golden file."""
+    got = getattr(ctx, "_counter_inputs", None)
+    if got is None:
+        from crdeck import counters as cm
+        cfg = cm.counters_config()
+        s = Searcher(ctx)
+        pool = cm.counter_pool(ctx, int(cfg["pool"]["min_battles"]), int(cfg["pool"]["max_decks"]))
+        got = {"cfg": cfg, "searcher": s, "pool": pool, "evals": cm.pool_evaluations(s, pool),
+               "sets": cm.opponent_sets(ctx, int(cfg["opponents_per_set"]))}
+        ctx._counter_inputs = got
+    return got
+
+
 def matchup_dict(ctx) -> dict | None:
-    """Card-vs-card weights and opponent decks for the counter search (crdeck.matchup); None if not trained."""
+    """Card-vs-card weights, opponent decks, the real-deck pool with its held-out records and the
+    held-out check of the counter ranking (crdeck.matchup, crdeck.counters); None if not trained."""
     m = ctx.matchup
     if m is None:
         return None
-    from crdeck.matchup import opponent_sets
-    cfg = ctx.cfg["matchup"]
-    sets = opponent_sets(ctx, int(cfg["opponents_per_set"]))
+    from crdeck import counters as cm
+    ci = counter_inputs(ctx)
+    cfg, pool, sets = ci["cfg"], ci["pool"], ci["sets"]
+    rec, rec_new = cm.deck_records(ctx, pool, cm.new_player_sides(ctx))
+    bt = cm.backtest(ctx, m, ci["searcher"], pool, sets["styles"], rec, rec_new, int(cfg["backtest"]["top"]),
+                     int(cfg["backtest"]["min_games"]), ci["evals"])
     r = lambda x: None if x != x else round(float(x), 7)  # noqa: E731  (NaN -> None)
     return {"C": m.C, "min_pair_battles": m.min_pair_battles,
             "cards": {k: [r(v), r(m.w_se.get(k, float("nan")))] for k, v in m.w.items()},
             "pairs": [[i, j, r(m.K[(i, j)]), r(m.K_se.get((i, j), float("nan"))), m.pair_battles[(i, j)]] for i, j in m.pairs],
             "choice": ctx.matchup_choice, "evaluation": ctx.matchup_eval,
             "styles": sets["styles"], "decks": sets["decks"][:1000],
+            "pool": [[d, n, rec.get(d, {})] for d, n in pool], "pool_min_battles": int(cfg["pool"]["min_battles"]),
+            "backtest": bt, "tech_swap": bool(cfg["tech_swap"]),
             "opponents_per_set": int(cfg["opponents_per_set"]), "n_results": int(cfg["n_results"]), "top_cards": int(cfg["top_cards"])}
 
 
@@ -326,10 +348,10 @@ def golden_counters(ctx, s) -> list:
     deck, and one card (the decks holding it)."""
     if ctx.matchup is None:
         return []
-    from crdeck.matchup import counter_cards, counter_search, decks_with, opponent_sets
-    m, cfg = ctx.matchup, ctx.cfg["matchup"]
+    from crdeck.counters import counter_cards, counter_decks, decks_with
+    ci = counter_inputs(ctx)
+    m, cfg, pool, sets = ctx.matchup, ci["cfg"], ci["pool"], ci["sets"]
     per = int(cfg["opponents_per_set"])
-    sets = opponent_sets(ctx, per)
     decks = sets["decks"][:1000]
     cases = [("style", st, sets["styles"][st]) for st in sorted(sets["styles"])[:2]]
     if decks:
@@ -337,15 +359,18 @@ def golden_counters(ctx, s) -> list:
         first = decks[0][0].split("|")[0]
         cases.append(("cards", first, decks_with(decks, [first], per)))
     cands = [f"{c.card_id}:{c.form}" for c in s.candidates]
+    swap = lambda w: None if w is None else {"key": w["key"], "replace": w["replace"].key, "with": w["with"].key,  # noqa: E731
+                                             "win_vs": w["win_vs"], "score": w["score"], "played": w["played"]}
     out = []
     for kind, what, opp in cases:
         if not opp:
             continue
-        res = counter_search(ctx, m, s, opp, [], int(cfg["n_results"]), int(ctx.cfg["search"]["beam_width"]),
-                             int(ctx.cfg["search"]["min_diff_cards"]))
+        res = counter_decks(ctx, m, s, opp, pool, int(cfg["n_results"]), int(ctx.cfg["search"]["min_diff_cards"]),
+                            bool(cfg["tech_swap"]), ci["evals"])
         cards = counter_cards(m, cands, opp, int(cfg["top_cards"]))
         out.append({"kind": kind, "what": what, "opponents": opp,
-                    "decks": [{"key": r["key"], "win_vs": r["win_vs"]} for r in res],
+                    "decks": [{"key": r["key"], "win_vs": r["win_vs"], "score": r["score"], "played": r["played"],
+                               "swap": swap(r["swap"])} for r in res],
                     "cards": [{"card": c["card"], "effect": c["effect"]} for c in cards]})
     return out
 
@@ -408,7 +433,7 @@ def main() -> None:
     runlog.write_section(paths, "export", {
         "exported_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "code": runlog.git_version(), "label_versions": labels,
-        "config": {"collection": ccfg, "model": mcfg},
+        "config": {"collection": ccfg, "model": mcfg, "counters": counters_config()},
         "modes": [{k: m.get(k) for k in ("slug", "label", "status", "ok_battles", "reason")} for m in modes]})
     index = {
         "default": "ranked", "modes": modes,

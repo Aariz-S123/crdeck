@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const { Engine, parseKey, SeedError } = require(join(root, "web", "engine.js"));
+const { Engine, parseKey, keyOf, SeedError } = require(join(root, "web", "engine.js"));
 const index = JSON.parse(readFileSync(join(root, "web", "modes.json"), "utf8"));
 
 let failures = 0, checks = 0;
@@ -74,15 +74,21 @@ for (const s of golden.searches) {
   console.log(`search ${s.seeds.join(",") || "(none)"}: ${res.length} decks and ${sw.length} swaps match`);
 }
 
-// 2b. counter search: same counter decks, win rates against the opponents, and counter cards as Python
+// 2b. counters: same real counter decks, scores, win rates against the opponents, tech swaps, and counter cards as Python
 for (const c of golden.counters || []) {
   checks++;
-  const dj = eng.counterSearch(c.opponents, []), cj = eng.counterCards(c.opponents, model.matchup.top_cards);
+  const dj = eng.counterDecks(c.opponents), cj = eng.counterCards(c.opponents, model.matchup.top_cards);
   if (!same(dj.map((d) => d.key), c.decks.map((d) => d.key))) fail(`counter decks ${c.kind} ${c.what}: js ${dj.map((d) => d.key).join(" / ")} vs py ${c.decks.map((d) => d.key).join(" / ")}`);
-  dj.forEach((d, i) => { if (c.decks[i] && !close(d.win_vs, c.decks[i].win_vs, 1e-9)) fail(`counter deck win ${d.key}: ${d.win_vs} vs ${c.decks[i].win_vs}`); });
+  dj.forEach((d, i) => {
+    const p = c.decks[i]; if (!p) return;
+    if (!close(d.win_vs, p.win_vs, 1e-9) || !close(d.score, p.score, 1e-9) || d.played !== p.played) fail(`counter deck ${d.key}: win ${d.win_vs} vs ${p.win_vs}, score ${d.score} vs ${p.score}, played ${d.played} vs ${p.played}`);
+    const js = d.swap ? `${keyOf(d.swap.replace)}>${keyOf(d.swap.with)}` : "none", py = p.swap ? `${p.swap.replace}>${p.swap.with}` : "none";
+    if (js !== py) fail(`tech swap for ${d.key}: js ${js} vs py ${py}`);
+    else if (d.swap && (!close(d.swap.win_vs, p.swap.win_vs, 1e-9) || !close(d.swap.score, p.swap.score, 1e-9) || d.swap.key !== p.swap.key || d.swap.played !== p.swap.played)) fail(`tech swap numbers for ${d.key}`);
+  });
   if (!same(cj.map((x) => x.card), c.cards.map((x) => x.card))) fail(`counter cards ${c.kind} ${c.what}: js ${cj.map((x) => x.card)} vs py ${c.cards.map((x) => x.card)}`);
   cj.forEach((x, i) => { if (c.cards[i] && !close(x.effect, c.cards[i].effect, 1e-9)) fail(`counter card effect ${x.card}: ${x.effect} vs ${c.cards[i].effect}`); });
-  console.log(`counters ${c.kind} ${String(c.what).slice(0, 30)}: ${dj.length} decks and ${cj.length} cards match`);
+  console.log(`counters ${c.kind} ${String(c.what).slice(0, 30)}: ${dj.length} decks (${dj.filter((d) => d.swap).length} tech swaps) and ${cj.length} cards match`);
 }
 
 // 3. explanations of each search's top deck

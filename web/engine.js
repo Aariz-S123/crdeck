@@ -424,7 +424,7 @@
       out.sort((a, b) => tie(b.delta_win_prob) - tie(a.delta_win_prob) || tie(a.distance) - tie(b.distance) || (a.new_deck_key < b.new_deck_key ? -1 : 1));
       return out.slice(0, em.top);
     }
-    // ------------------------------------------------------------------ counters (crdeck.matchup)
+    // ------------------------------------------------------------------ matchup model and counter cards (crdeck.matchup, crdeck.counters)
     _mu() {
       const mu = this.m.matchup; if (!mu) return null;
       if (!this._muK) { this._muK = new Map(); for (const [i, j, k, se, n] of mu.pairs) this._muK.set(`${i}|${j}`, [k, se, n]); }
@@ -480,53 +480,83 @@
       out.sort((a, b) => tie(b.effect) - tie(a.effect) || (a.card < b.card ? -1 : 1));
       return out.slice(0, top);
     }
-    // legal, unlocked decks (holding the seeds) with the highest estimated win rate against the opponents
-    counterSearch(opps, seeds = []) {
-      const mu = this._mu(); if (!mu || !opps.length) return [];
-      const size = this.m.rules.deck_size, width = Number(this.cfg.search.beam_width), minDiff = Number(this.cfg.search.min_diff_cards);
-      const uniq = []; const seenSeed = new Set();
-      for (const s of seeds) { const k = keyOf(s); if (!seenSeed.has(k)) { seenSeed.add(k); uniq.push(s); } }
-      seeds = uniq;
-      const locked = seeds.filter((s) => !this.isAvailable(s));
-      if (locked.length) throw new SeedError(`not unlocked in ${this.m.availability.arena}: ${locked.map((s) => this.whyNot(s)).join("; ")}`);
-      if (!this.checkPartial(seeds).legal) throw new SeedError("seed cards cannot form a legal deck");
-      const opp = opps.map(([o, n]) => [[...new Set(o.split("|").filter(Boolean))], n]), N = opp.reduce((t, [, n]) => t + n, 0);
-      const u = opp.map(([o]) => o.reduce((t, j) => t + this.muW(j), 0));
-      const evec = (e) => { const c = keyOf(e); return opp.map(([o]) => { let v = this.muW(c); for (const j of o) v += this.muK(c, j); return v; }); };
-      const cands = this.candidates.filter((c) => keyOf(c) in mu.cards), E = new Map();
-      for (const c of cands) E.set(keyOf(c), evec(c));
-      for (const s of seeds) if (!E.has(keyOf(s))) E.set(keyOf(s), evec(s));
-      const score = (t) => { let s = 0; for (let k = 0; k < t.length; k++) s += opp[k][1] * sigmoid(t[k] - u[k]); return s / N; };
-      const add = (a, b) => a.map((x, k) => x + b[k]);
-      let start = new Array(opp.length).fill(0); for (const s of seeds) start = add(start, E.get(keyOf(s)));
-      let beam = [[seeds, start]], last = [];
-      for (let step = 0; step < size - seeds.length; step++) {
-        const seen = new Set(), children = [];
-        for (const [d, t] of beam) {
-          const ids = new Set(d.map((e) => e.id));
-          for (const c of cands) {
-            if (ids.has(c.id)) continue;
-            const ne = d.concat([c]), k = deckKey(ne);
-            if (seen.has(k) || !this.checkPartial(ne).legal) continue;
-            seen.add(k);
-            const t2 = add(t, E.get(keyOf(c)));
-            children.push([score(t2), k, ne, t2]);
-          }
-        }
-        if (!children.length) return [];
-        children.sort((a, b) => tie(b[0]) - tie(a[0]) || (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0));
-        last = children; beam = children.slice(0, width).map(([, , d, t]) => [d, t]);
+    // ------------------------------------------------------------------ counter decks (crdeck.counters)
+    // Real decks only: played at least pool_min_battles times in the training battles, legal and unlocked
+    // here, each with its held-out record against every opponent style ({style: [games, wins]}).
+    counterPool() {
+      const mu = this._mu(); if (!mu) return [];
+      if (!this._pool) {
+        this._pool = (mu.pool || []).map(([key, played, rec]) => ({ key, played, rec: rec || {}, entries: parseDeckKey(key) }));
+        this._poolIndex = new Map(this._pool.map((p) => [p.key, p]));
       }
-      if (seeds.length === size) last = [[score(start), deckKey(seeds), seeds, start]];
+      return this._pool;
+    }
+    _poolEval(p) { if (!p.ev) p.ev = this.evaluate(p.entries); return p.ev; }
+    // W(A | O) and the counter score for one opponent set (crdeck.counters._Scorer): each card form's effect
+    // against every opponent deck is computed once, e_c[o] = w_c + Σ_{j∈o} K(c, j), and with
+    // u_o = Σ_{j∈o} w_j, W(A | O) = Σ_o n_o σ(Σ_{c∈A} e_c[o] − u_o) / Σ_o n_o. Same summation order as Python.
+    _counterScorer(opps) {
+      const opp = opps.map(([o]) => [...new Set(o.split("|").filter(Boolean))]);
+      const n = opps.map(([, k]) => k), N = n.reduce((a, b) => a + b, 0);
+      const u = opp.map((o) => { let s = 0; for (const j of o) s += this.muW(j); return s; });
+      const cache = new Map();
+      const e = (c) => {
+        let v = cache.get(c);
+        if (!v) { const w = this.muW(c); v = opp.map((o) => { let s = 0; for (const j of o) s += this.muK(c, j); return w + s; }); cache.set(c, v); }
+        return v;
+      };
+      const win = (t) => { let s = 0; for (let k = 0; k < t.length; k++) s += n[k] * sigmoid(t[k] - u[k]); return s / N; };
+      const total = (entries) => { let t = new Array(opp.length).fill(0); for (const x of entries) { const v = e(keyOf(x)); t = t.map((a, k) => a + v[k]); } return t; };
+      const score = (wv, ev) => wv + this.weight * ev.mean_synergy + this.coWeight * ev.mean_log_lift;
+      return { e, win, total, score };
+    }
+    // The best-scoring real decks against the opponents, each differing from the ones before by at least
+    // min_diff_cards cards, with their tech swap. score = W(A | O) + synergy weight × synergy + co-weight × log-lift.
+    counterDecks(opps) {
+      const mu = this._mu(), pool = this.counterPool(); if (!mu || !opps.length || !pool.length) return [];
+      const sc = this._counterScorer(opps), minDiff = Number(this.cfg.search.min_diff_cards);
+      const rows = pool.map((p) => {
+        const t = sc.total(p.entries), wv = sc.win(t), ev = this._poolEval(p);
+        return { key: p.key, entries: p.entries, played: p.played, rec: p.rec, win_vs: wv, score: sc.score(wv, ev), field_win: ev.win_prob, total: t };
+      });
+      rows.sort((a, b) => tie(b.score) - tie(a.score) || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
       const chosen = [];
-      for (const [s, k, d] of last) {
-        if (!this.checkDeck(d).legal) continue;
-        const ids = new Set(d.map((e) => e.id));
-        if (chosen.every((c) => [...ids].filter((x) => !c.ids.has(x)).length >= minDiff)) chosen.push({ entries: sortedEntries(d), key: k, win_vs: s, ids });
+      for (const r of rows) {
+        const ids = new Set(r.entries.map((e) => e.id));
+        if (chosen.every((c) => [...ids].filter((x) => !c.ids.has(x)).length >= minDiff)) chosen.push(Object.assign(r, { ids }));
         if (chosen.length === Number(mu.n_results)) break;
       }
-      for (const c of chosen) if (!this.checkDeck(c.entries).legal) throw new Error("counter search produced an illegal deck");
-      return chosen.map(({ entries, key, win_vs }) => ({ entries, key, win_vs }));
+      return chosen.map((r) => {
+        if (!this.checkDeck(r.entries).legal) throw new Error("counter deck is not legal");
+        return { entries: sortedEntries(r.entries), key: r.key, played: r.played, rec: r.rec, win_vs: r.win_vs, score: r.score,
+                 field_win: r.field_win, swap: mu.tech_swap ? this.techSwap(r, sc) : null };
+      });
+    }
+    // The like-for-like single change (same card type, same win-condition flag) that raises both W(A | O)
+    // and the score without adding a deck warning (crdeck.counters._Scorer.tech_swap).
+    techSwap(row, sc) {
+      const codes = (d) => new Set(this.structuralWarnings(d).map((w) => w.code));
+      const base = codes(row.entries), ids = new Set(row.entries.map((e) => e.id)), found = [];
+      const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+      for (const old of row.entries) {
+        const oc = this.card(old.id), rest = row.entries.filter((e) => !(e.id === old.id && e.form === old.form)), eo = sc.e(keyOf(old));
+        for (const c of this.candidates) {
+          if (ids.has(c.id) || !(keyOf(c) in this.m.matchup.cards)) continue;
+          const cc = this.card(c.id);
+          if (cc.type !== oc.type || Boolean(cc.wincon) !== Boolean(oc.wincon)) continue;
+          const ne = rest.concat([c]);
+          if (!this.checkDeck(ne).legal) continue;
+          const ec = sc.e(keyOf(c)), wv = sc.win(row.total.map((x, k) => x - eo[k] + ec[k])), s = sc.score(wv, this.evaluate(ne));
+          if (tie(wv) > tie(row.win_vs) && tie(s) > tie(row.score)) found.push({ s, ok: keyOf(old), nk: keyOf(c), old, c, wv, ne });
+        }
+      }
+      found.sort((a, b) => tie(b.s) - tie(a.s) || cmp(a.ok, b.ok) || cmp(a.nk, b.nk));
+      for (const f of found) {
+        if (![...codes(f.ne)].every((x) => base.has(x))) continue;
+        const k = deckKey(f.ne), p = this._poolIndex.get(k);
+        return { replace: f.old, with: f.c, key: k, entries: sortedEntries(f.ne), win_vs: f.wv, score: f.s, played: p ? p.played : 0 };
+      }
+      return null;
     }
     // Held-out check of the regression: decks played in the test window, grouped into
     // bins of equal battle count by model strength (sum of weights), with their real win share.
