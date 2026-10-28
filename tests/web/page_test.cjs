@@ -8,6 +8,7 @@ const { JSDOM, VirtualConsole } = require("jsdom");
 const WEB = path.join(__dirname, "..", "..", "web");
 const engine = fs.readFileSync(path.join(WEB, "engine.js"), "utf8");
 const common = fs.readFileSync(path.join(WEB, "common.js"), "utf8");
+const { deckKey } = require(path.join(WEB, "engine.js"));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const fails = [], out = {};
 const expect = (c, m) => { if (!c) fails.push(m); };
@@ -226,16 +227,24 @@ function clean(name, d, errors) {
   p = await open("counters.html", "ranked"); d = p.d;
   await until(() => d.querySelectorAll(".deck .tile").length >= 8);
   const Er = new (require(path.join(WEB, "engine.js")).Engine)(JSON.parse(fs.readFileSync(path.join(WEB, "models", "ranked.json"), "utf8")));
-  const deckOk = (doc, E) => [...doc.querySelectorAll(".deck a.btn.primary")].every((a) => {
-    const ents = a.getAttribute("href").split("~")[1].split("-").map((t) => { const m = /^(\d+)([beh])$/.exec(t); return { id: Number(m[1]), form: { b: "base", e: "evo", h: "hero" }[m[2]] }; });
-    return ents.length === 8 && E.checkDeck(ents).legal && ents.every((e) => E.isAvailable(e));
-  });
+  // every counter deck is a real deck (in the exported pool), legal, unlocked, and labelled as real
+  const deckOk = (doc, E) => {
+    const pool = new Set(E.counterPool().map((p) => p.key)), decks = [...doc.querySelectorAll(".deck")];
+    return decks.every((dk) => {
+      const a = dk.querySelector("a.btn.primary"), tag = dk.querySelector(".realtag");
+      const ents = a.getAttribute("href").split("~")[1].split("-").map((t) => { const m = /^(\d+)([beh])$/.exec(t); return { id: Number(m[1]), form: { b: "base", e: "evo", h: "hero" }[m[2]] }; });
+      return ents.length === 8 && E.checkDeck(ents).legal && ents.every((e) => E.isAvailable(e)) && pool.has(deckKey(ents)) && tag && /played [\d,]+ times/.test(tag.textContent);
+    });
+  };
   const cardNames = () => [...d.querySelectorAll(".ccard .nm")].map((x) => x.textContent).join();
   out.counters = { verdict: d.querySelector("#verdict .pill") && d.querySelector("#verdict .pill").textContent,
     verdictRows: d.querySelectorAll("#verdict tbody tr").length, styles: d.querySelectorAll("[data-style]").length,
     cards: d.querySelectorAll(".ccard").length, decks: d.querySelectorAll(".deck").length,
     navHas: !![...d.querySelectorAll(".nav a")].find((a) => a.textContent === "Counters") };
   expect(out.counters.verdict && out.counters.verdictRows >= 1, "counters: honest verdict shown");
+  out.counters.records = [...d.querySelectorAll(".deck .wins")].map((x) => /won [\d,]+ of [\d,]+|no games vs/.test(x.textContent));
+  expect(out.counters.records.every(Boolean), "counters: each deck shows its real record against the style (or says it has none)");
+  out.counters.swaps = d.querySelectorAll(".deck .swapbox").length;
   expect(out.counters.styles > 0 && out.counters.cards > 0, "counters: styles and counter cards shown");
   expect(out.counters.decks === Er.m.matchup.n_results, "counters: n_results counter decks");
   expect(deckOk(d, Er), "counters: decks are legal and unlocked");

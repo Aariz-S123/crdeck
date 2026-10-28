@@ -46,6 +46,8 @@
 .wins span { font-size: 0.8125rem; color: var(--muted); }
 .formula { white-space: pre-wrap; font: 0.8125rem/1.6 ui-monospace, "Cascadia Mono", Consolas, monospace; background: var(--sunken); padding: 10px 12px; border-radius: 8px; overflow-x: auto; }
 .opps { display: grid; gap: 6px; }
+.realtag { font-size: 0.75rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--sunken); color: var(--ink); white-space: nowrap; }
+.swapbox { display: grid; gap: 4px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 8px; font-size: 0.875rem; }
 .opps .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); font-size: 0.8125rem; color: var(--muted); }
 </style>
 </head>
@@ -56,7 +58,7 @@
   <main id="main" class="wrap">
     <div class="pagehead">
       <h1>Counter a deck</h1>
-      <p class="lede">Pick the kind of deck you keep losing to, or the exact cards. The builder suggests cards and decks that did well against it in real battles, learned from card-vs-card matchups.</p>
+      <p class="lede">Pick the kind of deck you keep losing to, or the exact cards. You get the cards that do best against it, and real decks that players use, ranked by how well they should do against it. Both are learned from card-vs-card matchups in real battles.</p>
       <div class="modebar" id="modebar"></div>
       <div class="facts" id="facts"></div>
     </div>
@@ -96,17 +98,35 @@
     renderVerdict(mu); renderWho(mu); run();
   }
 
+  const VERDICT = {
+    beats_strongest: ["good", "Counter decks beat their target style more often than the strongest decks overall"],
+    beats_average: ["weak", "Better than an average real deck; not clearly better than the strongest decks"],
+    not_shown: ["bad", "Not shown to beat an average real deck in this mode"],
+    too_few: ["weak", "Too few later games to check in this mode"],
+  };
+  const cell = (g) => (g && g.games ? `<td>${pct(g.rate)} <span class="muted small">(${num(g.wins)} of ${num(g.games)}; 90% ${pct(g.ci90[0], 0)} to ${pct(g.ci90[1], 0)})</span></td>` : `<td class="muted">no games</td>`);
   function renderVerdict(mu) {
-    const ev = mu.evaluation, pd = ev.player_disjoint;
-    const newOk = pd && pd.difference_ci90[1] < 0, allOk = ev.difference_ci90[1] < 0;
-    const pill = newOk ? `<span class="pill good">Real but modest for new players</span>` : allOk ? `<span class="pill weak">Helps on familiar players; unproven for new ones</span>` : `<span class="pill bad">Not clearly better than ignoring matchups</span>`;
+    const bt = mu.backtest, ev = mu.evaluation, pd = ev.player_disjoint, tw = ctx.entry.test_window || ["", ""];
+    const [cls, text] = bt ? VERDICT[bt.verdict] : ["weak", "No deck styles to check in this mode"];
+    const row = (label, p) => (p ? `<tr><td>${label}</td>${cell(p.counter)}${cell(p.field)}${cell(p.all)}</tr>` : "");
+    const styles = bt ? Object.entries(bt.styles).filter(([, r]) => r.all_players && r.all_players.counter[0]) : [];
+    const rate = ([n, w]) => (n ? `${pct(w / n)} <span class="muted small">(${num(w)} of ${num(n)})</span>` : `<span class="muted">no games</span>`);
     $("#verdict").innerHTML = `<h2 id="verdict-h" style="font-size:1.25rem">How much can you trust these counters?</h2>
-      <p>${pill}</p>
-      <div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Held-out check (${esc(ctx.entry.label)})</th><th scope="col">Battles</th><th scope="col">AUC without matchups</th><th scope="col">AUC with matchups</th><th scope="col">Log-loss change (90%)</th></tr></thead><tbody>
+      <p><span class="pill ${cls}">${text}</span></p>
+      ${bt ? `<p class="small">The check: for every deck style, the ${num(bt.top)} decks this page ranks best against it, and how often they actually beat that style in the latest battles (${esc(tw[0])} to ${esc(tw[1])}), which no model was trained on. For comparison, the ${num(bt.top)} decks the deck builder ranks strongest overall, and every real deck, against the same styles. <span class="src measured">measured</span></p>
+      <div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Games won against the target style</th><th scope="col">Top ${num(bt.top)} counter decks</th><th scope="col">Top ${num(bt.top)} strongest decks</th><th scope="col">All real decks</th></tr></thead><tbody>
+        ${row("Every player", bt.pooled)}${row("Players the model never saw", bt.pooled_new)}
+      </tbody></table></div>
+      <p class="muted small">The verdict uses ${bt.headline === "new_players" ? "players the model never saw: the same top players appear before and after training, so the first row partly shows the model recognizing regulars" : `every player (fewer than ${num(bt.min_games)} games by players the model never saw)`}. Ranges are 90% ranges.</p>
+      ${styles.length ? `<details class="more"><summary>By style</summary><div class="body"><div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Style</th><th scope="col">Counter decks</th><th scope="col">Strongest decks</th><th scope="col">All real decks</th></tr></thead><tbody>
+        ${styles.map(([s, r]) => `<tr><td>${esc(styleName(s))}</td><td>${rate(r.all_players.counter)}</td><td>${rate(r.all_players.field)}</td><td>${rate(r.all_players.all)}</td></tr>`).join("")}
+      </tbody></table></div><p class="muted small">Every player, games against that style after training.</p></div></details>` : ""}` : ""}
+      <details class="more"><summary>Does adding matchups predict battles better?</summary><div class="body">
+      <div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Held-out check</th><th scope="col">Battles</th><th scope="col">AUC without matchups</th><th scope="col">AUC with matchups</th><th scope="col">Log-loss change (90%)</th></tr></thead><tbody>
         <tr><td>Later battles, same pool of players</td><td>${num(ev.battles)}</td><td>${ev.auc_strength.toFixed(3)}</td><td>${ev.auc_matchup.toFixed(3)}</td><td>${signed(ev.difference, 4)} (${signed(ev.difference_ci90[0], 4)} to ${signed(ev.difference_ci90[1], 4)})</td></tr>
         ${pd ? `<tr><td>Trained without any player from those later battles</td><td>${num(pd.battles)}</td><td>${pd.auc_strength.toFixed(3)}</td><td>${pd.auc_matchup.toFixed(3)}</td><td>${signed(pd.difference, 4)} (${signed(pd.difference_ci90[0], 4)} to ${signed(pd.difference_ci90[1], 4)})</td></tr>` : ""}
       </tbody></table></div>
-      <p class="muted small">Negative log-loss change means better predictions. The same top players appear in every collection, so part of the first row's gain is the model recognizing regulars. The second row is what a new player can expect: ${pd ? `trained on ${num(pd.training_battles)} battles with no shared players, matchups still help${newOk ? "" : " only unclearly"}.` : "too few battles were left to run it in this mode."} <span class="src measured">measured</span></p>`;
+      <p class="muted small">Negative log-loss change means better predictions. The second row is the fair one for a new player${pd ? `: trained on ${num(pd.training_battles)} battles with no shared players` : "; too few battles were left to run it in this mode"}. <span class="src measured">measured</span></p></div></details>`;
   }
 
   function renderWho(mu) {
@@ -160,11 +180,11 @@
       el.innerHTML = sel.tab === "cards" && sel.cards.length ? `<div class="panel empty"><b>No collected deck holds all of these cards.</b><span>Remove a card to widen the search.</span></div>` : "";
       return;
     }
-    el.innerHTML = `<div class="panel box"><div class="skel" style="height:140px"></div><p class="muted small">Searching counter decks…</p></div>`;
+    el.innerHTML = `<div class="panel box"><div class="skel" style="height:140px"></div><p class="muted small">Ranking real decks…</p></div>`;
     setTimeout(() => {
       const t0 = performance.now();
       let decks = [], cards = [];
-      try { decks = E.counterSearch(opps, []); cards = E.counterCards(opps, mu.top_cards); }
+      try { decks = E.counterDecks(opps); cards = E.counterCards(opps, mu.top_cards); }
       catch (e) { el.innerHTML = `<div class="panel empty"><b>The counter search hit an error.</b><span>${esc(e.message)}</span></div>`; return; }
       const nOpp = opps.reduce((t, [, n]) => t + n, 0), name = (k) => E.describe(CRDeck.parseKey(k));
       const atEven = (z) => 100 * (1 / (1 + Math.exp(-z)) - 0.5);   // points away from 50% in an even battle
@@ -184,30 +204,38 @@
           </section>
           <section class="section" aria-labelledby="cd-h">
             <header><h2 id="cd-h" style="font-size:1.25rem">3. Counter decks</h2>
-              <p>The legal${E.m.availability ? ", unlocked" : ""} decks with the highest estimated win rate against ${esc(what)}. That estimate is the best of thousands of tries, so it runs high; the normal win rate against all top decks is shown next to it.</p></header>
+              <p>Real decks only: each was played at least ${num(mu.pool_min_battles)} times in the training battles${E.m.availability ? " and uses only cards unlocked here" : ""}. They are ranked the way the deck builder ranks decks, with its win term replaced by the estimated win rate against ${esc(what)}: win rate against them + ${E.weight} × synergy + ${E.coWeight} × how often the cards are played together.${sel.tab === "style" ? " Each shows how it really did against this style after training." : " Pick a deck style to see each deck's real record against it."}</p></header>
             <div class="decks">${decks.map((d, i) => {
               const x = E.explain(d.entries, E.objectiveDict(E.evaluate(d.entries)));
+              const r = sel.tab === "style" ? d.rec[sel.style] : null, w = d.swap;
+              const rec = sel.tab !== "style" ? "" : r ? `<div><b>${pct(r[1] / r[0])}</b><span>won ${num(r[1])} of ${num(r[0])} vs ${esc(styleName(sel.style))} after training <span class="src measured">measured</span></span></div>`
+                : `<div><b>n/a</b><span>no games vs ${esc(styleName(sel.style))} after training</span></div>`;
               return `<article class="panel deck" aria-label="Counter deck ${i + 1}">
-                <div class="deck-top"><b>Counter deck ${i + 1} · ${esc(UI.archName(x.archetype))}</b><span class="muted small">avg elixir ${x.avg_elixir === null ? "n/a" : x.avg_elixir.toFixed(1)}</span></div>
+                <div class="deck-top"><b>Counter deck ${i + 1} · ${esc(UI.archName(x.archetype))}</b><span class="realtag">Real deck · played ${num(d.played)} times</span></div>
                 <div class="grid8">${x.entries.map((e) => UI.tile(E, e, x.legality.slots, null, null)).join("")}</div>
-                <div class="wins"><div><b>${pct(d.win_vs)}</b><span>vs ${esc(what)} <span class="src model">optimistic</span></span></div>
-                  <div><b>${pct(x.score.meta_win_prob)}</b><span>vs all top decks</span></div></div>
+                <div class="wins"><div><b>${pct(d.win_vs)}</b><span>vs ${esc(what)} <span class="src model">estimate</span></span></div>
+                  <div><b>${pct(x.score.meta_win_prob)}</b><span>vs all top decks</span></div>${rec}
+                  <div><b>${x.avg_elixir === null ? "n/a" : x.avg_elixir.toFixed(1)}</b><span>average elixir</span></div></div>
+                ${w ? `<div class="swapbox"><span><b>Tech swap:</b> ${esc(E.describe(w.replace))} → ${esc(E.describe(w.with))}, estimated ${pct(w.win_vs)} vs ${esc(what)} (${signed(100 * (w.win_vs - d.win_vs), 1)} points) <span class="src model">model</span></span>
+                  <span class="muted small">Same kind of card, no new deck warning. ${w.played ? `The changed deck is a real deck too, played ${num(w.played)} times.` : `The changed deck was played fewer than ${num(mu.pool_min_battles)} times, so its number is the model's guess.`} <a href="reason.html#${UI.token(ctx.entry.slug, w.entries, [])}">See the changed deck →</a></span></div>` : ""}
                 ${x.warnings.length ? `<div class="notice"><b>Watch out:</b> ${x.warnings.map((g) => esc(g.root_cause)).join(". ")}</div>` : ""}
                 <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn small primary" href="reason.html#${UI.token(ctx.entry.slug, d.entries, [])}">Why this deck →</a>
                   <button class="btn small" data-copy="${esc(d.entries.map((e) => E.describe(e)).join(", "))}">Copy card list</button></div>
-              </article>`; }).join("") || `<div class="panel empty">No legal counter deck was found.</div>`}</div>
+              </article>`; }).join("") || `<div class="panel empty">${E.counterPool().length ? "No counter deck was found." : `No deck here was played at least ${num(mu.pool_min_battles)} times in the training battles, so there is no real deck to recommend.`}</div>`}</div>
           </section>
         </div>
         <section class="panel box" aria-labelledby="opp-h">
           <h3 id="opp-h">The opponent decks used</h3>
-          <p class="muted small">${num(opps.length)} deck${opps.length === 1 ? "" : "s"}, weighted by ${num(nOpp)} appearances in this mode's latest battles. Search took ${Math.round(performance.now() - t0)} ms.</p>
+          <p class="muted small">${num(opps.length)} deck${opps.length === 1 ? "" : "s"}, weighted by ${num(nOpp)} appearances in this mode's latest battles. Ranking took ${Math.round(performance.now() - t0)} ms.</p>
           <details class="more"><summary>Show them</summary><div class="body opps">${opps.slice(0, 40).map(([dk, n]) => `<div class="row"><span>${esc(dk.split("|").map(name).join(", "))}</span><span>${num(n)}×</span></div>`).join("")}</div></details>
           <details class="more"><summary>Show the math</summary><div class="body small">
             <div class="formula">z(A, B) = Σ_{i∈A} w_i − Σ_{j∈B} w_j + Σ_{i∈A, j∈B} K(i, j)        (equal player skill)
 P(A beats B) = σ(z(A, B))
 win rate vs the opponents = Σ_o n_o · σ(z(A, o)) / Σ_o n_o
-card effect(i) = w_i + Σ_o n_o Σ_{j∈o} K(i, j) / Σ_o n_o</div>
+card effect(i) = w_i + Σ_o n_o Σ_{j∈o} K(i, j) / Σ_o n_o
+deck score(A) = win rate vs the opponents + ${E.weight} × mean pair synergy + ${E.coWeight} × mean log-lift     (A a real deck)</div>
             <p class="muted">w is a card's overall strength, K(i, j) how much better a deck with i did against decks with j than both cards' strengths predict (K(i, j) = −K(j, i)). ${num(mu.pairs.length)} card pairings with at least ${num(mu.min_pair_battles)} battles have a K. Ranges shown for single matchups are exact 90% ranges for that weight; no range is shown for a card's total effect, because its parts move together.</p>
+            <p class="muted">Why only real decks: searching every card combination for the highest estimate produced decks nobody plays (four tanks and no spell, with estimates of 85 to 93%). The model adds up card effects and was only ever checked on decks people play, so it is only trusted there. A tech swap changes one card for one of the same type and win-condition role, only if it raises both the estimate against these decks and the deck score and adds no deck warning.</p>
           </div></details>
         </section>`;
     }, 20);
