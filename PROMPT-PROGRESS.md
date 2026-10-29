@@ -6,11 +6,11 @@ boundaries, protected files, validation and blocker rules still apply. Local com
 
 ## Current state
 
-- Active run: **Run 4 (next)**
+- Active run: **none: Runs 1–4 complete**
 - Run 1: **PASS** (all P0 items; P1 newcomer definitions done)
 - Run 2: **PASS** (all P0 items; comparison view is P2 backlog, not started)
 - Run 3: **PASS** (P0 items and P1 three-layer disclosures; new evaluation methods are backlog)
-- Run 4: not started
+- Run 4: **PASS** (P0 items; P1 forecast quantile visual deferred: the export has no forecast rows to draw, see below)
 - Starting HEAD: `9b3ab4da2f7d30845ca8938d9891256ec7a59b51` (main, "Docs: final Trophy Road counter backtest numbers")
 - Working-tree changes already present: none except the untracked prompt pack `docs/claude-redesign/` (extracted 2026-10-29 from `Downloads/crdeck-claude-prompt-pack.zip`, the only copy, all five files)
 - Inputs: REVIEW.md is not in the repository (it lives at `C:\Users\simty\crdeck-review\REVIEW.md`; read only as claims; its "no softmax" statement is wrong, see finding 1). `docs/crdeck-documentation.docx` is in the repository.
@@ -98,6 +98,16 @@ Files: `web/observed.js` (new), `web/index.html`, `web/common.js` (token/readHas
 - docs/claude-redesign/BACKLOG.md: prospective evaluation, dependence-aware intervals, the two new-player checks, style-mixture confounding; P2 product items.
 - No math, ranking, export or engine change (snapshot identical).
 
+### Run 4 (web/learn.js new; web/model.html, web/meta.html, web/seasons.html, web/common.js nav labels; scripts/doc_claims.py new, scripts/make_docs.py; docs/crdeck-documentation.docx regenerated; tests)
+- `web/learn.js` (global `CRLearn`): `softmaxTable` (same arithmetic as `Engine.predictArchetype`, from `archetypeFeatures`), `sigmoidExample` (one sampled opponent decoded from `scorer.opp_rows`, plus the mean over all, which equals `Engine.score`), `forecastSummary` (state incl. shown-but-empty, mean MAE MC vs no change, periods better, coverage = Σ coverage × forms / Σ forms, null when nothing scored).
+- How it works: new section "Three models, three questions": sigmoid / softmax / Monte Carlo, each a short plain explanation with a worked example from a real deck of the current mode (first observed deck) in a disclosure: sigmoid z, probability, average over 2,000 sampled opponents, interval method named (delta method + opponent sampling; not bootstrap or Wilson); softmax table for all 8 classes (raw score, e^(z−max), probability), threshold result, Hybrid vs Mixed fallback, held-out label check, no temperature; Monte Carlo definition of share and period, one run, settings from the export, real state, coverage vs nominal, MAE gate not significance, the six steps incl. √games weighting and backtest vs live next_n, caveats. Side-by-side contrast list. Stale wording fixed: "battles of top players", "Win rates describe top players", "% confidence", glossary entries (90% range methods, percentage points, AUC, log loss, calibration, association, score points).
+- Card usage trends (meta.html): renamed; "meta" defined; three parts: Observed history (headline ≤3 changes, only when both periods have ≥ settings.min_games appearances and the 90% range clears zero; tiny-period warning), "Look up a card" search that draws history on demand, Experimental next-period forecast (true state incl. "nothing to forecast right now", exported settings, coverage notice, per-period table with dates/battles/forms/errors/coverage, n/a when nothing scored), Season readiness pointer. Raw backtest table replaced by the labelled one.
+- Season readiness (seasons.html): renamed; says no next-season prediction is built; removed "Ready to backtest"/"When it unlocks" implications.
+- Nav: "Meta" → "Usage trends", "Next season" → "Season readiness" (page_test's menu-link check updated to the new label, same assertion).
+- Docs generator: `scripts/doc_claims.py` (deck interval method, model choice from the exported name, edge wording from the interval, page count, forecast status for blocked / not_better / shown / shown-but-empty with weighted coverage); `make_docs.py` uses it and fixes counters wording (highest-scoring general decks, eligible pool decks, retrospective, unseen-player row is not a retrain) and the page list. DOCX regenerated (python-docx from the session's local copy) and its text inspected.
+- Documentation (user request, 2026-10-29): README website table, helper files, link format, redesign tests and a redesign pointer; docs/model-notes.md §4 (opponent part of the deck range is the analytic standard error, not a bootstrap), §9 (observed/generated policy, redesign record), §12 (stale "with 2 periods it is not shown" replaced with the current state, gate wording, backtest vs live size), §14 renamed Season readiness without the automatic-prediction implication; Word page table updated for the builder, explanation and counters; DOCX regenerated again and its text checked (all new sentences present, no stale claim).
+- Findings confirmed in Run 4 preflight: the export's forecast is "shown" yet empty (P8 has 23 battles after an interrupted collection, below min_games 200); the only backtest period where the forecast beat no change is that 23-battle period; weighted coverage 45.9% (per period 34–85%).
+
 Not done in Run 1 (explicitly deferred): "Try an example" action and comparison view (not Run 1 P0); model.html still says "Win rates describe top players" (Run 4 teaching page); counters.html "strongest" wording (Run 3).
 
 ## Checks and evidence
@@ -147,6 +157,19 @@ Run 3 after (`docs/claude-redesign/evidence/run3-after/`):
 | regression | pytest; check_web_engine; run1/run2_test; page_test; site_check; engine snapshot `cmp` | PASS | 159 passed; 137,367 agree; all `fails: []`; 44 modes no problems; snapshot identical |
 | visual | `shots.mjs` reason + counters ×3 views | PASS | 0 px overflow; disclosure arrows visible; dark mode readable |
 
+Run 4 after (`docs/claude-redesign/evidence/run4-after/`), the final full run:
+
+| Acceptance ID | Exact command/manual action | Result | Evidence |
+|---|---|---|---|
+| R4.1 | `cd tests/web && node run4_test.cjs` | PASS | softmax table equals `predictArchetype` on 18 real decks in Ranked, Trophy Road and Master III (both threshold fallbacks and confident labels); sums to 1 within 1e-9; +1000 on every intercept changes nothing; feature count 135 = 123 + 9 + 3 from the export; no temperature parameter |
+| R4.2 | run4_test | PASS | sigmoid example mean equals `Engine.score`; the page's worked average equals the deck's estimate; interval named delta method + opponent sampling; styles, wins and usage worded apart |
+| R4.3 | run4_test with blocked / not_better / shown (runs set to 1,234) / shown-but-empty fixtures served in place of modes.json | PASS | each state worded correctly; the exported run count is used; season readiness separate and stated as not built |
+| R4.4 | run4_test + hand-made fixture | PASS | coverage weighted by card forms scored (0.7 on the fixture); zero denominators give no coverage and n/a cells; "not 90%" and "not a significance test" shown |
+| R4.5 | `python -m pytest tests/test_doc_claims.py`; `PYTHONPATH=<local python-docx> python scripts/make_docs.py`; text check of the DOCX | PASS | 10 branch tests; DOCX regenerated and inspected: new sentences present, stale claims ("a bootstrap gives…", "five-page", "cards only at C", "stays hidden", "strongest decks overall", "top ranked players") gone |
+| R4.6 | full suite: pytest; check_web_engine; run1–run4 tests; page_test; site_check; `node scripts/sweep_web_engine.mjs`; engine snapshot `cmp`; screenshots | PASS | 169 passed; 137,367 checks agree; all `fails: []`; 44 modes no problems; sweep 16,905 searches and 150,141 swaps, no problems (7,816 s); snapshot identical to the pre-redesign baseline; 0 px overflow on How it works, Usage trends and Season readiness at 390 and 1440, light and dark (before shots from commit 4787d0e in run4-before/) |
+
+Newcomer walkthrough (heuristic, not user research): from the builder a first-time reader sees what a deck is and what the picks do, gets three observed decks with their main weakness first, can tell the measured test record from the model estimate (tags and wording), opens one deck to see roles, warnings and the best next step, and on How it works can read in order that the sigmoid gives win estimates, softmax gives style-label probabilities, and Monte Carlo gives next-period usage shares, each with real numbers.
+
 Screenshots (local only, git-ignored): `docs/claude-redesign/evidence/run1-before/*.png`, `run1-after/*.png`, `run1-after/extra/*.png`.
 
 ## Checkpoints
@@ -157,10 +180,20 @@ Screenshots (local only, git-ignored): `docs/claude-redesign/evidence/run1-befor
 
 - Run 3 start: HEAD d060f8b (Run 2 commit). Changed: web/reason.html, web/counters.html, web/app.css, docs/model-notes.md (one sentence), docs/claude-redesign/BACKLOG.md (new), tests/web/run3_test.cjs (new).
 
+- Run 4 start: HEAD 4787d0e (Run 3 commit). Changed: web/learn.js (new), web/model.html, web/meta.html, web/seasons.html, web/common.js; scripts/doc_claims.py (new), scripts/make_docs.py, docs/crdeck-documentation.docx; README.md, docs/model-notes.md; tests: tests/web/run4_test.cjs, tests/test_doc_claims.py (new), tests/web/page_test.cjs (menu label + inline learn.js), tests/web/site_check.cjs (inline learn.js).
+
 ## Blockers
 
 None for Run 1. Note for later runs: a new top-level `src/crdeck/*.py` would change the training-cache fingerprint (pipeline.py hashes every top-level .py except counters.py/counters.yaml), so Run 2's Python helper goes in `src/crdeck/counters.py`.
 
+## Remaining limitations
+
+- The P1 forecast picture (observed points with median and bands) is not drawn: the current export has no forecast rows because the latest period has 23 battles. The page explains this instead of inventing bands.
+- The usage-change bar chart on Usage trends stretches to the full width, so its labels are large on wide screens (pre-existing).
+- The counters held-out check stays retrospective; prospective evaluation and dependence-aware intervals are in docs/claude-redesign/BACKLOG.md.
+- Keyboard use relies on native buttons, links and `<details>`; it was checked by structure and focus tests, not by a full key-press walk of every page. 200% zoom was measured for the builder and explanation pages only.
+- Screenshots stay local (git-ignored, about 11 MB per run).
+
 ## Next exact action
 
-Run 4: new isolated `web/learn.js` (softmax table from `archetypeFeatures`/coef, sigmoid example from scorer rows, forecast summary with weighted coverage); How it works section "Three models, three questions"; meta.html renamed "Card usage trends" with observed history / experimental forecast (state, MAE vs no change, nominal vs achieved coverage, undercoverage notice) / season readiness link and at most three headline changes plus search; seasons.html readiness wording; model.html stale "top players" and "1 point" wording; scripts/make_docs.py data-driven branches (interval method, strength model, significance wording, page count, forecast status) with tests; regenerate DOCX if python-docx is available.
+None. All four runs are done and committed. Possible next steps (not started): the P2 backlog in docs/claude-redesign/BACKLOG.md, a fresh daily collection so the latest period is a normal size again, and republishing the shared Artifact only if the user asks.

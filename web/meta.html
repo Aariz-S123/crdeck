@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Ranked Meta · crdeck</title>
-<meta name="description" content="Which Clash Royale cards and deck styles top ranked players are using, how that changed between collections, and when a forecast becomes possible.">
+<title>Card Usage Trends · crdeck</title>
+<meta name="description" content="Which Clash Royale cards and deck styles sampled Ranked players use, how that changed between data collections, and an experimental next-period forecast with its track record.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z' fill='%23a8247f'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -34,18 +34,19 @@
   <header class="site" id="site"></header>
   <main id="main" class="wrap">
     <div class="pagehead">
-      <h1>What top ranked players are playing</h1>
-      <p class="lede">How card use changed between data collections. This page always uses Ranked (Path of Legends) battles.</p>
+      <h1>Card usage trends</h1>
+      <p class="lede">What the sampled Ranked (Path of Legends) players use, and how that changed between data collections. People call this the “meta”: what is commonly played right now. This page always uses Ranked battles.</p>
     </div>
     <div id="meta" class="wrap"><div class="panel state"><div class="skel" style="height:80px"></div></div></div>
   </main>
   <footer class="site-foot">
-    <span>Usage share: the share of ranked decks in a period that include the card form. Ranges are 90% bootstrap intervals.</span>
+    <span>Usage share: the share of Ranked deck appearances in a period that include the card form. History ranges are 90% bootstrap intervals; forecast bands come from the Monte Carlo runs.</span>
     <span>A fan-made learning project. Not affiliated with, endorsed by or sponsored by Supercell. Battle data from the official Clash Royale API.</span>
   </footer>
 </div>
 
 <script src="engine.js"></script>
+<script src="learn.js"></script>
 <script src="common.js"></script>
 <script>
 (() => {
@@ -103,10 +104,31 @@
     return `<div class="mcell"><b>${esc(keyName(key))}</b><svg class="chart" viewBox="0 0 ${W} ${H}" role="group" aria-label="Usage share of ${esc(keyName(key))} per period">${g}</svg></div>`;
   }
 
+  document.addEventListener("input", (ev) => {
+    if (ev.target.id !== "tq" || !META) return;
+    const q = ev.target.value.trim().toLowerCase(), el = $("#tres");
+    if (!q) { el.innerHTML = ""; return; }
+    const keys = [...new Set(META.history.map((h) => h.key))].filter((k) => keyName(k).toLowerCase().includes(q)).sort((a, b) => keyName(a).localeCompare(keyName(b)));
+    el.innerHTML = keys.length ? keys.slice(0, 8).map((k) => historyCell(k, META)).join("") + (keys.length > 8 ? `<p class="muted small">${keys.length - 8} more match; type more of the name.</p>` : "")
+      : `<p class="muted small">No card form with usage history matches “${esc(ev.target.value)}”.</p>`;
+  });
+  let META = null;
   function render(M) {
+    META = M;
     if (!M) { $("#meta").innerHTML = `<div class="panel empty"><b>No meta history yet.</b><span>The site has no Ranked model, so there is nothing to compare. Collect ranked battles and export again.</span></div>`; return; }
-    const st = M.status;
-    const label = { blocked: ["weak", "Forecast not available yet"], not_better: ["weak", "Forecast hidden: it did not beat “no change”"], shown: ["good", "Forecast shown"] }[st.state];
+    const st = M.status, F = CRLearn.forecastSummary(M);
+    const label = F.shown_but_empty ? ["weak", "Experimental forecast: nothing to forecast right now"]
+      : { blocked: ["weak", "Experimental forecast: not available yet"], not_better: ["weak", "Experimental forecast hidden: it did not beat “no change”"], shown: ["weak", "Experimental forecast shown"] }[st.state];
+    const pn = (t) => `P${t + 1}`;
+    const btRows = M.backtest.map((b) => { const p = M.periods[b.target_period] || {};
+      return `<tr><td>${pn(b.target_period)}</td><td>${esc(UI.when(p.start))} to ${esc(UI.when(p.end))}</td><td>${num(p.battles || 0)}</td><td>${num(b.card_forms_scored)}</td>
+        <td>${b.mae_points_monte_carlo.toFixed(3)}</td><td>${b.mae_points_no_change.toFixed(3)}</td><td>${b.card_forms_scored ? pct(b.coverage_90, 0) : "n/a"}</td></tr>`; }).join("");
+    const smallLast = F.last && F.last.appearances < M.settings.min_games;
+    // headline: at most three changes whose 90% range is clear of zero, with the battles behind them
+    // A period with fewer appearances than the forecast's own minimum (settings.min_games) gives no headline: a handful of
+    // players can swing shares wildly, and the bootstrap range (battles resampled as if independent) doesn't capture that.
+    const clear = smallLast ? [] : M.movers.filter((m) => m.change_ci90[0] > 0 || m.change_ci90[1] < 0).slice(0, 3);
+    const nb = M.periods.length, pa = M.periods[nb - 2] || {}, pb = M.periods[nb - 1] || {};
     const boxes = Array.from({ length: Math.max(st.recommended_periods, st.periods) }, (_, i) =>
       `<i class="${i < st.periods ? "have" : i < st.min_periods ? "need" : ""}" title="${i < st.periods ? "collected" : i < st.min_periods ? "needed for a first forecast" : "recommended"}"></i>`).join("");
     const per = M.periods.map((p, i) => `<tr><td>P${i + 1}</td><td>${esc(UI.when(p.start))}</td><td>${esc(UI.when(p.end))}</td><td>${M.period_hours ? M.period_hours[i] : ""}</td><td>${num(p.battles)}</td></tr>`).join("");
@@ -116,34 +138,57 @@
       .map(([name, byP]) => `<tr><td>${esc(name === CRDeck.UNCERTAIN ? "Mixed style" : name)}</td>${M.periods.map((_, i) => `<td>${byP[i] ? pct(byP[i].share) : "n/a"}</td>`).join("")}</tr>`).join("");
     const top = M.movers.slice(0, 6).map((m) => m.key);
     $("#meta").innerHTML = `
-      <section class="panel state" aria-labelledby="fc-h">
-        <h2 id="fc-h" style="font-size:1.25rem"><span class="pill ${label[0]}">${label[1]}</span></h2>
-        <p>${esc(st.reason)}</p>
-        <div class="progress" aria-label="${st.periods} of ${st.recommended_periods} collection periods">${boxes}<span>${st.periods} collected · ${st.min_periods} needed for a first forecast · ${st.recommended_periods} recommended</span></div>
-        <p class="muted small">When there is enough data, the forecast runs ${num(M.settings.monte_carlo_runs)} simulations (fixed seed ${M.settings.seed}) and is only shown if it beats or matches “no change” on past periods.</p>
+      <section class="section" aria-labelledby="obs-h">
+        <header><h2 id="obs-h">Observed history</h2><p>Measured from collected battles: the share of Ranked deck appearances that include each card form, per collection period (one battle gives two appearances). <span class="src measured">measured</span></p></header>
+        ${smallLast ? `<p class="notice"><b>The latest period is tiny:</b> ${num(pb.battles)} battles (${esc(UI.when(pb.start))} to ${esc(UI.when(pb.end))}), most likely an interrupted collection. Changes into it are mostly noise.</p>` : ""}
+        <div class="panel box"><h3>Headline changes, ${pn(nb - 2)} → ${pn(nb - 1)}</h3>
+          ${clear.length ? `<ul class="assume">${clear.map((m) => `<li><b>${esc(keyName(m.key))}</b>: ${pct(m.share_before)} → ${pct(m.share_after)} of decks (${fmtPts(m.change)} percentage points; 90% range ${fmtPts(m.change_ci90[0])} to ${fmtPts(m.change_ci90[1])}), from ${num(pa.battles || 0)} and ${num(pb.battles || 0)} battles.</li>`).join("")}</ul>`
+            : smallLast ? `<p>No headline changes: the latest period has only ${num(pb.appearances)} deck appearances, fewer than the ${num(M.settings.min_games)} the forecast itself requires. With so few battles a handful of players can swing every share, and the 90% ranges, which resample battles as if they were independent, can look clear when they aren't. The chart below still shows every change.</p>`
+            : `<p>No change between the last two periods is clear: every card form's 90% range includes zero.</p>`}
+          <p class="muted small">Listed: at most three changes whose 90% bootstrap range is clear of zero, and only when both periods have at least ${num(M.settings.min_games)} deck appearances. All changes are in the chart below.</p>
+        </div>
       </section>
 
       ${M.movers.length ? `<section class="section" aria-labelledby="mv-h">
-        <header><h2 id="mv-h">Biggest changes, P${M.periods.length - 1} → P${M.periods.length}</h2><p>Each bar is how much a card form's usage share rose or fell between the last two collections, in percentage points. The thin line is the 90% range.</p></header>
+        <header><h2 id="mv-h">All changes, P${M.periods.length - 1} → P${M.periods.length}</h2><p>Each bar is how much a card form's usage share rose or fell between the last two collections, in percentage points. The thin line is the 90% bootstrap range; bars whose line crosses zero are not clear changes.</p></header>
         <div class="panel box">
           <div class="key"><span><i style="background:var(--pos)"></i>More decks use it</span><span><i style="background:var(--neg)"></i>Fewer decks use it</span><span class="src measured">measured</span></div>
           ${moversChart(M.movers)}
         </div>
       </section>
       <section class="section" aria-labelledby="hist-h">
-        <header><h2 id="hist-h">Usage over time</h2><p>The six cards that moved most, one small chart each. Every chart has its own scale.</p></header>
+        <header><h2 id="hist-h">Usage over time</h2><p>The six cards that moved most, one small chart each, with their 90% bootstrap ranges. Every chart has its own scale. Look up any other card below.</p></header>
         <div class="panel box"><div class="multiples">${top.map((k) => historyCell(k, M)).join("")}</div></div>
       </section>` : ""}
+
+      <section class="panel box" aria-labelledby="find-h"><h3 id="find-h">Look up a card</h3>
+        <label class="small muted" for="tq">Card name</label><input class="search" id="tq" type="search" placeholder="For example Hog Rider" autocomplete="off">
+        <div class="multiples" id="tres" aria-live="polite"></div></section>
+
+      <section class="section" aria-labelledby="fc-sec">
+        <header><h2 id="fc-sec">Experimental next-period forecast</h2><p>A guess at next period's usage share from a Monte Carlo simulation. It is a usage share, not a win rate. How it works is explained step by step on <a href="model.html#ranked">How it works</a>. <span class="src model">model</span></p></header>
+        <section class="panel state" aria-labelledby="fc-h">
+          <h3 id="fc-h" style="font-size:1.125rem"><span class="pill ${label[0]}">${label[1]}</span></h3>
+          <p>${F.shown_but_empty ? `It passed its backtest gate (${esc(st.reason)}), but the latest period has only ${num(F.last.battles)} battles, so no card form reaches the ${num(M.settings.min_games)} games a forecast needs.` : esc(st.reason)}</p>
+          <div class="progress" aria-label="${st.periods} of ${st.recommended_periods} collection periods">${boxes}<span>${st.periods} collected · ${st.min_periods} needed for a first forecast · ${st.recommended_periods} recommended</span></div>
+          ${F.backtests && F.coverage !== null ? `<p class="notice small"><b>Its 90% bands ${F.coverage < F.nominal ? "are too narrow" : "held up"}.</b> Across ${num(F.backtests)} past periods they held the real share ${pct(F.coverage, 0)} of the time (${pct(F.coverage_range[0], 0)} to ${pct(F.coverage_range[1], 0)} per period), not 90%. Average error ${F.mae_mc.toFixed(3)} percentage points against ${F.mae_nc.toFixed(3)} for “no change”; it was better in ${F.better_periods} of ${F.backtests} periods. The gate only asks that the average be no worse; it is not a significance test.</p>` : ""}
+          <p class="muted small">${num(M.settings.monte_carlo_runs)} runs (seed ${M.settings.seed}), ${num(M.settings.bootstrap_resamples)} bootstrap resamples, forecasts only for card forms with at least ${num(M.settings.min_games)} games in the latest period.</p>
+          ${F.backtests ? `<details class="more"><summary>Every past period checked</summary><div class="body"><div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Predicted period</th><th scope="col">Dates</th><th scope="col">Battles</th><th scope="col">Card forms scored</th><th scope="col">Error, forecast (pp)</th><th scope="col">Error, no change (pp)</th><th scope="col">90% band held the real share</th></tr></thead><tbody>${btRows}</tbody></table></div>
+            <p class="muted small">Errors are mean absolute errors in percentage points of usage share. Coverage is per period; the overall figure weights each period by the card forms it scored.</p></div></details>` : ""}
+        </section>
+      </section>
+
+      <section class="panel box" aria-labelledby="sr-h"><h3 id="sr-h">Season readiness</h3>
+        <p>A season-to-season prediction is a separate question with its own data needs. It is not built; see <a href="seasons.html#ranked">Season readiness</a> for what is collected so far.</p></section>
 
       <div class="two">
         <section class="panel box" aria-labelledby="per-h"><h3 id="per-h">Collection periods</h3>
           <p>A period is the battles played between two data collections. Times are in your time zone.</p>
           <div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Period</th><th scope="col">From</th><th scope="col">To</th><th scope="col">Hours</th><th scope="col">Ranked battles</th></tr></thead><tbody>${per}</tbody></table></div></section>
         <section class="panel box" aria-labelledby="ar-h"><h3 id="ar-h">Deck styles per period</h3>
-          <p>Styles come from a classifier whose labels were drafted by the project's assistant. <span class="src model">model</span></p>
+          <p>Shares of decks by predicted style. Styles come from a classifier whose labels were drafted by the project's assistant. <span class="src model">model</span></p>
           <div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Style</th>${M.periods.map((_, i) => `<th scope="col">P${i + 1}</th>`).join("")}</tr></thead><tbody>${archRows}</tbody></table></div></section>
       </div>
-      ${M.backtest.length ? `<section class="panel box"><h3>Backtest</h3><div class="tblwrap">${UI.recordsTable(M.backtest, "Backtest")}</div></section>` : ""}
       <section class="section" aria-labelledby="as-h">
         <header><h2 id="as-h">Assumptions</h2><p>What the history and the forecast take for granted, and what would test it.</p></header>
         <div class="panel box"><ul class="assume">${M.assumptions.map((a) => `<li>${esc(a)}</li>`).join("")}</ul></div>

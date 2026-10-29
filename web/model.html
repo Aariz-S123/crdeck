@@ -56,6 +56,11 @@ table.results td { padding: 12px; border-top: 1px solid var(--line); }
 .scale-bar i { flex: 1; height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--surf-lo), var(--surf-mid), var(--surf-hi)); }
 .formula { white-space: pre-wrap; font: 0.8125rem/1.6 ui-monospace, "Cascadia Mono", Consolas, monospace; background: var(--sunken); padding: 10px 12px; border-radius: 8px; overflow-x: auto; }
 pre.cfg { background: var(--sunken); padding: 12px; border-radius: 8px; overflow: auto; max-height: 340px; margin: 0; }
+.three { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(330px, 100%), 1fr)); gap: var(--space-4); align-items: start; }
+.three .box p { max-width: 70ch; }
+.three .q { font-size: 0.8125rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+table.nums tr.top td { font-weight: 700; background: var(--elixir-soft); }
+.contrast { margin: 0; padding-left: 18px; display: grid; gap: 4px; max-width: 80ch; }
 </style>
 </head>
 <body>
@@ -79,6 +84,12 @@ pre.cfg { background: var(--sunken); padding: 12px; border-radius: 8px; overflow
       <header><h2 id="rep-h">How good is it?</h2><p id="rep-sub">Loading…</p></header>
       <div class="panel tblwrap"><table class="results" id="report"></table></div>
       <p class="muted small">A check passes only when its 90% range clears the simple baseline it is compared with. Otherwise it says “not clearly better”.</p>
+    </section>
+
+    <section class="section" aria-labelledby="three-h">
+      <header><h2 id="three-h">Three models, three questions</h2>
+        <p>The site uses three different kinds of math. They answer different questions, and their numbers mean different things.</p></header>
+      <div id="three"><div class="panel box"><div class="skel" style="height:200px"></div></div></div>
     </section>
 
     <section class="section" aria-labelledby="learn-h">
@@ -107,12 +118,83 @@ pre.cfg { background: var(--sunken); padding: 12px; border-radius: 8px; overflow
 </div>
 
 <script src="engine.js"></script>
+<script src="observed.js"></script>
+<script src="learn.js"></script>
 <script src="common.js"></script>
 <script>
 (() => {
   "use strict";
   const { $, esc, pct, num, signed } = UI;
-  UI.start("model.html", (c) => { UI.setHash(c.entry.slug); steps(c); report(c); learn(c); notes(c); gloss(c); log(c); }, { failTarget: "#report" });
+  UI.start("model.html", (c) => { UI.setHash(c.entry.slug); steps(c); report(c); three(c); learn(c); notes(c); gloss(c); log(c); }, { failTarget: "#report" });
+
+  // ------------------------------------------------------------------ sigmoid, softmax, Monte Carlo
+  // Every number comes from this mode's export (CRLearn reuses the engine's own arithmetic); the forecast from modes.json.
+  function three({ INDEX, entry, m, E }) {
+    const el = $("#three");
+    const obs = CRObserved.observedDecks(E, []);
+    const deck = obs.decks.length ? obs.decks[0].entries : E.complete([])[0].entries;
+    const deckName = deck.map((e) => esc(E.describe(e))).join(", ");
+    const src = obs.decks.length ? "the first observed deck the builder shows for this mode" : "the first generated deck the builder shows for this mode";
+    const f4 = (v) => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(4);
+    // sigmoid
+    const sg = CRLearn.sigmoidExample(E, deck, 0), x = E.explain(deck);
+    const sig = `<div class="panel box">
+      <span class="q">Sigmoid · which side wins?</span>
+      <p>The strength model gives every card form and every common card pair a learned weight. Adding up a deck's weights gives its strength. For two decks, the difference in strength z (plus a player-rating term, set to zero here because the site assumes equal ratings) becomes a probability with the sigmoid, 1 / (1 + e<sup>−z</sup>): z = 0 gives 50%, and bigger gaps get closer to 0% or 100% without reaching them. A deck's “estimated wins” is this probability averaged over ${num(sg.n)} opponent decks sampled from ${esc(entry.label)} battles. It estimates results from recorded patterns; it doesn't simulate a battle.</p>
+      <details class="more"><summary>Worked example with a real deck</summary><div class="body small">
+        <p>Deck: ${deckName} (${src}).</p>
+        <p>Opponent: sampled deck #1 of ${num(sg.n)}: ${sg.opponent.cards.map((e) => esc(E.describe(e))).join(", ")}.</p>
+        <div class="formula">deck strength u_A = ${f4(sg.u)}      opponent strength u_B = ${f4(sg.opponent.u)}
+z = u_A − u_B = ${f4(sg.z)}
+P(A wins) = 1 / (1 + e^(−z)) = ${pct(sg.p, 2)}
+average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single matchups range ${pct(sg.min, 1)} to ${pct(sg.max, 1)})</div>
+        <p>That average is exactly the ${pct(x.score.meta_win_prob, 1)} shown for this deck. Its 90% model range (${pct(x.score.interval[0], 1)} to ${pct(x.score.interval[1], 1)}) combines two things: uncertainty in the learned weights, carried through with their covariance (the delta method), and which opponent decks happened to be sampled. It is not a bootstrap range and not a Wilson range for a record. Weights are in log-odds: they are not percentage points, and they show association in the data, not cause.</p>
+        <p>The Counters page uses a related matchup model that also has card-against-card weights K(i, j). Those are different from the pair weights here, which are about two cards in the same deck.</p></div></details>
+    </div>`;
+    // softmax
+    const sm = CRLearn.softmaxTable(E, deck), ae = (m.evaluation || {}).archetype || {};
+    const smx = !sm ? `<div class="panel box"><span class="q">Softmax · which style?</span><p>This mode has no fitted style classifier.</p></div>` : `<div class="panel box">
+      <span class="q">Softmax · which style?</span>
+      <p>A separate classifier describes a deck with ${num(sm.features.total)} numbers: ${num(sm.features.cards)} card indicators, ${num(sm.features.roles)} role counts, average elixir, number of win conditions and number of spells. Each of its ${sm.rows.length} styles gets a score, z = w · x + b. Softmax turns the scores into shares that add up to 100%: take e<sup>z</sup> of each (all positive), then divide by their total. Subtracting the largest score first keeps the numbers small without changing the result. The site shows the top style when its share reaches ${pct(sm.threshold, 0)}; otherwise it says “Mixed style”. These are the classifier's probabilities for its labels, not chances of winning or a measured certainty.</p>
+      <details class="more"><summary>Worked example: how this deck got its style</summary><div class="body small">
+        <p>Deck: ${deckName}. ${num(sm.active.length)} of its ${num(sm.features.total)} features are non-zero.</p>
+        <div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Style</th><th scope="col">Raw score z</th><th scope="col">e^(z − max z)</th><th scope="col">Probability</th></tr></thead><tbody>
+          ${sm.rows.slice().sort((a, b) => b.p - a.p).map((r) => `<tr${r === sm.top ? ' class="top"' : ""}><td>${esc(r.style)}</td><td>${f4(r.z)}</td><td>${r.weight.toFixed(4)}</td><td>${pct(r.p, 1)}</td></tr>`).join("")}
+        </tbody></table></div>
+        <p>Total ${pct(sm.sum, 1)}. Top: ${esc(sm.top.style)} at ${pct(sm.top.p, 1)}, ${sm.top.p >= sm.threshold ? `which reaches the ${pct(sm.threshold, 0)} threshold, so the site shows “${esc(sm.top.style)}”.` : `below the ${pct(sm.threshold, 0)} threshold, so the site shows “Mixed style”.`} “Hybrid” is a style the classifier was trained on; “Mixed style” is the site's fallback when no style reaches the threshold. They are different things.</p>
+        <p>The classifier learned the project's own labels${ae.heldout_decks ? ` and agreed with them on ${pct(ae.accuracy || 0, 0)} of ${num(ae.heldout_decks)} held-out decks` : ""}${ae.labels_note ? ` (${esc(ae.labels_note)})` : ""}. That is a small check: it doesn't make the labels universal strategy truth, and the probabilities aren't checked for calibration. There is no “temperature” setting.</p></div></details>
+    </div>`;
+    // Monte Carlo (Ranked usage history in modes.json, the same on every mode)
+    const F = CRLearn.forecastSummary(INDEX.meta);
+    let mc;
+    if (!F) mc = `<div class="panel box"><span class="q">Monte Carlo · usage next period?</span><p>This export has no usage history.</p></div>`;
+    else {
+      const stLine = F.shown_but_empty ? `The forecast passed its backtest gate, but the latest collection period has only ${num(F.last.battles)} battles, so no card form has the ${num(F.settings.min_games)} games a forecast needs. Nothing is forecast right now.`
+        : F.state === "shown" ? `A forecast is shown for ${num(F.forecast_count)} card forms on the <a href="meta.html#ranked">Card usage trends</a> page, marked experimental.`
+        : F.state === "not_better" ? "The forecast is hidden: on past periods it did worse than assuming no change." : "The forecast is not available yet: there are too few collection periods to test it.";
+      mc = `<div class="panel box">
+      <span class="q">Monte Carlo · usage next period?</span>
+      <p>A card's usage share is the fraction of deck appearances that contain it (each battle has two). Shares don't add up to 100%, because a deck holds 8 cards, so softmax doesn't apply. A collection period is the battles between two data collections, not a game season. One Monte Carlo run is one possible next-period share: resample whole battles from past periods, refit how shares drift, convert back with the sigmoid, and add the randomness of a finite next period. ${num(F.settings.monte_carlo_runs)} runs (seed ${F.settings.seed}) give a median and 50% and 90% bands. It is not a simulated battle and not a prediction of your games.</p>
+      <p><b>Status:</b> ${stLine}</p>
+      ${F.backtests && F.coverage !== null ? `<p class="notice small"><b>Experimental${F.coverage < F.nominal ? ", and its bands are too narrow" : ""}.</b> On ${num(F.backtests)} past periods the 90% bands contained the real share ${pct(F.coverage, 0)} of the time (per period ${pct(F.coverage_range[0], 0)} to ${pct(F.coverage_range[1], 0)}), against the 90% they aim for. Its average error was ${F.mae_mc.toFixed(3)} percentage points against ${F.mae_nc.toFixed(3)} for “no change”, better in ${F.better_periods} of ${F.backtests} periods.</p>` : `<p class="notice small"><b>Experimental.</b> No past period has been scored yet, so its accuracy is unknown.</p>`}
+      <details class="more"><summary>The steps and the formula</summary><div class="body small">
+        <ol class="contrast">
+          <li>Bootstrap: resample whole battles within each past period (${num(F.settings.bootstrap_resamples)} resamples) for plausible shares and win rates.</li>
+          <li>Refit the drift on those draws: <code>logit(s_next) = logit(s_now) + alpha + beta × (win_rate_now − 0.5)</code>. logit turns a share into an unbounded number, the sigmoid turns it back. alpha is a shift shared by all cards; beta links winning more than half the games to later usage change. It is a fitted association, not a rule that winners must get popular.</li>
+          <li>The least-squares fit multiplies each row by √games, so each card's squared error counts in proportion to its games.</li>
+          <li>Convert back with the sigmoid, then draw the next period's observed share from a binomial with the period's size. Backtests use the real size of the period being predicted; the live forecast assumes the latest period's size.</li>
+          <li>Repeat, then report the median and the central 50% and 90% of the runs. Forecasts are only made for card forms with at least ${num(F.settings.min_games)} games in the latest period.</li>
+          <li>Check on later periods: error against “no change” and how often the 90% band held the real share. The gate only asks that the average error be no worse than “no change”; it is not a significance test and doesn't check the bands.</li>
+        </ol>
+        <p>More runs only reduce the randomness of the simulation itself. They don't fix the model's assumptions: periods of different lengths, a battle log that keeps only each player's last 30 battles, changing players, repeated players, balance changes, and card shares drawn one card at a time (the runs don't build whole 8-card decks).</p></div></details>
+    </div>`;
+    }
+    el.innerHTML = `<div class="three">${sig}${smx}${mc}</div>
+      <div class="panel box"><b>Side by side</b><ul class="contrast small">
+        <li><b>Sigmoid</b> answers “which side wins this modeled matchup?”: a win probability, in %.</li>
+        <li><b>Softmax</b> answers “which style label fits this deck?”: label probabilities that add to 100%, never a win chance.</li>
+        <li><b>Monte Carlo</b> answers “how much might a card be used next period?”: a usage share with simulation bands, not a win rate.</li></ul></div>`;
+  }
 
 
   // ------------------------------------------------------------------ how the model learns (loss surface)
@@ -228,11 +310,11 @@ pre.cfg { background: var(--sunken); padding: 12px; border-radius: 8px; overflow
   function steps({ entry, m, E }) {
     const ev = m.evaluation || {}, sp = ev.splits || [], part = (p) => sp.find((x) => x.part === p) || {};
     $("#steps").innerHTML = `
-      <li><div><b>Collect real battles.</b><span>${num(entry.ok_battles)} ${esc(entry.label)} battles of top players, fetched from the official Clash Royale API. Battles are only used once, even when both players were collected.</span></div></li>
+      <li><div><b>Collect real battles.</b><span>${num(entry.ok_battles)} recorded ${esc(entry.label)} battles, fetched from the official Clash Royale API. Battles are only used once, even when both players were collected.</span></div></li>
       <li><div><b>Split them by time.</b><span>The oldest battles train the model (${num(part("train").battles || 0)}), the next ones pick its settings (${num(part("valid").battles || 0)}), and the newest ones are held back to test it (${num(part("test").battles || 0)}). Testing on later battles is closer to how you would use it.</span></div></li>
       <li><div><b>Learn a weight for every card and card pair.</b><span>A logistic regression learns how much each card form and each common pair raised the chance of winning, after accounting for the two players' ratings. That is the “card weight” you see on the other pages.</span></div></li>
-      <li><div><b>Search for decks.</b><span>Starting from your picks, the builder tries card combinations, keeps only legal decks, and ranks them by estimated win rate plus how well the cards worked together. It returns ${E.cfg.search.n_results} decks that differ by at least ${E.cfg.search.min_diff_cards} cards.</span></div></li>
-      <li><div><b>Check the result.</b><span>Each deck gets deck checks (win condition, air defense, spells, elixir cost) and a style guess. Checks give advice; they never block a deck.</span></div></li>`;
+      <li><div><b>Find decks.</b><span>By default the builder shows observed decks: real decks from this mode's pool that hold your picks. On request it generates new combinations card by card (experimental). Both are ranked by the same score, estimated win rate plus how well the cards work and are played together, and the ${E.cfg.search.n_results} shown differ by at least ${E.cfg.search.min_diff_cards} cards.</span></div></li>
+      <li><div><b>Check the result.</b><span>Each deck gets deck checks (win condition, air defense, spells, elixir cost) and a predicted style. Checks give advice; they never block a deck.</span></div></li>`;
   }
 
   function report({ m }) {
@@ -271,24 +353,29 @@ pre.cfg { background: var(--sunken); padding: 12px; border-radius: 8px; overflow
   function notes({ m }) {
     const R = m.rules, A = m.archetype, ae = (m.evaluation || {}).archetype || {};
     $("#notes").innerHTML = `
-      <li><b>Win rates describe top players.</b> They are estimates against the opponent decks in the test battles, at equal player rating. They are not a promise about your games.</li>
+      <li><b>Win rates describe the recorded battles of the chosen mode.</b> They are estimates against opponent decks sampled from its test battles, at equal player rating. Rating is a rough stand-in for skill, so skill differences aren't fully removed. They are not a promise about your games.</li>
       <li><b>The best decks look a bit better than they are.</b> When you pick the top of many noisy estimates, the winner is usually lucky. The ranges cover model and sampling noise, not this effect.</li>
       <li><b>Card pairs show patterns, not proof.</b> A positive pair score means two cards won together more than expected. It does not prove a combo.</li>
       <li><b>Unseen decks are guesses.</b> When nobody played the exact 8 cards, the estimate comes only from the cards and their pairs.</li>
       <li><b>Deck rules are fixed.</b> Every deck has ${R.deck_size} cards, one form per card, special cards in the ${R.special_slots.map((x) => ({ evo: "Evolution", hero: "Hero", wild: "Wild" }[x.name] || x.name)).join(", ")} slots, and at most ${R.max_champions} champion${R.max_champions === 1 ? "" : "s"}.</li>
-      <li><b>Style labels are a starting point.</b> The classifier knows ${A.classes.length} styles and was checked on ${num(ae.heldout_decks || 0)} decks; ${esc(ae.labels_note || "")}. Below ${Math.round(A.threshold * 100)}% confidence it says “Mixed style”.</li>`;
+      <li><b>Style labels are a starting point.</b> The classifier knows ${A.classes.length} styles and was checked on ${num(ae.heldout_decks || 0)} decks; ${esc(ae.labels_note || "")}. When no style reaches ${Math.round(A.threshold * 100)}% it says “Mixed style”.</li>`;
   }
 
   function gloss({ m }) {
     const words = [
-      ["Estimated win rate", "How often the model expects the deck to win against the decks top players used, with both players equally rated."],
-      ["90% range", "The span the true value likely falls in. A wide range means the data is thin."],
+      ["Estimated win rate", "How often the model expects the deck to win against opponent decks sampled from the chosen mode's later battles, with both players equally rated."],
+      ["90% range", "A range for an estimate; how it is made depends on the number. Deck estimates: model uncertainty plus opponent sampling. Records: Wilson ranges. Usage shares: bootstrap. Forecasts: Monte Carlo bands."],
+      ["Percentage points", "The difference between two percentages: 52% to 54% is +2 percentage points."],
+      ["AUC", "How often the model ranks the winner above the loser in a pair of battles; 0.5 is a coin flip. It is not accuracy."],
+      ["Log loss", "How far predicted probabilities were from what happened; lower is better. A small difference can be real without mattering much in practice."],
+      ["Calibration", "Whether events predicted at 60% happen about 60% of the time."],
+      ["Association", "Two things go together in the data. It doesn't show that one causes the other."],
       ["Card weight", "How much having a card form in a deck raised the chance of winning in past battles. Above 0 helps, below 0 hurts."],
       ["Synergy", "Whether two cards won more together than each one wins on its own."],
       ["Evolution, Hero and Wild slots", "A deck has one slot for an Evolution, one for a Hero or Champion, and a Wild slot that takes any of them."],
       ["Held-out battles", "The newest battles, kept away from training so the test is fair."],
       ["Deck style", `A guess at the deck's archetype from a small classifier. Its styles: ${m.archetype.classes.join(", ")}.`],
-      ["Score points", "What swaps are ranked by. 1 point is about one percentage point of estimated win rate."],
+      ["Score points", "What decks and swaps are ranked by: 100 × the ranking score. Its win part counts in percentage points; the synergy and played-together parts are added on the same scale. It is not a probability."],
     ];
     $("#gloss").innerHTML = words.map(([t, d]) => `<div><dt>${esc(t)}</dt><dd>${esc(d)}</dd></div>`).join("");
   }

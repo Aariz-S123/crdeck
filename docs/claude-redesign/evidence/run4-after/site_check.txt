@@ -1,0 +1,58 @@
+checked ranked
+checked trophy_road
+checked all
+checked ranked__master_i
+checked ranked__master_ii
+checked ranked__master_iii
+checked ranked__champion
+checked ranked__grand_champion
+checked ranked__royal_champion
+checked ranked__ultimate_champion
+checked trophy_road__goblin_stadium
+checked trophy_road__bone_pit
+checked trophy_road__barbarian_bowl
+checked trophy_road__spell_valley
+checked trophy_road__builder_s_workshop
+checked trophy_road__p_e_k_k_a_s_playhouse
+checked trophy_road__royal_arena
+checked trophy_road__frozen_peak
+checked trophy_road__jungle_arena
+checked trophy_road__hog_mountain
+checked trophy_road__electro_valley
+checked trophy_road__spooky_town
+checked trophy_road__rascal_s_hideout
+checked trophy_road__serenity_peak
+checked trophy_road__miner_s_mine
+checked trophy_road__executioner_s_kitchen
+checked trophy_road__royal_crypt
+checked trophy_road__silent_sanctuary
+checked trophy_road__dragon_spa
+checked trophy_road__boot_camp
+checked trophy_road__clash_fest
+checked trophy_road__pancakes
+checked trophy_road__valkalla
+checked trophy_road__legendary_arena
+checked trophy_road__lumberlove_cabin
+checked trophy_road__royal_road
+checked trophy_road__musketeer_street
+checked trophy_road__summit_of_heroes
+checked trophy_road__magic_academy
+checked trophy_road__ultimate_clash_pit
+checked trophy_road__little_prince_s_tavern
+checked trophy_road__spirit_square
+checked trophy_road__seasonal_arena_i
+checked trophy_road__seasonal_arena_ii
+edge index.html#nonsense -> 3 observed decks.
+edge index.html#trophy_road__goblin_stadium -> 3 observed decks.
+edge index.html#ranked~~99999999b -> 3 observed decks.
+edge index.html#ranked~~26000021e -> 3 observed decks.
+edge reason.html# -> No deck to explain.This page needs a deck. Build one on the first page and press “Why this deck”.Go to the builder
+edge reason.html#ranked~26000021b~ -> No deck to explain.This link holds a deck that breaks the deck rules: deck has 1 cards; rule is exactly 8. Build a new one on the first page
+edge reason.html#ranked~26000021b-26000021b-26000021b-26000021b-26000021b-26000021b-26000021b-26000021b~ -> No deck to explain.This link holds a deck that breaks the deck rules: card Hog Rider appears twice (base and base). Build a new one on the f
+edge reason.html#trophy_road__goblin_stadium~26000021b~ -> No deck to explain.This deck can't be played in Goblin Stadium: Hog Rider unlocks at Builder's Workshop (Arena 5). Switch to the mode you bu
+edge cards.html#zzz -> All cards
+edge model.html#trophy_road__goblin_stadium -> How crdeck works
+
+44 modes x 4 pages + 2 pages + 10 edge links
+no problems found
+exit 0

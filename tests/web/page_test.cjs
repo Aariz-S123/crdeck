@@ -9,6 +9,7 @@ const WEB = path.join(__dirname, "..", "..", "web");
 const engine = fs.readFileSync(path.join(WEB, "engine.js"), "utf8");
 const common = fs.readFileSync(path.join(WEB, "common.js"), "utf8");
 const observed = fs.readFileSync(path.join(WEB, "observed.js"), "utf8"); // the builder's observed decks (Run 2)
+const learn = fs.readFileSync(path.join(WEB, "learn.js"), "utf8"); // worked examples on How it works and Usage trends (Run 4)
 const { deckKey } = require(path.join(WEB, "engine.js"));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const fails = [], out = {};
@@ -22,6 +23,7 @@ async function open(page, hash = "") {
   let html = fs.readFileSync(path.join(WEB, page), "utf8")
     .replace('<script src="engine.js"></script>', () => `<script>${engine}</script>`)
     .replace('<script src="observed.js"></script>', () => `<script>${observed}</script>`)
+    .replace('<script src="learn.js"></script>', () => `<script>${learn}</script>`)
     .replace('<script src="common.js"></script>', () => `<script>${common}</script>`);
   if (!/^<!doctype/i.test(html)) html = `<!doctype html><html><head></head><body>${html}</body></html>`;
   const dom = new JSDOM(html, {
@@ -219,7 +221,7 @@ function clean(name, d, errors) {
     decks: d.querySelectorAll(".decks .deck").length, tiles: d.querySelectorAll(".decks .tile").length,
     trends: d.querySelectorAll(".decks svg.chart").length, pills: [...d.querySelectorAll(".decks .pill")].map((x) => x.textContent),
     newCards: d.querySelector("#new-h").parentElement.parentElement.querySelector(".box").textContent.replace(/\s+/g, " ").trim().slice(0, 220),
-    navHasSeason: !![...d.querySelectorAll(".nav a")].find((a) => a.textContent === "Next season") };
+    navHasSeason: !![...d.querySelectorAll(".nav a")].find((a) => a.textContent === "Season readiness") }; // renamed in redesign Run 4
   expect(out.seasons.decks > 0 && out.seasons.tiles === out.seasons.decks * 8, "seasons: every meta deck shows 8 cards");
   expect(out.seasons.trends === out.seasons.decks, "seasons: one trend chart per deck");
   expect(out.seasons.navHasSeason, "seasons: menu link");

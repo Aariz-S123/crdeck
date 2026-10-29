@@ -18,6 +18,7 @@ from docx.shared import Pt, RGBColor, Cm  # noqa: E402
 
 ROOT = Path(r"C:\Users\simty\crdeck")
 INDEX = json.loads((ROOT / "web" / "modes.json").read_text(encoding="utf-8"))
+import doc_claims  # noqa: E402  (scripts/doc_claims.py: sentences that depend on the exported results)
 RANKED = json.loads((ROOT / "web" / "models" / "ranked.json").read_text(encoding="utf-8"))
 EV = RANKED["evaluation"]
 BUILD = INDEX["log"]["build"]
@@ -227,7 +228,7 @@ doc.add_heading("Win-rate estimate for one deck", 2)
 import yaml  # noqa: E402
 DS = yaml.safe_load((ROOT / "config" / "model.yaml").read_text(encoding="utf-8"))["deck_score"]
 p(f"A deck is played against {n(DS['n_opponent_decks'])} opponent decks sampled from the "
-  "test window, at equal rating. The average is the estimated win rate; a bootstrap gives its 90% range.")
+  "test window, at equal rating. The average is the estimated win rate. " + doc_claims.DECK_INTERVAL)
 doc.add_heading("Building decks (search)", 2)
 p(f"A beam search starts from your picks and adds cards one at a time, keeping the best {s['beam_width']} partial decks at each "
   "step and pruning any partial deck that can no longer be legal. Decks are ranked by:")
@@ -243,10 +244,9 @@ doc.add_heading("Deck checks (warnings)", 2)
 p("Advisory checks look for a win condition, air defense, spells and a workable average elixir cost. They never block a deck.")
 doc.add_heading("Meta history and forecast", 2)
 ms = INDEX["meta"]["status"]
-p("The site tracks how card usage among top ranked players changes between collection runs, with 90% ranges. A Monte "
-  "Carlo forecast of the next period is built in but stays hidden until it has been backtested and beats “no change”. "
-  f"That needs at least {ms['min_periods']} collection periods; the project has {ms['periods']}. Only leaderboard players "
-  "count here, so adding arena players can't look like a meta shift.")
+p("The site tracks how card usage among sampled ranked (leaderboard) players changes between collection runs, with 90% "
+  "bootstrap ranges. Only leaderboard players count here, so adding arena players can't look like a meta shift. "
+  + doc_claims.forecast_status(INDEX["meta"]))
 
 # ------------------------------------------------------------------ 5 results
 doc.add_heading("5. How well it works (Ranked, held-out battles)", 1)
@@ -275,8 +275,8 @@ table(["Check", "Result (90% range)", "Compared with", "Verdict"], [
 ], widths=[4.2, 4.8, 4.6, 3.4])
 r = sig["rating_only"]
 p("How to read this. Among top players, which deck wins a single battle is close to a coin flip: decks are similar in "
-  f"strength and skill decides most games. The model beats a coin flip and card popularity, but its edge over player "
-  f"rating alone is not clear (log-loss change {r['delta_log_loss']:.5f}, 90% range {r['ci90_lo']:.5f} to {r['ci90_hi']:.5f}). "
+  f"strength and skill decides most games. The model beats a coin flip and card popularity; "
+  f"{doc_claims.edge_over(r, 'player rating alone')}. "
   "Where the model is strong is in knowing which cards belong together: it finds the hidden cards of real decks far "
   "better than filling with popular cards.")
 
@@ -296,7 +296,7 @@ table(["Folder", "Holds"], [
     ["data/raw_manifest.csv", "One row per raw file with its fetch time (committed, since raw data is not)"],
     ["notebooks/", "01 cards, 02 rules, 03 data, 04 baselines, 05 models, 06 search, 07 demo; each re-runs from scratch with the same outputs"],
     ["scripts/", "Web export, the website checks, notebook generation and running, the one-time card label bootstrap"],
-    ["web/", "The five-page website, its JavaScript engine and the exported models"],
+    ["web/", f"The {doc_claims.page_count(ROOT / 'web')}-page website, its JavaScript engine and the exported models"],
     ["tests/", "pytest tests, run without any network"],
     ["docs/", "The spec, API notes (documented vs observed), model notes (every assumption), card label review"],
 ], widths=[4.2, 12.8])
@@ -606,7 +606,7 @@ table(["C", "Cards only: validation log loss", "Cards + pairs: validation log lo
       [[str(c), f"{v.get('cards', float('nan')):.6f}" + ("  ← chosen" if c == SEL["C"] and "pairs" not in SEL["model"] else ""),
         f"{v.get('pairs', float('nan')):.6f}" + ("  ← chosen" if c == SEL["C"] and "pairs" in SEL["model"] else "")]
        for c, v in sorted(grid.items())], widths=[2.5, 7.0, 7.0])
-p(f"Ranked chose cards only at C = {SEL['C']}. The table shows the usual pattern: too small a C under-fits (all weights "
+p(f"{doc_claims.model_choice(SEL['model'], SEL['C'])}. The table shows the usual pattern: too small a C under-fits (all weights "
   "squashed to 0, log loss near the coin-flip value 0.6931), too large a C over-fits (the pair version gets worse fastest, "
   "because 100 extra columns give it more room to fit noise). The best C sits in between.")
 
@@ -683,10 +683,7 @@ p(f"α and β are fitted with weighted least squares (numpy.linalg.lstsq), each 
 bt = INDEX["meta"]["backtest"]
 if bt:
     b0 = bt[-1]
-    p(f"Backtest so far: predicting period {b0['target_period'] + 1} from the earlier ones, the forecast missed by "
-      f"{b0['mae_points_monte_carlo']:.3f} share points on average, against {b0['mae_points_no_change']:.3f} for assuming "
-      f"no change, and its 90% ranges contained the true value {pct(b0['coverage_90'], 0)} of the time (90% would be "
-      "right). So it stays hidden: it has not yet beaten the simplest alternative, and its ranges are too narrow.")
+    p(doc_claims.forecast_status(INDEX["meta"]))
 
 # 8.11
 doc.add_heading("8.11 How results are tested", 2)
@@ -832,15 +829,18 @@ if MU:
             return f"{100 * g['rate']:.1f}% ({n(g['wins'])} of {n(g['games'])})" if g and g["games"] else "no games"
         brows = [["Every player"] + [cellv(bt["pooled"][g]) for g in ("counter", "field", "all")]]
         if bt.get("pooled_new"):
-            brows.append(["Players the model never saw"] + [cellv(bt["pooled_new"][g]) for g in ("counter", "field", "all")])
-        table(["Ranked, games won vs the target style", f"Top {bt['top']} counter decks", f"Top {bt['top']} strongest decks",
-               "All real decks"], brows, widths=[5.0, 4.0, 4.0, 4.0])
-        words = {"beats_strongest": "the counter decks beat the strongest decks overall against their target style",
-                 "beats_average": "the counter decks beat an average real deck, but not clearly the strongest decks overall",
-                 "not_shown": "the counter decks were not shown to beat an average real deck",
+            brows.append(["Only players not in the training battles"] + [cellv(bt["pooled_new"][g]) for g in ("counter", "field", "all")])
+        table(["Ranked, games won vs the target style", f"Top {bt['top']} counter decks", f"Top {bt['top']} highest-scoring general decks",
+               "All eligible pool decks"], brows, widths=[5.0, 4.0, 4.0, 4.0])
+        words = {"beats_strongest": "the counter decks beat the highest-scoring general decks against their target style",
+                 "beats_average": "the counter decks beat an average eligible pool deck, but not clearly the highest-scoring general decks",
+                 "not_shown": "the counter decks were not shown to beat an average eligible pool deck",
                  "too_few": "there were too few games to judge"}
-        p(f"Verdict for Ranked: {words[bt['verdict']]}. The website shows this check for every league and arena "
-          "separately; in some, such as Trophy Road as a whole, the strongest decks did better.")
+        p(f"Verdict for Ranked: {words[bt['verdict']]}. The check is retrospective: each style's opponent decks are the "
+          "most-played decks of the same test window, so the ranking knew the later opponent mix (never the outcomes). The "
+          "second row keeps only games by players who don't appear in the training battles, scored by the same models; it is "
+          "not a retrained model. The website shows this check for every league and arena separately; in some, such as "
+          "Trophy Road as a whole, the highest-scoring general decks did better.")
     snippet("Counter decks: ranking real decks against the opponents", "src/crdeck/counters.py",
             py_func("src/crdeck/counters.py", "counter_decks", 30),
             [("What it does.", "Every real deck in the pool is scored against the opponent decks with the counter score "
@@ -854,13 +854,13 @@ if MU:
 doc.add_heading("9. The website", 1)
 p("The website runs the trained model entirely in the browser; it needs no server beyond serving files. Each page has one job:")
 table(["Page", "What it shows"], [
-    ["Build decks (index.html)", "Pick up to 3 cards and a mode, league or arena; get three decks with style, estimated win rate and range, and deck checks."],
-    ["Why this deck (reason.html)", "Opened from a deck: a plain-language summary, each card's weight, the model compared with real results, card pairs, warnings, swaps with their math written out, a rotatable 3D card map with card-map swaps and nearest-card tables, and the raw score."],
+    ["Build decks (index.html)", "Pick up to 3 cards and a mode, league or arena. By default it shows observed decks: real decks from the mode's pool that hold your picks, ranked by the builder's score. Generated decks from the search are an explicit, experimental choice. Every deck shows its warnings first, its exact-deck test record, its predicted style, and the estimate with its 90% model range."],
+    ["Why this deck (reason.html)", "Opened from a deck: an overview first (roles from the card labels, main warnings, the best single swap with before and after, Apply and Undo), then layers with a plain-language summary, each card's weight, the model compared with real results, card pairs, warnings, swaps with their math written out, a rotatable 3D card map with card-map swaps and nearest-card tables, and the raw score."],
     ["All cards (cards.html)", "Every card form and every row of your card CSV: battle stats, learned weight, and your CSV's own numbers."],
-    ["Meta (meta.html)", "How ranked card usage changed between collections, deck styles per period, and the forecast's status and assumptions."],
-    ["Counters (counters.html)", "Pick a deck style or the cards you face; get counter cards with their matchups and 3 real counter decks (played at least 5 times, legal, unlocked) with their real record against the style and a tech swap, plus a held-out check of the ranking."],
-    ["Next season (seasons.html)", "Today's most-played ranked decks with their trend, new cards between saved card lists, and a next-season prediction that stays locked until enough seasons are collected."],
-    ["How it works (model.html)", "The method in five steps, held-out results against baselines, limits, a glossary, and the full model log."],
+    ["Card usage trends (meta.html)", "How ranked card usage changed between collections, deck styles per period, and the experimental forecast with its track record."],
+    ["Counters (counters.html)", "Pick a deck style or the cards you face first; get counter cards with their matchups and 3 real counter decks (played at least 5 times, legal, unlocked) with their style-wide record and a tech swap, then the retrospective held-out check of the ranking."],
+    ["Season readiness (seasons.html)", "Today's most-played ranked decks with their trend, new cards between saved card lists, and how many seasons are collected toward a next-season prediction (none is built yet; it would also need building and testing once enough seasons are collected."],
+    ["How it works (model.html)", "The method in five steps, held-out results against baselines, the three kinds of math with worked examples from real decks (sigmoid win estimates, softmax style probabilities, the Monte Carlo usage forecast), limits, a glossary, and the full model log."],
 ], widths=[4.4, 12.6])
 p("web/engine.js is a JavaScript copy of the Python legality, scoring, search, swap and explanation code. Because two "
   "copies can drift, every export writes Python's own answers for random decks and searches, and "
@@ -913,7 +913,7 @@ bullets([
     ("Done:", f"data pipeline, models, held-out evaluation, website with {sum(m['status'] == 'exported' for m in MODES)} trained "
      f"models (overall modes, {sum(1 for m in groups if m['mode'] == 'ranked' and m['status'] == 'exported')} leagues, "
      f"{sum(1 for m in groups if m['mode'] == 'trophy_road' and m['status'] == 'exported')} arenas)."),
-    ("Forecast:", f"waiting for data. It needs {ms['min_periods']} collection periods to backtest and the project has {ms['periods']}; one more daily leaderboard collection unlocks the first backtest."),
+    ("Forecast:", doc_claims.forecast_status(INDEX["meta"])),
     ("Not yet trained:", "; ".join(f"{m['label']} ({n(m['ok_battles'])} battles: {m.get('reason', '').split(': ', 2)[-1]})" for m in not_ok) or "none"),
     ("API access:", "the key is tied to one IP address; a new key is needed whenever the network changes it, or use the proxy."),
     ("Sharing:", "the online version on claude.ai still shows an older build until it is republished."),

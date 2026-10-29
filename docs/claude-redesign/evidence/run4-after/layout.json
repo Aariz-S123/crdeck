@@ -1,0 +1,134 @@
+{
+ "model-desktop-light": {
+  "viewport": 1425,
+  "page_width": 1425,
+  "page_height": 10398,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "model-mobile-light": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 16731,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table#report.results",
+   "thead",
+   "tr",
+   "th",
+   "th"
+  ],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "model-mobile-dark": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 16731,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table#report.results",
+   "thead",
+   "tr",
+   "th",
+   "th"
+  ],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "meta-desktop-light": {
+  "viewport": 1425,
+  "page_width": 1425,
+  "page_height": 4192,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "meta-mobile-light": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 6837,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table.nums",
+   "thead",
+   "tr",
+   "th",
+   "th"
+  ],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "meta-mobile-dark": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 6837,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table.nums",
+   "thead",
+   "tr",
+   "th",
+   "th"
+  ],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "seasons-desktop-light": {
+  "viewport": 1425,
+  "page_width": 1425,
+  "page_height": 3598,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "seasons-mobile-light": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 8937,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "seasons-mobile-dark": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 8937,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ }
+}

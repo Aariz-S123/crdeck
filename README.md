@@ -46,25 +46,27 @@ The deck builder also runs as a small website that runs the trained model in the
 
 | Page | What it shows |
 | --- | --- |
-| `web/index.html` (Build decks) | Pick up to three cards, get three legal decks with style, estimated win rate and range, and deck checks |
-| `web/reason.html` (Why this deck) | Opened from a deck: a plain-language summary, card weights, model vs real results, card pairs, warnings, swaps with their breakdown, raw score |
+| `web/index.html` (Build decks) | Pick up to three cards. **Observed decks** (default): real decks from the mode's pool (played at least 5 times in the training battles, legal and unlocked) that hold your picks, ranked by the builder's score. **Generated decks · experimental**: new combinations from the beam search. Each deck shows its warnings first, its exact-deck test record and appearances, its predicted style, and the estimate with its 90% model range |
+| `web/reason.html` (Why this deck) | Opened from a deck: an "At a glance" overview (roles from the card labels, main warnings, the best single swap with before/after, Apply/Undo), then three layers: all score swaps, evidence (card weights, model vs real results, pairs, deck checks), and math and model details (score formula, card map) |
 | `web/cards.html` (All cards) | Every row of `data/labels/source/cards_meta.csv` and every card form: status, battle stats, regression weight, your CSV's numbers |
-| `web/meta.html` (Meta) | Ranked usage history, biggest movers, deck styles per period, forecast status and assumptions |
-| `web/seasons.html` (Next season) | Today's most-played ranked decks with their trend, new cards / Evolutions / Heroes between saved card lists, and a next-season prediction that stays locked until 3 seasons are collected and it beats "no change" on a held-out season |
-| `web/counters.html` (Counters) | Pick a deck style or the cards you face; shows counter cards (with each matchup and its 90% range) and 3 counter decks that are real decks (played at least 5 times, legal, unlocked) ranked against them by the card-vs-card matchup model, each with its real record against the style after training and one like-for-like tech swap, plus a held-out check of the ranking (docs/model-notes.md §17) |
-| `web/model.html` (How it works) | How the model is built, held-out results against baselines, limits, a glossary, and the full run log |
+| `web/meta.html` (Usage trends) | Card usage trends among sampled Ranked players: observed history (headline changes only when both periods are big enough, all changes, a card lookup), the experimental next-period forecast with its real state and track record (error vs no change, 90% band coverage), and a pointer to season readiness |
+| `web/seasons.html` (Season readiness) | Today's most-played ranked decks with their trend, new cards / Evolutions / Heroes between saved card lists, and how many seasons are collected toward a next-season prediction (none is built) |
+| `web/counters.html` (Counters) | Pick a deck style or the cards you face first; then counter cards (each matchup with its 90% range) and 3 real counter decks with a tech swap, labelled as estimate vs the opponents, general estimate, and measured style-wide record; the retrospective held-out check comes last |
+| `web/model.html` (How it works) | How the model is built, held-out results against baselines, "Three models, three questions" (sigmoid win estimates, softmax style probabilities and the Monte Carlo usage forecast, each with a worked example from real data), limits, a glossary, and the full run log |
 
-- `web/common.js` and `web/app.css` are shared by all pages; `web/engine.js` is a JavaScript port of the scoring, search, legality, warnings, archetype and explanation code.
+- `web/common.js` and `web/app.css` are shared by all pages; `web/engine.js` is a JavaScript port of the scoring, search, legality, warnings, archetype and explanation code. `web/observed.js` picks the observed decks (Python twin: `crdeck.counters.observed_decks`, a post-training function, so it never forces a retrain). `web/learn.js` builds the worked examples on How it works and Usage trends from the same exports and engine code.
 - `python scripts/export_web.py` writes `web/modes.json` (modes, meta history, run log), one model per mode in `web/models/`, and Python's own answers for test cases in `web/golden/`.
 - The Why this deck page also has a **card map**: every card form as a learned vector (SVD of positive PMI from the training decks, size chosen on validation), a rotatable 3D PCA picture, and swaps that stay close to the deck in the full-dimensional space and raise the win rate (`src/crdeck/embedding.py`). Each regular swap shows its score math written out.
 - In a single Trophy Road arena the builder only offers what a player there could own: card unlock arenas and slot unlocks come from the Clash Royale Wiki (`python scripts/fetch_wiki_unlocks.py` writes `config/card_unlocks.yaml`), plus cards that at least 3 decks in that arena's battles already use.
-- Pages pass the mode, deck and picked cards in the link's `#` part, so a "Why this deck" link can be shared.
+- Pages pass the mode, deck and picked cards in the link's `#` part (plus `~g` when generated decks were chosen), so a "Why this deck" link can be shared. Old links still work.
 - `node scripts/sweep_web_engine.mjs` seeds the engine with every card form and checks every result (legal decks, seeds kept, legal swaps, breakdowns that add up).
 - `node scripts/check_web_engine.mjs` checks that the port agrees with Python on 3,000 random decks (legality and slots) plus searches, swaps and explanations. Python remains the source of truth; re-run the export and the check after retraining.
-- Headless page checks (jsdom): `cd tests/web && npm install` once, then `node page_test.cjs` (every page, a few minutes) or `node site_check.cjs` (every mode on every page, about 15 minutes). Run them after an export.
+- Headless page checks (jsdom): `cd tests/web && npm install` once, then `node page_test.cjs` (every page, a few minutes) or `node site_check.cjs` (every mode on every page, about 15 minutes). `run1_test.cjs` to `run4_test.cjs` check the 2026-10-29 redesign (bad links and load states, observed/generated decks, the explanation and counters layout, and the worked math against the engine). Run them after an export.
 - To view it locally, serve the folder (`python -m http.server -d web`) and open http://localhost:8000.
 
 The spec (section 3) listed a web UI as deferred; it was built on request after the core results were in.
+
+**Redesign (2026-10-29).** The site was reworked for newcomers in four runs, following `docs/claude-redesign/START-HERE.md`. What changed, every check run and the remaining limits are in `PROMPT-PROGRESS.md`; research left for later is in `docs/claude-redesign/BACKLOG.md`. No model was retrained and no export changed; the one intended change in what is recommended is that the builder shows observed decks by default.
 
 ## Using it
 

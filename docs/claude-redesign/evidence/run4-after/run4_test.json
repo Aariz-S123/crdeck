@@ -1,0 +1,104 @@
+{
+ "softmax": [
+  [
+   "ranked",
+   "HYBRID / UNCERTAIN",
+   0.466
+  ],
+  [
+   "ranked",
+   "Cycle",
+   0.924
+  ],
+  [
+   "ranked",
+   "Beatdown",
+   0.921
+  ],
+  [
+   "ranked",
+   "Cycle",
+   0.916
+  ],
+  [
+   "ranked",
+   "Cycle",
+   0.608
+  ],
+  [
+   "ranked",
+   "HYBRID / UNCERTAIN",
+   0.5
+  ],
+  [
+   "trophy_road",
+   "Beatdown",
+   0.932
+  ],
+  [
+   "trophy_road",
+   "Beatdown",
+   0.976
+  ],
+  [
+   "trophy_road",
+   "Siege",
+   0.909
+  ],
+  [
+   "trophy_road",
+   "HYBRID / UNCERTAIN",
+   0.439
+  ],
+  [
+   "trophy_road",
+   "Beatdown",
+   0.966
+  ],
+  [
+   "trophy_road",
+   "Beatdown",
+   0.556
+  ],
+  [
+   "ranked__master_iii",
+   "Bait",
+   0.94
+  ],
+  [
+   "ranked__master_iii",
+   "Siege",
+   0.888
+  ],
+  [
+   "ranked__master_iii",
+   "Bridge Spam",
+   0.5
+  ],
+  [
+   "ranked__master_iii",
+   "Bait",
+   0.9
+  ],
+  [
+   "ranked__master_iii",
+   "HYBRID / UNCERTAIN",
+   0.438
+  ],
+  [
+   "ranked__master_iii",
+   "Bait",
+   0.587
+  ]
+ ],
+ "model": "Sigmoid · which side wins? The strength model gives every card form and every common card pair a learned weight. Adding up a deck's weights gives its strength. For two decks, the difference in strength z (plus a player-rating term, set to zero here because the site assumes equal ratings) becomes a p",
+ "meta": {
+  "blocked": "Experimental forecast: not available yet",
+  "not_better": "Experimental forecast hidden: it did not beat “no change”",
+  "shown": "Experimental forecast shown",
+  "shown_empty": "Experimental forecast: nothing to forecast right now",
+  "no_scored": "Experimental forecast: nothing to forecast right now"
+ },
+ "fails": []
+}
+exit 0

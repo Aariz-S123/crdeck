@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Next Season · crdeck</title>
+<title>Season Readiness · crdeck</title>
 <meta name="description" content="The Clash Royale meta decks top ranked players use right now, new cards to watch for, and when a next-season prediction becomes possible.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z' fill='%23a8247f'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,8 +39,8 @@
   <header class="site" id="site"></header>
   <main id="main" class="wrap">
     <div class="pagehead">
-      <h1>Next season</h1>
-      <p class="lede">What top ranked players play right now, which new cards to watch for, and when a prediction for the next season becomes possible. This page uses Ranked battles of leaderboard players.</p>
+      <h1>Season readiness</h1>
+      <p class="lede">What top ranked players play right now, which new cards to watch for, and how many seasons are collected toward a next-season prediction (none is built yet). This page uses Ranked battles of leaderboard players.</p>
     </div>
     <div id="body" class="wrap"><div class="panel box"><div class="skel" style="height:90px"></div></div></div>
   </main>
@@ -99,12 +99,13 @@
     const snaps = cards.snapshots, last = snaps[snaps.length - 1];
     $("#body").innerHTML = `
       <section class="panel box" aria-labelledby="pred-h">
-        <div class="lockrow"><h2 id="pred-h" style="font-size:1.25rem">Next-season prediction</h2>
-          <span class="pill ${st.state === "blocked" ? "weak" : "good"}">${st.state === "blocked" ? "Locked: not enough seasons yet" : "Ready to backtest"}</span></div>
+        <div class="lockrow"><h2 id="pred-h" style="font-size:1.25rem">Season readiness</h2>
+          <span class="pill weak">${num(st.covered)} of ${num(st.needed)} seasons collected</span></div>
+        <p><b>No next-season prediction is built.</b> This panel tracks whether enough seasons have been collected to build one and test it fairly. The next-period usage forecast on <a href="meta.html#ranked">Card usage trends</a> is a different, shorter-range thing.</p>
         <p>${esc(st.reason)}</p>
         <div class="seasons" aria-label="Seasons covered">${boxes}</div>
         ${short.length ? `<p class="muted small">Not counted (under ${num(st.min_season_battles)} battles): ${short.map((s) => `${esc(s.season)} (${num(s.battles)})`).join(", ")}.</p>` : ""}
-        <p class="muted small">When it unlocks, the prediction will be shown only if it beats “no change” on a season it was not fitted on. New cards, Evolutions and Heroes have no battles before release, so they can never be part of a prediction until they have been played.</p>
+        <p class="muted small">Having enough seasons doesn't make a prediction appear by itself: one would still have to be built, and shown only if it beats “no change” on a season it was not fitted on. New cards, Evolutions and Heroes have no battles before release, so no prediction can say anything about them until they have been played.</p>
       </section>
 
       <section class="section" aria-labelledby="md-h">
