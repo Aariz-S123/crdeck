@@ -56,6 +56,19 @@ table.near td.good, table.nums td.good { color: var(--ok); font-weight: 700; } t
 .formula { white-space: pre-wrap; }
 .formula { font-size: 0.875rem; background: var(--sunken); padding: 10px 12px; border-radius: 8px; overflow-x: auto; }
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.overview { padding: var(--space-4) var(--space-5); display: grid; gap: var(--space-4); grid-template-columns: minmax(0, 1fr); }
+.ovgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: var(--space-4) var(--space-5); align-items: start; }
+.roles { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 0.9375rem; }
+.roles dt { color: var(--muted); } .roles dd { margin: 0; }
+.ovwarn { display: grid; gap: 6px; }
+.bestswap { display: grid; gap: 6px; padding: 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--sunken); }
+.bestswap .ba { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 12px; font-size: 0.9375rem; }
+.bestswap .ba dt { color: var(--muted); } .bestswap .ba dd { margin: 0; }
+details.layer { border-top: 1px solid var(--line); padding-top: var(--space-3); }
+details.layer > summary { cursor: pointer; min-height: 44px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--space-2); list-style: none; }
+details.layer > summary .h { font-family: var(--display); font-weight: 700; font-size: var(--step-1); }
+details.layer > summary .muted { font-size: 0.875rem; }
+details.layer > .body { display: grid; gap: var(--space-6); margin-top: var(--space-4); grid-template-columns: minmax(0, 1fr); }
 </style>
 </head>
 <body>
@@ -70,7 +83,8 @@ table.near td.good, table.nums td.good { color: var(--ok); font-weight: 700; } t
       <div class="modebar" id="modebar"></div>
       <div class="facts" id="facts"></div>
     </div>
-    <div id="body" class="wrap" aria-live="polite">
+    <p class="sr" id="announce" role="status"></p>
+    <div id="body" class="wrap">
       <div class="top"><div class="panel deckbox"><div class="skel" style="height:180px"></div></div><div class="panel short"><div class="skel" style="height:180px"></div></div></div>
     </div>
   </main>
@@ -135,6 +149,8 @@ table.near td.good, table.nums td.good { color: var(--ok); font-weight: 700; } t
     const swapIntro = swaps.length && Math.max(...swaps.map((s) => s.delta_objective)) <= 0
       ? "No single-card swap among the candidate cards raises this deck's score. That is a local check, not proof that no better deck exists. These swaps cost the least."
       : "Swaps that raise the deck's score come first. Pressing Swap changes the deck on this page and recomputes everything.";
+    // layers the reader opened stay open when a swap redraws the page
+    const wasOpen = new Set([...document.querySelectorAll("details.layer[open]")].map((el) => el.id));
 
     $("#body").innerHTML = `
       <div class="top">
@@ -161,6 +177,15 @@ table.near td.good, table.nums td.good { color: var(--ok); font-weight: 700; } t
         </section>
       </div>
 
+      ${overview(x)}
+
+      <details class="layer" id="lay-swaps"${wasOpen.has("lay-swaps") ? " open" : ""}><summary><span class="h">All score swaps</span><span class="muted">${num(swaps.length)} single-card changes ranked by the deck builder's score</span></summary><div class="body">
+      <section class="section" aria-labelledby="swap-h">
+        <header><h2 id="swap-h">Try a swap</h2><p>${swapIntro} Score changes are in score points (100 × the ranking score); win changes are in percentage points of estimated wins. Your picked cards are never swapped out.</p></header>
+        ${renderSwaps()}
+      </section></div></details>
+
+      <details class="layer" id="lay-ev"${wasOpen.has("lay-ev") ? " open" : ""}><summary><span class="h">Evidence</span><span class="muted">what each card adds, card pairs, deck checks, and how the model did on later battles</span></summary><div class="body">
       <section class="section" aria-labelledby="ev-h">
         <header><h2 id="ev-h">The evidence</h2><p>Two charts from the same model. The first shows what each card adds. The second checks the model against battles it never trained on.</p></header>
         <div class="charts">
@@ -199,11 +224,9 @@ table.near td.good, table.nums td.good { color: var(--ok); font-weight: 700; } t
         </div>
       </section>
 
-      <section class="section" aria-labelledby="swap-h">
-        <header><h2 id="swap-h">Try a swap</h2><p>${swapIntro} The score is in points: 1 point is one percentage point of estimated win rate.</p></header>
-        ${renderSwaps()}
-      </section>
+      </div></details>
 
+      <details class="layer" id="lay-math"${wasOpen.has("lay-math") ? " open" : ""}><summary><span class="h">Math and model details</span><span class="muted">the ranking score written out, and the card map in 3D</span></summary><div class="body">
       <section class="section" aria-labelledby="map-h" id="mapsec"></section>
 
       <section class="section" aria-labelledby="raw-h">
@@ -211,9 +234,9 @@ table.near td.good, table.nums td.good { color: var(--ok); font-weight: 700; } t
         <div class="panel chartbox">
           <p>Decks are ranked by a score that adds the win estimate, card-pair synergy and how often people play these cards together:</p>
           <div class="formula">${x.objective.objective.toFixed(4)} = win ${x.objective.meta_win_prob.toFixed(4)} + ${E.weight} × synergy ${signed(x.objective.mean_pair_synergy, 4)} + ${E.coWeight} × played-together ${x.objective.mean_log_lift.toFixed(3)}</div>
-          <p class="small">The weights ${E.weight} and ${E.coWeight} come from the project's config and were checked on validation battles. The full selection record is on <a href="model.html#${esc(slug())}">How it works</a>.</p>
+          <p class="small">The weights ${E.weight} and ${E.coWeight} come from the project's config and were checked on validation battles. The score is a ranking number, not a probability. The full selection record is on <a href="model.html#${esc(slug())}">How it works</a>.</p>
         </div>
-      </section>`;
+      </section></div></details>`;
     document.querySelectorAll("details.why[open]").forEach(renderWhy);
     renderMap();
   }
@@ -339,6 +362,57 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
       (map.colorBy === "style" ? top3.map((st, j) => `<span><i style="background:var(--cat${j + 1})"></i>${esc(st)} decks</span>`).join("") + `<span><i style="background:var(--map-other)"></i>other styles</span>` : "");
   }
 
+  // Decision-first summary: what the cards do (from the project's card labels), the main warnings, and the one
+  // highest-scoring eligible score swap with its before/after. Everything else stays in the layers below.
+  function overview(x) {
+    const cs = x.entries.map((e) => ({ e, c: E.card(e.id) }));
+    const names = (f) => cs.filter((o) => o.c && f(o.c)).map((o) => esc(E.describe(o.e)));
+    const roles = [
+      ["Win condition", names((c) => c.wincon)],
+      ["Spells", names((c) => c.type === "spell")],
+      ["Air defense", names((c) => c.roles.includes("air_defense"))],
+      ["Answers to tanks", names((c) => c.roles.includes("building") || c.roles.includes("tank_killer"))],
+      ["Tanks", names((c) => c.roles.includes("tank") || c.roles.includes("mini_tank"))],
+    ];
+    const major = x.warnings.slice(0, 3), rest = x.warnings.slice(3);
+    const warnHtml = x.warnings.length
+      ? `${major.map((g) => `<div class="notice"><b>Watch out:</b> ${esc(g.root_cause)}</div>`).join("")}
+         ${rest.length ? `<details class="more"><summary>${rest.length} more warning${rest.length === 1 ? "" : "s"}</summary><div class="body">${rest.map((g) => `<div class="notice">${esc(g.root_cause)}</div>`).join("")}</div></details>` : ""}`
+      : `<p class="small" style="color:var(--ok);font-weight:600">✓ No deck-check warnings. <span class="src rule">rule of thumb</span></p>`;
+    let best = -1;
+    swaps.forEach((sw, j) => { if (best < 0 || sw.delta_objective > swaps[best].delta_objective) best = j; });
+    let swapHtml;
+    if (!swaps.length) swapHtml = `<p class="muted">Every card here is one you picked, so there is nothing to swap.</p>`;
+    else if (swaps[best].delta_objective <= 0) swapHtml = `<p>No single-card swap among the candidate cards raises this deck's score. That is a local check, not proof that no better deck exists.</p>`;
+    else {
+      const sw = swaps[best], nd = CRDeck.parseDeckKey(sw.new_deck_key), nx = E.explain(nd);
+      const codes = (d) => new Map(E.structuralWarnings(d).map((w) => [w.code, w.message]));
+      const was = codes(x.entries), now = codes(nd);
+      const added = [...now].filter(([k]) => !was.has(k)).map(([, m]) => m), removed = [...was].filter(([k]) => !now.has(k)).map(([, m]) => m);
+      const sup = UI.supportText(E, nx, ctx.entry.label), dw = 100 * (nx.score.meta_win_prob - x.score.meta_win_prob);
+      swapHtml = `<div class="bestswap"><b>Replace ${esc(sw.replace)} with ${esc(sw.with)}</b>
+        <dl class="ba">
+          <dt>Ranking score</dt><dd>${fmtPts(sw.delta_objective)} score points</dd>
+          <dt>Estimated wins</dt><dd>${pct(x.score.meta_win_prob)} → ${pct(nx.score.meta_win_prob)} (${dw >= 0 ? "+" : "−"}${Math.abs(dw).toFixed(2)} percentage points) <span class="src model">model estimate</span></dd>
+          <dt>Deck checks</dt><dd>${added.length ? `adds: ${esc(added.join(", "))}` : "adds no warning"}${removed.length ? `; removes: ${esc(removed.join(", "))}` : ""}</dd>
+          <dt>Evidence</dt><dd>${esc(sup.rec)} ${esc(sup.seen)}</dd>
+        </dl>
+        <div class="actions"><button class="btn primary" data-apply="${best}">Apply this swap</button></div>
+        <p class="muted small">The highest-scoring single change under the deck builder's score. Your picked cards are never swapped out. Card-map swaps (Math and model details) and counter tech swaps use different rules and can suggest other cards.</p></div>`;
+    }
+    return `<section class="panel overview" aria-labelledby="ov-h">
+      <h2 id="ov-h" style="font-size:1.25rem">At a glance</h2>
+      <div class="ovgrid">
+        <div><dl class="roles">${roles.map(([t, v]) => `<dt>${t}</dt><dd>${v.length ? v.join(", ") : "none"}</dd>`).join("")}
+          <dt>Average elixir</dt><dd>${x.avg_elixir === null ? "n/a" : x.avg_elixir.toFixed(1)}</dd></dl>
+          <p class="muted small" style="margin-top:6px">Roles come from the project's hand-made card labels, not from the model. <span class="src rule">labels</span></p></div>
+        <div class="ovwarn">${warnHtml}</div>
+      </div>
+      <div><h3 style="font-size:1.0625rem;margin-bottom:6px">Best next step</h3>${swapHtml}
+        ${past.length ? `<div class="actions" style="margin-top:8px"><button class="btn" data-undo="1">Undo last swap</button></div>` : ""}</div>
+    </section>`;
+  }
+
   function pairList(rows) {
     return `<ul class="pairs">${rows.map((p) => `<li><span>${esc(p.pair)}</span><span class="pv ${p.synergy >= 0 ? "pos" : "neg"}">${signed(p.synergy)}</span>
       <span class="ev">won ${pct(p.shrunk_wr)} of ${num(p.games)} games together · 90% range ${signed(p.interval[0])} to ${signed(p.interval[1])} · played together ${p.lift.toFixed(2)}× as often as chance</span></li>`).join("")}</ul>`;
@@ -351,7 +425,7 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
     const f = (v) => (Math.abs(v) < 0.0005 ? "0.000" : (v > 0 ? "+" : "−") + Math.abs(v).toFixed(3));
     return `<span class="math" aria-label="Score change worked out">Δscore = Δwin + ${E.weight} × Δsynergy + ${E.coWeight} × Δplayed-together
 = (${pct(b.win_prob, 3)} → ${pct(a.win_prob, 3)}) + ${E.weight} × (${signed(b.mean_synergy, 4)} → ${signed(a.mean_synergy, 4)}) + ${E.coWeight} × (${b.mean_log_lift.toFixed(3)} → ${a.mean_log_lift.toFixed(3)})
-= (${f(tw)}) + (${f(ts)}) + (${f(tc)}) = <b>${f(tw + ts + tc)} points</b></span>`;
+= (${f(tw)}) + (${f(ts)}) + (${f(tc)}) = <b>${f(tw + ts + tc)} score points</b></span>`;
   }
 
   function renderSwaps() {
@@ -362,7 +436,7 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
     return `<div class="swaps">${ordered.map(([from, rows], gi) => `
       <div class="panel swapgrp"><b>Replace ${esc(from)} with</b>
         ${rows.map(([s, j]) => `<div class="swaprow"><span>${esc(s.with)}</span>
-          <span class="d ${s.delta_objective >= 0 ? "pos" : "neg"}">score ${fmtPts(s.delta_objective)} · win ${s.delta_win_prob >= 0 ? "+" : "−"}${(Math.abs(s.delta_win_prob) * 100).toFixed(2)}</span>
+          <span class="d ${s.delta_objective >= 0 ? "pos" : "neg"}">score ${fmtPts(s.delta_objective)} pts · est. wins ${s.delta_win_prob >= 0 ? "+" : "−"}${(Math.abs(s.delta_win_prob) * 100).toFixed(2)} pp</span>
           <button class="btn small" data-apply="${j}">Swap</button>
           <span class="why">${esc(s.reason)}</span>${swapMath(s.new_deck_key)}</div>`).join("")}
         <details class="more why" data-why="${rows.map(([, j]) => j).join(",")}"${gi === 0 ? " open" : ""}>
@@ -392,6 +466,8 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
         </tbody></table></div><p class="small muted">Weight in log-odds; the other columns in score points.</p></div></details>`;
   }
 
+  // after a swap or undo the buttons are redrawn, so keyboard focus moves to the summary instead of being lost
+  function focusOverview() { const h = $("#ov-h"); if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); } }
   document.addEventListener("toggle", (ev) => { const d = ev.target; if (d.matches && d.matches("details.why") && d.open) renderWhy(d); }, true);
   $("#body").addEventListener("click", async (ev) => {
     const t = ev.target.closest("button"); if (!t) return;
@@ -400,12 +476,13 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
       past.push(deck); deck = CRDeck.parseDeckKey(s.new_deck_key); render();
       $("#sub").textContent = `Swapped ${s.replace} for ${s.with}. Every number on this page is recomputed for the new deck.`;
       $("#main").scrollIntoView({ behavior: "smooth" });
-    } else if (t.id === "undo") { deck = past.pop(); render(); }
+      $("#announce").textContent = `Swapped ${s.replace} for ${s.with}.`;
+      focusOverview();
+    } else if ((t.id === "undo" || t.dataset.undo) && past.length) { deck = past.pop(); render(); $("#sub").textContent = "Undid the last swap. Every number is recomputed."; $("#announce").textContent = "Undid the last swap."; focusOverview(); }
     else if (t.id === "copy") {
       const text = deck.map((e) => E.describe(e)).join(", ");
-      try { await navigator.clipboard.writeText(text); t.textContent = "Copied"; }
-      catch { t.textContent = "Copy blocked"; $("#sub").textContent = text; }
-      setTimeout(() => { t.textContent = "Copy card list"; }, 1600);
+      try { if (!navigator.clipboard) throw new Error("no clipboard"); await navigator.clipboard.writeText(text); t.textContent = "Copied"; setTimeout(() => { t.textContent = "Copy card list"; }, 1600); }
+      catch { $("#sub").textContent = `Copying was blocked by the browser. The card list: ${text}`; }
     }
   });
 })();

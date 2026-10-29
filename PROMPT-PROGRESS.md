@@ -6,10 +6,10 @@ boundaries, protected files, validation and blocker rules still apply. Local com
 
 ## Current state
 
-- Active run: **Run 3 (next)**
+- Active run: **Run 4 (next)**
 - Run 1: **PASS** (all P0 items; P1 newcomer definitions done)
 - Run 2: **PASS** (all P0 items; comparison view is P2 backlog, not started)
-- Run 3: not started
+- Run 3: **PASS** (P0 items and P1 three-layer disclosures; new evaluation methods are backlog)
 - Run 4: not started
 - Starting HEAD: `9b3ab4da2f7d30845ca8938d9891256ec7a59b51` (main, "Docs: final Trophy Road counter backtest numbers")
 - Working-tree changes already present: none except the untracked prompt pack `docs/claude-redesign/` (extracted 2026-10-29 from `Downloads/crdeck-claude-prompt-pack.zip`, the only copy, all five files)
@@ -90,6 +90,14 @@ Files: `web/observed.js` (new), `web/index.html`, `web/common.js` (token/readHas
 - Test harness change: page_test.cjs, site_check.cjs and run1_test.cjs now inline `observed.js` like engine.js/common.js (no assertion changed). run1_test pins `~g` where it compares the builder with `Engine.complete`, because Observed is now the default.
 - Engine untouched: `web/engine.js` not edited; engine snapshot identical to the Run 1 baseline.
 
+### Run 3 (web/reason.html, web/counters.html, web/app.css; docs/model-notes.md one sentence; docs/claude-redesign/BACKLOG.md; tests/web/run3_test.cjs)
+- reason.html: new "At a glance" overview right after the deck and short version: roles from the hand-made card labels (win condition, spells, air defense, answers to tanks, tanks, average elixir), up to three major warnings with the rest behind "N more", and "Best next step": the highest-scoring eligible score swap (locks respected) with before/after score points, estimated wins in percentage points, warnings added/removed, the new deck's evidence (test record and appearances), Apply, and Undo (always shown after a swap). If no swap raises the score it says so as a local check. Below: three `<details>` layers "All score swaps", "Evidence" (charts, pairs, deck checks, data quality) and "Math and model details" (score formula, card map in 3D). All existing analysis is still rendered; layer open state survives a swap. Swap rows now say "score … pts · est. wins … pp"; swap math ends in "score points"; score called a ranking number, not a probability. Whole-page `aria-live` removed; a small status line announces swaps; focus moves to the overview heading after Apply/Undo. Card-map and counter tech swaps named as different rules.
+- counters.html: order is now opponent choice → evidence-status line → results → trust check. One-sentence plain-language style descriptions (marked "not model output"). Partial cards vs exact 8-card opponent explained with the real `opponents_per_set`. Labels: "estimate vs X" / "general estimate vs sampled field" / measured "won N of M vs Style decks in the later battles" (style-wide; "(few games)" under 30; "no record, not zero wins"). Counter-card effects described as learned patterns, not one-on-one fights; "percentage points" units. Tech-swap text: in the pool with its count, or "isn't among this mode's N pool decks … may still have been played". Trust check: labelled retrospective with the reason (test-window opponent mix), "highest-scoring general decks", "all eligible pool decks", "only players who don't appear in the training battles (models not retrained)" vs "models retrained without any player…", tables in a disclosure, no difference interval claimed. Errors keep the choice and hide raw text under technical details; real clipboard fallback; footer no longer says "top-player battles".
+- app.css: every `details.more` and `details.layer` shows ▸/▾ (flex summaries had lost the browser marker on all pages).
+- docs/model-notes.md §17: "only makes it wider" replaced with the dependence caveat and the retrospective note.
+- docs/claude-redesign/BACKLOG.md: prospective evaluation, dependence-aware intervals, the two new-player checks, style-mixture confounding; P2 product items.
+- No math, ranking, export or engine change (snapshot identical).
+
 Not done in Run 1 (explicitly deferred): "Try an example" action and comparison view (not Run 1 P0); model.html still says "Win rates describe top players" (Run 4 teaching page); counters.html "strongest" wording (Run 3).
 
 ## Checks and evidence
@@ -126,6 +134,19 @@ Run 2 after (`docs/claude-redesign/evidence/run2-after/`):
 | regression | pytest; check_web_engine; run1_test; page_test; site_check | PASS | 159 passed; 137,367 checks agree; `fails: []` ×2; 44 modes no problems |
 | visual | `node docs/claude-redesign/evidence/shots.mjs …/run2-after` (+ `states/`: no-match, generated) | PASS | overflow 0 px at 390/1440 in light and dark for builder, reason, no-match and generated views |
 
+Run 3 after (`docs/claude-redesign/evidence/run3-after/`):
+
+| Acceptance ID | Exact command/manual action | Result | Evidence |
+|---|---|---|---|
+| R3.1 | `cd tests/web && node run3_test.cjs` | PASS | empty link and `#ranked~1b-2b~` handled; warned no-pick deck shows overview + all 7 section headings, ≥4 charts, 3D map |
+| R3.2 | run3_test: best swap on a pool deck with 2 locked picks, Apply then Undo | PASS | picks kept and still in the deck, hash restored by Undo, overview warnings recomputed; score/card-map swap lists equal `Engine.swaps`/`embeddingSwaps` |
+| R3.3 | run3_test parses every swap's math line | PASS | three parts sum to the total within rounding, in "score points"; rows say "pts" and "pp" |
+| R3.4 | run3_test counters: style, partial cards, exact 8-card deck, two cards with no shared deck | PASS | order opponent → results → trust check; editorial style line; target vs field estimate labels; style-wide record wording; "this exact deck"; no style record shown for exact decks; empty opponent set explained |
+| R3.5 | run3_test verdict text | PASS | "retrospective" with reason; unseen-player row vs retrained row named apart; no "only makes it wider"/"strongest decks" |
+| R3.6 | run3_test + screenshots | PASS | overview before 3 layers; native details; map tabindex 0; no page-wide live region; focus to overview heading after Apply |
+| regression | pytest; check_web_engine; run1/run2_test; page_test; site_check; engine snapshot `cmp` | PASS | 159 passed; 137,367 agree; all `fails: []`; 44 modes no problems; snapshot identical |
+| visual | `shots.mjs` reason + counters ×3 views | PASS | 0 px overflow; disclosure arrows visible; dark mode readable |
+
 Screenshots (local only, git-ignored): `docs/claude-redesign/evidence/run1-before/*.png`, `run1-after/*.png`, `run1-after/extra/*.png`.
 
 ## Checkpoints
@@ -134,10 +155,12 @@ Screenshots (local only, git-ignored): `docs/claude-redesign/evidence/run1-befor
 
 - Run 2 start: HEAD 70a9c94 (Run 1 commit). Changed: web/observed.js (new), web/index.html, web/common.js, web/reason.html, src/crdeck/counters.py (additive `observed_decks`); tests: tests/fixtures/observed_selector.json, tests/test_observed.py, tests/web/run2_test.cjs (new), tests/web/run1_test.cjs, page_test.cjs, site_check.cjs (inline observed.js).
 
+- Run 3 start: HEAD d060f8b (Run 2 commit). Changed: web/reason.html, web/counters.html, web/app.css, docs/model-notes.md (one sentence), docs/claude-redesign/BACKLOG.md (new), tests/web/run3_test.cjs (new).
+
 ## Blockers
 
 None for Run 1. Note for later runs: a new top-level `src/crdeck/*.py` would change the training-cache fingerprint (pipeline.py hashes every top-level .py except counters.py/counters.yaml), so Run 2's Python helper goes in `src/crdeck/counters.py`.
 
 ## Next exact action
 
-Run 3: reason.html decision-first overview (deck, roles from labels, up to three major warnings, one best eligible swap with Apply/Undo), Overview → Evidence → Math disclosures keeping every existing chart and the 3D tools; counters.html opponent selection first, one-sentence style definitions, partial vs exact opponent explanation, one-line evidence limit near results, detailed tables in disclosures, retrospective labels, unseen-player vs player-disjoint distinction, precise pool-absence and interval wording; research backlog file. No math/ranking changes.
+Run 4: new isolated `web/learn.js` (softmax table from `archetypeFeatures`/coef, sigmoid example from scorer rows, forecast summary with weighted coverage); How it works section "Three models, three questions"; meta.html renamed "Card usage trends" with observed history / experimental forecast (state, MAE vs no change, nominal vs achieved coverage, undercoverage notice) / season readiness link and at most three headline changes plus search; seasons.html readiness wording; model.html stale "top players" and "1 point" wording; scripts/make_docs.py data-driven branches (interval method, strength model, significance wording, page count, forecast status) with tests; regenerate DOCX if python-docx is available.

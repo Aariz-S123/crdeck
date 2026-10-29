@@ -194,6 +194,9 @@ table.nums th:first-child, table.nums td:first-child { text-align: left; }
 /* disclosure */
 details.more > summary { cursor: pointer; font-weight: 600; color: var(--muted); font-size: 0.9375rem; min-height: 44px; display: flex; align-items: center; gap: 6px; }
 details.more > summary:hover { color: var(--ink); }
+details.more > summary::-webkit-details-marker, details.layer > summary::-webkit-details-marker { display: none; }
+details.more > summary::before, details.layer > summary::before { content: "▸"; display: inline-block; width: 1em; flex: none; color: var(--muted); }
+details.more[open] > summary::before, details.layer[open] > summary::before { content: "▾"; }
 details.more > .body { display: grid; gap: var(--space-3); margin-top: var(--space-3); grid-template-columns: minmax(0, 1fr); }
 
 /* states */

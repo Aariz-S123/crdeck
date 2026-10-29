@@ -1,0 +1,30 @@
+{
+ "warned": {
+  "overview": "At a glance Win conditionGoblin Drill (Evolution)SpellsGiant SnowballAir defensenoneAnswers to tanksBomb TowerTanksKnight, Berserker Average elixir2.6 Roles come from the project's hand-made card labels, not from the model. labels Watch out: Weak against air (Balloon, Lava Hound, air swarms) Best next stepNo single-card swap among the candidate cards raises this deck's score. That is a local check, not proof that no better deck exists.",
+  "sections": [
+   "ov-h",
+   "swap-h",
+   "ev-h",
+   "pairs-h",
+   "warn-h",
+   "map-h",
+   "raw-h"
+  ]
+ },
+ "best": "Replace Hog Rider with X-Bow Ranking score+0.81 score points Estimated wins51.4% → 53.3% (+1.95 percentage points) model estimate Deck checksadds: 2 cards with role building EvidenceNo exact-deck test records: these 8 cards weren't played together in the test battles (Oct 24 to Oct 26). Not seen in Ranked (Path of Legends) battles collected so far, so every number for it is built from its cards an",
+ "applied": {
+  "hash": "#ranked~26000010e-26000014h-26000030b-26000038b-27000000e-27000008b-28000000b-28000011b~26000010e-26000014h",
+  "focus": "ov-h",
+  "announce": "Swapped Hog Rider for X-Bow."
+ },
+ "countersOrder": [
+  "pagehead",
+  "panel box",
+  "announce",
+  "results",
+  "verdict"
+ ],
+ "exact": "3. Counter decks Real decks only: each was played at least 5 times in the training battles. They are ranked the way the deck builder ranks decks, with its win term replaced by the estimated win rate a",
+ "fails": []
+}
+exit 0
