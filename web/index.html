@@ -1,4 +1,8 @@
+<!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>crdeck Deck Builder</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="Pick up to three Clash Royale cards and get three legal decks built from real top-player battles, with the reasons behind every number.">
@@ -48,7 +52,7 @@
 .deck-top { display: grid; gap: 2px; }
 .deck-top .k { font-size: 0.8125rem; color: var(--muted); font-weight: 600; }
 .win { display: grid; grid-template-columns: 1fr auto; gap: 2px var(--space-3); align-items: end; }
-.win .big { font-family: var(--display); font-weight: 700; font-size: 2rem; line-height: 1; }
+.win .big { font-family: var(--display); font-weight: 700; font-size: 1.625rem; line-height: 1.1; }
 .win .cap { font-size: 0.8125rem; color: var(--muted); }
 .win .elx { text-align: right; }
 .win .elx b { display: block; font-size: 1.25rem; line-height: 1.1; }
@@ -56,15 +60,24 @@
 .health { display: grid; gap: 6px; font-size: 0.875rem; }
 .health .okline { color: var(--ok); font-weight: 600; }
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.viewres { display: none; }
+@media (max-width: 920px) { .viewres { display: inline-flex; } }
+.evidence { display: grid; gap: 6px; font-size: 0.9375rem; }
+.evidence .line { display: grid; gap: 2px; }
+.style-line { font-size: 0.9375rem; }
+.copyfall { display: grid; gap: 4px; font-size: 0.875rem; }
+.copyfall input { width: 100%; min-height: 44px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--sunken); color: var(--ink); font: inherit; }
 </style>
-
+</head>
+<body>
 <a class="skip" href="#main">Skip to the deck builder</a>
 <div class="wrap">
   <header class="site" id="site"></header>
   <main id="main" class="wrap">
     <div class="pagehead">
       <h1>Build a Clash Royale deck</h1>
-      <p class="lede">Pick up to three cards you want to play. The builder fills the other slots with cards that won together in real battles, and each deck links to the reasons behind it.</p>
+      <p class="lede">A Clash Royale deck contains eight cards. Choose up to three you want to keep, and crdeck suggests the rest using patterns from recorded battles. Each suggestion shows what supports it, what to watch out for, and links to the full reasoning.</p>
+      <details class="more newbie" id="newbie"><summary>New to Clash Royale? Six terms in one minute</summary><div class="body" id="newbie-body"></div></details>
       <div class="modebar" id="modebar"></div>
       <div class="facts" id="facts"><span class="skel" style="width:320px"></span></div>
     </div>
@@ -73,8 +86,9 @@
       <section class="panel picker" aria-labelledby="pick-h">
         <h2 class="stephead" id="pick-h"><span class="n">1</span> Pick your cards</h2>
         <div class="seeds" id="seeds"></div>
-        <p class="muted small" id="seed-hint">Optional. With no cards picked, it builds the strongest decks it can find.</p>
+        <p class="muted small" id="seed-hint">Optional. With no cards picked, it shows the highest-scoring options under this model.</p>
         <p class="notice" id="seed-note" role="status" hidden></p>
+        <a class="btn viewres" href="#res-h">See the suggested decks ↓</a>
         <div class="filters">
           <label class="sr" for="q">Search cards</label>
           <input class="search" id="q" type="search" placeholder="Search cards" autocomplete="off">
@@ -88,6 +102,7 @@
           <h2 class="stephead" id="res-h"><span class="n">2</span> Your decks</h2>
           <span class="status" id="status" aria-live="polite"></span>
         </div>
+        <p class="muted small" id="res-note">These are the highest-scoring options among many decks the model searched. Picking the best of a search makes the top estimates run high, and the ranges don't include that. The model doesn't play the game; it learns from recorded battle results.</p>
         <div id="slotkey"></div>
         <div class="decks" id="decks">
           <div class="panel deck" aria-hidden="true"><div class="skel" style="height:22px;width:60%"></div><div class="skel" style="height:170px"></div><div class="skel" style="height:60px"></div></div>
@@ -99,7 +114,7 @@
   </main>
   <footer class="site-foot">
     <span>A fan-made learning project. Not affiliated with, endorsed by or sponsored by Supercell.</span>
-    <span>Battle data comes from the official Clash Royale API. Win rates describe top players, not a promise about your games.</span>
+    <span>Battle data comes from the official Clash Royale API. Estimates describe the recorded battles of the chosen mode, not a promise about your games.</span>
   </footer>
 </div>
 
@@ -130,13 +145,32 @@
     if (loaded) saveLink(); // a mode, league or arena switch goes into the link too
     loaded = true;
     $("#slotkey").innerHTML = UI.SLOT_KEY;
-    renderTypes(); renderSeeds(); renderCards(); build();
+    renderHelp(); renderTypes(); renderSeeds(); renderCards(); build();
     if (lockedNow.length) showNote(`Left out because ${lockedNow.length === 1 ? "it isn't" : "they aren't"} unlocked in ${E.m.availability.arena}: ${lockedNow.map((s) => E.whyNot(s)).join("; ")}.`);
     else if (dropped) showNote(`${dropped} card${dropped === 1 ? "" : "s"} in the link ${dropped === 1 ? "isn't" : "aren't"} a card form in this game, so ${dropped === 1 ? "it was" : "they were"} left out.`);
   }, { failTarget: "#decks", onLoading: () => { $("#status").textContent = "Loading this mode…"; } });
 
   const slug = () => ctx.entry.slug;
   function saveLink() { UI.setHash(seeds.length ? UI.token(slug(), null, seeds) : `${slug()}~~`); }
+
+  // Short definitions for newcomers. Deck rules (size, special slots, champions) come from the model's rules,
+  // and win-condition examples from the card table, so the text follows the data.
+  function renderHelp() {
+    const r = E.m.rules, av = E.m.availability, slotWord = { evo: "Evolution", hero: "Hero", wild: "Wild" }, kindWord = { evo: "an Evolution", hero: "a Hero", champion: "a Champion" };
+    const slots = r.special_slots.filter((s) => !av || av.slots.includes(s.name));
+    const wins = E.m.cards.filter((c) => c.wincon).map((c) => c.name).sort().slice(0, 4);
+    const items = [
+      ["Card", "A unit, spell or building you place in battle. Troops fight, spells hit an area, buildings defend or produce troops."],
+      ["Deck", `Exactly ${r.deck_size} different cards. Each card can appear only once, in one form.`],
+      ["Elixir", "What cards cost to play (the number in the pink drop). A lower average elixir means cheaper cards you can play more often."],
+      ["Win condition", `A card whose main job is to damage the enemy towers, such as ${wins.join(", ")}. A deck without one struggles to win.`],
+      ["Card forms and slots", slots.length
+        ? `Some cards also have an Evolution or Hero form, a stronger version that must sit in a special slot. ${slots.map((s) => `The ${slotWord[s.name]} slot takes ${s.accepts.map((k) => kindWord[k]).join(" or ")}.`).join(" ")} At most ${r.max_champions} Champions per deck.`
+        : `Evolution and Hero forms aren't unlocked in ${av ? esc(av.arena) : "this mode"}, so every card is in its base form here.`],
+      ["Game mode", "Which recorded battles the numbers come from: Ranked (Path of Legends, by league), Trophy Road (the ladder, by arena) or both. It doesn't look at your own account."],
+    ];
+    $("#newbie-body").innerHTML = `<dl class="kv newbie-list">${items.map(([t, d]) => `<dt>${t}</dt><dd>${d}</dd>`).join("")}</dl>`;
+  }
 
   // ------------------------------------------------------------ picker
   function renderTypes() {
@@ -190,7 +224,7 @@
     $("#seeds").innerHTML = rows.join("");
     $("#seed-hint").textContent = seeds.length
       ? `${3 - seeds.length ? `${3 - seeds.length} slot${3 - seeds.length === 1 ? "" : "s"} free.` : "All 3 slots used."} Press × to remove a card, or switch its form.`
-      : "Optional. With no cards picked, it builds the strongest decks it can find.";
+      : "Optional. With no cards picked, it shows the highest-scoring options under this model.";
   }
   $("#seeds").onclick = (ev) => {
     const rm = ev.target.closest("[data-rm]");
@@ -200,25 +234,31 @@
   };
 
   // ------------------------------------------------------------ build
-  function schedule() { clearTimeout(timer); $("#status").textContent = "Building decks…"; timer = setTimeout(build, 120); }
+  // Each build gets a number; a delayed build that is no longer the newest (picks or mode changed meanwhile) does nothing.
+  let buildNo = 0;
+  function schedule() { clearTimeout(timer); buildNo++; $("#status").textContent = "Building decks…"; timer = setTimeout(build, 120); }
   function build() {
+    clearTimeout(timer);
+    const mine = ++buildNo, eng = E, picks = seeds.slice();
     $("#status").textContent = "Building decks…";
     setTimeout(() => {
-      const t0 = performance.now();
+      if (mine !== buildNo || eng !== E) return;
       try {
-        decks = E.complete(seeds).map((d) => d.entries);
+        decks = eng.complete(picks).map((d) => d.entries);
         renderDecks();
-        const names = seeds.map((s) => E.describe(s)).join(", ");
-        $("#status").textContent = `${decks.length} decks${names ? " with " + names : ""}, built in ${(performance.now() - t0) / 1000 < 1 ? Math.round(performance.now() - t0) + " ms" : ((performance.now() - t0) / 1000).toFixed(1) + " s"}`;
+        const names = picks.map((s) => eng.describe(s)).join(", ");
+        $("#status").textContent = `${decks.length} options${names ? " with " + names : ""}.`;
       } catch (e) {
         $("#status").textContent = "";
         if (!(e instanceof CRDeck.SeedError)) {
-          $("#decks").innerHTML = `<div class="panel empty"><b>The builder hit an error.</b><span>${esc(e.message)}. Try other cards or reload the page.</span></div>`;
+          decks = [];
+          $("#decks").innerHTML = `<div class="panel empty" role="alert"><b>The builder hit an error with these picks.</b><span>Your picks are kept. Try removing one, or pick another mode above.</span>
+            <details class="more tech"><summary>Technical details</summary><div class="body"><code>${esc(e.message)}</code></div></details></div>`;
           return;
         }
         decks = [];
         const why = friendly(e.message);
-        $("#decks").innerHTML = `<div class="panel empty"><b>No legal deck can hold these cards together.</b><span>${esc(why)}</span></div>`;
+        $("#decks").innerHTML = `<div class="panel empty" role="status"><b>No legal deck can hold these cards together.</b><span>${esc(why)} Your picks are kept so you can change one.</span></div>`;
         showNote(why);
       }
     }, 10);
@@ -233,34 +273,53 @@
     const seedIds = new Set(seeds.map((s) => s.id));
     $("#decks").innerHTML = decks.map((entries, i) => {
       const x = E.explain(entries, E.objectiveDict(E.evaluate(entries)));
-      const v = UI.verdict(x.score), a = x.archetype;
+      const v = UI.verdict(x.score), a = x.archetype, label = ctx.entry.label;
       const href = `reason.html#${UI.token(slug(), x.entries, seeds)}`;
+      const sup = UI.supportText(E, x, label);
+      // warnings first and in full: they are rules of thumb about the cards, shown before any estimate
       const health = x.warnings.length
         ? x.warnings.map((g) => `<div class="notice"><b>Watch out:</b> ${esc(g.root_cause)}</div>`).join("")
-        : `<div class="okline">✓ Has a win condition, air defense and spells, at a workable elixir cost.</div>`;
+        : `<div class="okline">✓ No deck-check warnings: it has a win condition, air defense and spells, at a workable elixir cost. <span class="src rule">rule of thumb</span></div>`;
+      const note = UI.styleNote(a);
       return `<article class="panel deck" aria-labelledby="dk${i}">
-        <div class="deck-top"><span class="k">Deck ${i + 1}${a.probability !== null ? ` · style guess ${pct(a.probability, 0)} sure` : ""}</span><h3 id="dk${i}">${esc(UI.archName(a))}</h3></div>
+        <div class="deck-top"><span class="k">Option ${i + 1} · built by the model</span>
+          <h3 id="dk${i}">${a.label === CRDeck.NO_LABELS ? "Suggested deck" : `Predicted style: ${esc(UI.archName(a))}`}</h3>
+          ${note ? `<details class="more"><summary>What “predicted style” means</summary><div class="body small">${esc(note)}</div></details>` : ""}</div>
         <div class="grid8">${x.entries.map((e) => UI.tile(E, e, x.legality.slots, seedIds, null)).join("")}</div>
+        <div class="health">${health}</div>
+        <div class="evidence">
+          <div class="line"><b>${esc(sup.rec)}</b><span class="src measured">measured</span></div>
+          <div class="line"><span class="muted">${esc(sup.seen)}</span></div>
+        </div>
         <div class="win">
-          <div><span class="cap">Estimated win rate <span class="src model">model estimate</span></span><div class="big">${pct(x.score.meta_win_prob)}</div></div>
+          <div><span class="cap">Estimated wins against sampled opponents <span class="src model">model estimate</span></span><div class="big">${pct(x.score.meta_win_prob)}</div></div>
           <div class="elx"><span class="cap">Average elixir</span><b>${x.avg_elixir === null ? "n/a" : x.avg_elixir.toFixed(1)}</b></div>
           <div class="meter">${UI.meter(x.score)}</div>
-          <div class="range cap"><span class="pill ${v[0]}">${v[1]}</span> Likely between ${pct(x.score.interval[0])} and ${pct(x.score.interval[1])} against decks top players used.</div>
+          <div class="range cap"><span class="pill ${v[0]}">${v[1]}</span> 90% model range ${pct(x.score.interval[0])} to ${pct(x.score.interval[1])}, against ${esc(UI.estimateBasis(E, x, label))}.</div>
         </div>
-        <div class="health">${health}</div>
         <div class="actions">
-          <a class="btn primary" href="${href}">Why this deck →</a>
+          <a class="btn primary" href="${href}">Explain this deck →</a>
           <button class="btn" data-copy="${i}">Copy card list</button>
         </div>
+        <div class="copyfall" data-fall="${i}" hidden></div>
       </article>`;
     }).join("");
   }
   $("#decks").onclick = async (ev) => {
     const t = ev.target.closest("[data-copy]"); if (!t) return;
     const text = decks[Number(t.dataset.copy)].map((e) => E.describe(e)).join(", ");
-    try { await navigator.clipboard.writeText(text); t.textContent = "Copied"; }
-    catch { t.textContent = "Copy blocked"; $("#status").textContent = text; }
-    setTimeout(() => { t.textContent = "Copy card list"; }, 1600);
+    try {
+      if (!navigator.clipboard) throw new Error("no clipboard");
+      await navigator.clipboard.writeText(text); t.textContent = "Copied";
+      setTimeout(() => { t.textContent = "Copy card list"; }, 1600);
+    } catch {
+      // the browser blocked the clipboard: show the list selected, ready to copy by hand
+      const fall = $(`[data-fall="${t.dataset.copy}"]`);
+      fall.innerHTML = `<label for="fall${t.dataset.copy}">Copying was blocked by the browser. The list is selected below; copy it with Ctrl+C or a long press.</label><input id="fall${t.dataset.copy}" readonly value="${esc(text)}">`;
+      fall.hidden = false; const inp = fall.querySelector("input"); inp.focus(); inp.select();
+    }
   };
 })();
 </script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+# crdeck redesign progress
+
+Controller: `docs/claude-redesign/START-HERE.md` (with FINDINGS.md, ACCEPTANCE.md, MATH-CONTENT.md).
+Authorization (user, 2026-10-29): preflight, then Runs 1–4 in order without pausing between runs; scope
+boundaries, protected files, validation and blocker rules still apply. Local commits only, no push.
+
+## Current state
+
+- Active run: **Run 2 (next)**
+- Run 1: **PASS** (all P0 items; P1 newcomer definitions done)
+- Run 2: not started
+- Run 3: not started
+- Run 4: not started
+- Starting HEAD: `9b3ab4da2f7d30845ca8938d9891256ec7a59b51` (main, "Docs: final Trophy Road counter backtest numbers")
+- Working-tree changes already present: none except the untracked prompt pack `docs/claude-redesign/` (extracted 2026-10-29 from `Downloads/crdeck-claude-prompt-pack.zip`, the only copy, all five files)
+- Inputs: REVIEW.md is not in the repository (it lives at `C:\Users\simty\crdeck-review\REVIEW.md`; read only as claims; its "no softmax" statement is wrong, see finding 1). `docs/crdeck-documentation.docx` is in the repository.
+- This is the full local project, not the review ZIP: all 44 mode models (`web/models/`) and 44 per-mode goldens (`web/golden/`) are present, so parity, sweep, page and site checks can run for real.
+
+## Run 1 plan (preflight checkpoint)
+
+Checklist:
+1. index.html: valid document shell (doctype, `<html lang="en">`, head/body, `<meta name="viewport">`). No scoring change.
+2. Builder intro: one sentence on what a deck is and the 0–3 picks; optional "New to Clash Royale?" disclosure with short definitions (card, deck, elixir, win condition, card forms and slots, game mode), slot facts read from `E.m.rules` and availability, not hardcoded.
+3. Wording: "strongest decks it can find" → "highest-scoring options under this model"; "style guess N% sure" → "Predicted style: X" (probability moved to a disclosure, labelled as the classifier's label probability); `UI.verdict` "Wins more than it loses / Loses more than it wins / About even" → "Model estimate above 50% / below 50% / Range includes 50%: no clear modeled edge"; "Learn from" → "Game mode" with a note that it picks the battle data and unlock rules, not your account.
+4. Support beside every builder estimate: exact-deck test record ("no exact-deck test records" when 0, never 0% wins), appearances in this mode's collected battles, and the estimate's population (sampled opponent decks from the test window, equal rating). Warnings stay visible; "Passes every deck check" no longer reads as a quality claim.
+5. Error states in common.js: distinguish missing model file (HTTP 404), unknown/too-small mode in link, malformed link, and real failure; keep raw messages in a developer `<details>`; offer Retry / choose another mode. No configured mode is removed.
+6. Safety: `readHash` survives malformed percent-encoding; stale mode loads cannot render over a newer choice (load version guard); delayed builder runs are cancelled or ignored when picks/mode changed.
+7. Picks: a removed or reformed pick is announced in a status region; fourth pick, duplicate base/form and incompatible forms keep input and explain the next step (existing behaviour kept, wording checked).
+8. Clipboard failure shows the card list in a selectable field instead of only "Copy blocked".
+9. Keep both themes; touch targets for new controls ≥ 44 px; help usable by keyboard and touch (`<details>`, no hover-only).
+10. Checks: engine snapshot before/after identical; existing page_test, site_check, check_web_engine, pytest; new focused jsdom test for Run 1 cases; screenshots + layout measurements after.
+
+Proposed files (application): `web/index.html`, `web/common.js`, `web/app.css`, `web/reason.html` (verdict/"best version"/support wording only). Possibly `web/counters.html` only if a shared-wording change surfaces there (no counters redesign in Run 1). Tests/evidence: `tests/web/run1_test.cjs` (new), `docs/claude-redesign/evidence/**`. Estimated well under 12 files / 800 changed lines.
+
+Protected-file risks: none planned. `web/engine.js` is untouched in Run 1; no protected export, config, model or pipeline file is edited; nothing is retrained or exported.
+
+## Source-of-truth mappings
+
+| Displayed quantity | Source field/computation | Unit | Population/window | Interval method | Limitations |
+|---|---|---|---|---|---|
+| Builder/Explain "estimated win rate" | `Engine.score` → `explain().score.meta_win_prob` = mean over `scorer.opp_u` of σ(u − u_o) | probability (%) | 2,000 opponent deck appearances sampled (seed) from the mode's **test window**; equal player rating | `score.interval`: 90% normal approx., sd = hypot(delta-method sd from `strength.cov`, opponent-sampling sd) | model estimate; selection optimism of the search not covered; opponent sample is from the evaluation window |
+| Deck score / objective | `evaluate().objective` = win_prob + 0.5·mean synergy + 0.05·mean log-lift (`config.search`) | composite score (not a probability) | as above + training synergy/lift | none | ranking quantity only |
+| Exact-deck test record | `test_deck_records[key]` = [battles, wins] | count | this mode's test window, deck sides | none shown | 0 = no records in that window, not 0% wins, not "never played" |
+| Deck appearances | `deck_appearances[key]` (`side_rows(mb)`) | count of deck sides | all usable battles of this mode, all windows | – | not unique players; absent key = not in this mode's collected battles |
+| Predicted style | `predictArchetype` softmax over 8 classes, threshold `archetype.threshold` (0.5) → else "Mixed style" (UNCERTAIN) | label; probability of label | classifier fit on hand labels | none | label probability, not certainty or win chance; Hybrid class ≠ below-threshold fallback |
+| Warnings | `structuralWarnings` (`config.warnings`) | rule | deck composition | – | advisory, not illegality |
+| Card games (picker) | `forms[].games` | games | this mode | – | – |
+| Facts bar | `entry.ok_battles`, count of `deck_appearances` keys, `meta.counts.last_battle` | count/time | this mode | – | snapshot date shown |
+| Counter-deck "played N times" | `matchup.pool[i][1]` | deck appearances | **train + validation** windows | – | capped (3,000) and ≥5 filter; not unique players |
+| Counter style record | `matchup.pool[i][2][style]` = [games, wins] | count | test window vs classified style | Wilson in backtest | style-wide, not exact matchup; ranking used test-window opponent mix (retrospective) |
+| Forecast (meta) | `modes.json.meta` status/backtest/forecast/settings | share points | collection periods | Monte Carlo 50/90% bands | Run 4 |
+
+## Decisions and scope
+
+- Screenshots: Chrome headless via DevTools protocol (`docs/claude-redesign/evidence/shots.mjs`, Node 22 built-in WebSocket, no new dependency) with real mobile emulation and explicit `prefers-color-scheme`. Plain `--screenshot` was rejected: Windows dark theme leaked into "light" shots and desktop Chrome cannot make a 390 px window.
+- Six views per run, chosen before editing: builder and deck explanation × desktop light 1440 / mobile light 390 / mobile dark 390. Extra layout-only checks: 768, 200% zoom, desktop dark.
+
+## Completed changes
+
+### Run 1 (web/index.html, web/common.js, web/app.css, web/reason.html; tests/web/run1_test.cjs)
+- index.html: doctype, `<html lang="en">`, head/body, responsive viewport meta (the claude meta tag kept alongside).
+- Builder intro states the 8-card deck and 0–3 picks; "New to Clash Royale? Six terms" disclosure (card, deck, elixir, win condition, forms and slots, game mode). Deck size, slot rules and champion limit are read from `model.rules`/availability; win-condition examples from the card table.
+- Wording: "strongest decks it can find" → "highest-scoring options under this model"; "style guess N% sure" → heading "Predicted style: X" with the classifier probability explained in a disclosure (label probability, not win chance or certainty; below-threshold case named as no style reaching the threshold); verdict pills → "Model estimate above 50%" / "below 50%" / "Range includes 50%: no clear modeled edge"; "Learn from" → "Game mode" + note that it selects battle data/unlocks, not the user's account; "already found its best version" → local-search statement; "Passes every deck check" → "No deck-check warnings"; builder footer no longer says estimates describe "top players".
+- Each builder deck: warnings first, then exact-deck test record ("No exact-deck test records … (window)" when 0), appearances in this mode's collected battles, then "Estimated wins against sampled opponents" with "90% model range" and the opponent population (2,000 sampled test-window decks, equal rating). One results-level note on selection optimism and that the model does not play the game. Headline number reduced from 2rem to 1.625rem.
+- common.js: `readHash` survives malformed percent-encoding and counts unreadable card codes (page notes "Part of this link couldn't be read"); `LoadError` kinds (missing / network / bad_data); `failed()` gives a plain message, a next step, Retry, and the raw message under "Technical details"; missing modes.json vs missing model file vs drawing error are distinct; the mode bar is drawn before loading so another mode can be chosen after a failure; a load-sequence guard drops stale mode loads; render errors no longer say "data files did not load". No configured mode is removed.
+- Builder: build-number guard so delayed builds for old picks/modes are ignored; errors keep picks and explain; clipboard failure shows the list selected in a field.
+- app.css: nav links, chips, selects, buttons and disclosure summaries ≥ 44 px tall; styles for the glossary, mode note and technical details.
+- Mobile: "See the suggested decks ↓" button (≤ 920 px).
+
+Not done in Run 1 (explicitly deferred): "Try an example" action and comparison view (not Run 1 P0); model.html still says "Win rates describe top players" (Run 4 teaching page); counters.html "strongest" wording (Run 3).
+
+## Checks and evidence
+
+Baseline (before any edit), `docs/claude-redesign/evidence/run1-before/`:
+- `engine.json`: engine snapshot (Ranked, Trophy Road × no pick / 1 / 3 picks; keys, objectives, estimates, intervals, styles, warnings, support, swaps, embedding swaps; first counter style).
+- No-pick Ranked reproduces finding 6: 56.0% [54.1, 57.9] Cycle (p 0.92); 57.1% [55.2, 59.0] Cycle (0.61); 58.2% [56.0, 60.4] below-threshold mixed (0.50); all NO_AIR_DEFENSE, 0 exact-deck test battles, 0 appearances in this mode's battles. No-pick Trophy Road: 87.0–87.2%, all with warnings, 0 exact support.
+- `layout.json` + 6 screenshots: builder on a 390 px phone lays out 980 px wide (no viewport meta, no doctype) — finding 7 confirmed; deck explanation fits 390 px (wide tables scroll inside their own boxes). No script errors.
+
+Baseline tests (before edits): pytest 151 passed; check_web_engine "all 137367 checks agree with Python"; page_test `fails: []`; site_check "44 modes x 4 pages + 2 pages + 10 edge links, no problems found". No pre-existing failures.
+
+Run 1 after (`docs/claude-redesign/evidence/run1-after/`):
+
+| Acceptance ID | Exact command/manual action | Result | Evidence |
+|---|---|---|---|
+| R1.1 | `node docs/claude-redesign/evidence/shots.mjs …/run1-after` and `VIEWS=tablet-light,zoom200-light,desktop-dark …/extra` (Chrome DevTools emulation, cache disabled); run1_test shell check on all 7 pages | PASS | layout.json: builder 390 px wide at 390 (was 980), overflow 0 px at 390/768/1440/200% zoom, light and dark, both pages; all pages have doctype, lang, viewport. Wide tables on reason.html scroll inside their own boxes. |
+| R1.2 | `cd tests/web && node run1_test.cjs` | PASS | one pick, three picks, refused 4th, form change, three Evolutions (no slot) kept + explained, clear, locked card in Bone Pit refused with reason |
+| R1.3 | run1_test (Trophy Road load delayed 1.5 s, Ranked chosen after) | PASS | Ranked facts and Ranked's exact decks for the kept pick; mutation check: with the guard lines removed the same test fails 3 ways |
+| R1.4 | run1_test: `#ranked~~26000021b-zz-%E0%A4%A`, `#no_such_mode~~`, missing `models/trophy_road.json` | PASS | link note + readable pick kept, no script error; "wasn't recognized" note; "model file … isn't in this copy" + Retry + technical details, all 3 mode chips still present, recovery by choosing Ranked |
+| R1.5 | run1_test text checks on builder and reason | PASS | no "% sure", "Wins more than it loses", "About even", "strongest decks it can find", "best version"; zero support stated as "No exact-deck test records"; pills match each deck's own range |
+| R1.6 | `node docs/claude-redesign/evidence/engine_snapshot.cjs …/run1-after/engine.json` + `cmp` with run1-before; run1_test clipboard rejection | PASS | engine snapshot byte-identical; no-pick decks equal `Engine.complete([])`; blocked clipboard shows the 8-card list selected. Keyboard/touch: help and recovery use native `<details>`/`<button>` (not exercised by a key-press script). |
+| regression | `.venv/Scripts/python -m pytest -q`; `node scripts/check_web_engine.mjs`; `node page_test.cjs`; `node site_check.cjs` | PASS | 151 passed; 137,367 checks agree; `fails: []`; no problems found (44 modes) |
+
+Screenshots (local only, git-ignored): `docs/claude-redesign/evidence/run1-before/*.png`, `run1-after/*.png`, `run1-after/extra/*.png`.
+
+## Checkpoints
+
+- Run 1 start: HEAD 9b3ab4d. Changed: web/app.css, web/common.js, web/index.html, web/reason.html (207+/69−); new tests/web/run1_test.cjs; PROMPT-PROGRESS.md; docs/claude-redesign/** (prompt pack + evidence).
+
+## Blockers
+
+None for Run 1. Note for later runs: a new top-level `src/crdeck/*.py` would change the training-cache fingerprint (pipeline.py hashes every top-level .py except counters.py/counters.yaml), so Run 2's Python helper goes in `src/crdeck/counters.py`.
+
+## Next exact action
+
+Run 2: add Observed decks (default when the mode exports a real-deck pool) and Generated decks — experimental (existing beam search, unchanged) to the builder. Selector: isolated `web/observed.js` + additive `observed_decks()` in `src/crdeck/counters.py`; shared hand-built fixture; engine snapshot must stay identical.

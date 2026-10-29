@@ -1,0 +1,42 @@
+{
+ "noPick": {
+  "keys": [
+   "26000000:base|26000010:evo|26000031:base|26000095:base|26000102:base|27000004:base|27000013:evo|28000017:base",
+   "26000000:base|26000010:evo|26000031:base|26000095:base|27000008:base|27000013:evo|28000003:base|28000017:base",
+   "26000000:base|26000013:evo|26000031:base|26000095:base|26000102:base|27000008:base|27000013:evo|28000017:base"
+  ],
+  "cards": [
+   "Option 1 · built by the model Predicted style: Cycle What “predicted style” meansThe style classifier gives this label 92% among its 8 styles. That number describes how closely the cards match hand-labelled example decks. It is not a chance of winning and not a measured certainty. 3Knight EVO 1SkeletonsEvolution 1Fire Spirit 4Goblin Demolisher 2Berserker 4Bomb Tower WILD 4Goblin DrillEvolution 2Gi",
+   "Option 2 · built by the model Predicted style: Cycle What “predicted style” meansThe style classifier gives this label 61% among its 8 styles. That number describes how closely the cards match hand-labelled example decks. It is not a chance of winning and not a measured certainty. 3Knight EVO 1SkeletonsEvolution 1Fire Spirit 4Goblin Demolisher 6X-Bow WILD 4Goblin DrillEvolution 6Rocket 2Giant Snow",
+   "Option 3 · built by the model Predicted style: Mixed style What “predicted style” meansNo style reached the classifier's threshold; the closest is Cycle at 50%. That number describes how closely the cards match hand-labelled example decks. It is not a chance of winning and not a measured certainty. 3Knight EVO 2BomberEvolution 1Fire Spirit 4Goblin Demolisher 2Berserker 6X-Bow WILD 4Goblin DrillEvo"
+  ]
+ },
+ "onePick": "3 options with Hog Rider.",
+ "fourth": "You already picked 3 cards. Remove one to pick another.",
+ "formChange": "A deck can hold Knight in one form only, so your pick is now Knight (Evolution).",
+ "conflict": "No legal deck can hold these cards together.A deck has one Evolution slot, one Hero slot and one Wild slot. Switch one of your picks to its base form. Your picks are kept so you can change one.",
+ "locked": "Archer Queen unlocks at Royal Crypt (Arena 17), so it can't be picked in Bone Pit.",
+ "rapid": {
+  "facts": "270,458 Ranked (Path of Legends) battles 38,636 different decks Newest battle Oct 26, 9:22 PM EDT",
+  "hash": "#ranked~~28000015b"
+ },
+ "removed": "Left out because it isn't unlocked in Bone Pit: Knight (Evolution): Evolutions unlock at Arena 3.",
+ "malformed": {
+  "note": "Part of this link couldn't be read (2 card codes left out). Everything readable was kept.",
+  "picks": 1
+ },
+ "unknown": "The link's mode wasn't recognized, so this page shows Ranked (Path of Legends).",
+ "missing": {
+  "msg": "The model file for Trophy Road ladder isn't in this copy of the site.Pick another mode above. Nothing else is affected. Try again Technical detailsmodels/trophy_road.json answered HTTP 404",
+  "retry": true,
+  "chips": 3
+ },
+ "clipboard": "Knight, Skeletons (Evolution), Fire Spirit, Goblin Demolisher, Berserker, Bomb Tower, Goblin Drill (Evolution), Giant Snowball",
+ "trophyDefault": [
+  "26000028:base|26000050:evo|26000083:base|26000093:base|26000101:base|28000008:evo|28000015:base|28000016:base",
+  "26000003:hero|26000028:base|26000043:evo|26000048:base|26000050:base|27000007:base|28000008:evo|28000016:base",
+  "26000028:base|26000050:evo|26000074:base|26000083:base|26000101:base|26000107:base|28000008:evo|28000016:base"
+ ],
+ "fails": []
+}
+exit 0

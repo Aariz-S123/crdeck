@@ -38,10 +38,16 @@
     const d = deck && deck.length ? deck.map(entTok).join("-") : "", s = seeds && seeds.length ? seeds.map(entTok).join("-") : "";
     return s || d ? `${slug}~${d}~${s}` : slug;
   }
+  // A hand-edited or truncated link must not stop the page: bad percent-encoding is read as plain text,
+  // and unreadable card tokens are counted (bad) so the page can say what it left out.
   function readHash() {
-    const h = decodeURIComponent(location.hash.replace(/^#/, ""));
+    const raw = location.hash.replace(/^#/, "");
+    let h = raw, malformed = false;
+    try { h = decodeURIComponent(raw); } catch { malformed = true; }
     const [slug, deck, seeds] = h.split("~");
-    return { slug: slug || null, deck: deck !== undefined ? parseEnts(deck) : null, seeds: seeds !== undefined ? parseEnts(seeds) : null };
+    const count = (s) => (s ? s.split("-").filter((t) => t && !/^\d+[beh]$/.test(t)).length : 0);
+    return { slug: slug || null, deck: deck !== undefined ? parseEnts(deck) : null, seeds: seeds !== undefined ? parseEnts(seeds) : null,
+      malformed, bad: count(deck) + count(seeds) };
   }
   function setHash(tok) { history.replaceState(null, "", "#" + tok); }
   function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch { return null; } return null; }
@@ -74,7 +80,7 @@
       const ok = g.status === "exported";
       return `<option value="${esc(g.slug)}"${g.slug === slug ? " selected" : ""}${ok ? "" : " disabled"}>${esc(g.group)}${floor} · ${num(g.ok_battles)} battles${ok ? "" : " · too few"}</option>`;
     };
-    el.innerHTML = `<span class="lab" id="modelab">Learn from</span>
+    el.innerHTML = `<span class="lab" id="modelab">Game mode</span>
       <div class="modes" role="group" aria-labelledby="modelab">${tops.map((m) => `<button class="chip" data-slug="${esc(m.slug)}" aria-pressed="${m.mode === cur.mode}"
         title="${num(m.ok_battles)} battles">${esc(MODE_SHORT[m.mode] || m.label)}</button>`).join("")}</div>
       ${groups.length ? `<div class="groupbar">
@@ -83,13 +89,22 @@
         <label class="lab" for="groupsort">Sort</label>
         <select id="groupsort" class="sel"><option value="order"${sort === "order" ? " selected" : ""}>Game order</option><option value="battles"${sort === "battles" ? " selected" : ""}>Most battles</option></select>
         <span class="muted small">${usable} of ${groups.length} ${esc(word.toLowerCase())}s have enough battles to build from.</span>
-      </div>` : ""}`;
+      </div>` : ""}
+      <p class="muted small modenote">This picks which recorded battles the numbers come from${groups.length && word === "Arena" ? " and which cards count as unlocked" : ""}. It doesn't look at your account or your skill.</p>`;
     el.onclick = (ev) => { const b = ev.target.closest("[data-slug]"); if (b && b.dataset.slug !== slug) onPick(b.dataset.slug); };
     const gs = $("#groupsel", el), so = $("#groupsort", el);
     if (gs) gs.onchange = () => { if (gs.value !== slug) onPick(gs.value); };
     if (so) so.onchange = () => { store("crdeck.groupSort", so.value); modeBar(INDEX, slug, onPick); };
   }
-  const getJSON = (u) => fetch(u).then((r) => { if (!r.ok) throw new Error(`${u} answered HTTP ${r.status}`); return r.json(); });
+  // Load failures carry a kind so the page can say what actually went wrong:
+  // "missing" (the file isn't in this copy of the site), "network" (no answer), "bad_data" (unreadable file).
+  class LoadError extends Error { constructor(kind, file, detail) { super(detail); this.kind = kind; this.file = file; } }
+  async function getJSON(u) {
+    let r;
+    try { r = await fetch(u); } catch (e) { throw new LoadError("network", u, `${u}: ${e.message}`); }
+    if (!r.ok) throw new LoadError(r.status === 404 ? "missing" : "network", u, `${u} answered HTTP ${r.status}`);
+    try { return await r.json(); } catch (e) { throw new LoadError("bad_data", u, `${u} is not valid JSON: ${e.message}`); }
+  }
   let INDEX = null;
   async function loadIndex() { if (!INDEX) INDEX = await getJSON("modes.json"); return INDEX; }
   function pickSlug(INDEX, wanted) {
@@ -110,9 +125,19 @@
       <span><b>${num(Object.keys(m.deck_appearances || {}).length)}</b> different decks</span>
       <span>Newest battle <b>${esc(when(m.meta.counts.last_battle))}</b></span>`;
   }
-  function failed(where, e) {
+  // A plain-language failure message with a next step; the raw message stays under "Technical details".
+  function failed(where, e, opts = {}) {
     const el = $(where); if (!el) return;
-    el.innerHTML = `<div class="panel empty"><b>The data files did not load.</b><span>${esc(e.message)}. Check your connection and reload the page.</span></div>`;
+    const label = opts.label || "this mode";
+    const [head, next] = !(e instanceof LoadError) ? ["This page hit an error while showing " + label + ".", "Try again, or pick another mode above. If it keeps happening, the technical details below say where."]
+      : e.kind === "missing" && opts.stage === "index" ? ["The list of game modes (modes.json) is missing from this copy of the site.", "The site can't show anything without it. Re-export the site, or open a complete copy."]
+      : e.kind === "missing" ? [`The model file for ${label} isn't in this copy of the site.`, "Pick another mode above. Nothing else is affected."]
+      : e.kind === "bad_data" ? [`The data file for ${label} couldn't be read.`, "Try again. If it keeps failing, the file is damaged and needs a fresh export."]
+      : [`The data for ${label} didn't load.`, "Check your connection and try again."];
+    el.innerHTML = `<div class="panel empty" role="alert"><b>${esc(head)}</b><span>${esc(next)}</span>
+      ${opts.retry ? `<button class="btn" type="button" data-retry>Try again</button>` : ""}
+      <details class="more tech"><summary>Technical details</summary><div class="body"><code>${esc(e.message || String(e))}</code></div></details></div>`;
+    const b = el.querySelector("[data-retry]"); if (b) b.onclick = opts.retry;
   }
 
   // ------------------------------------------------------------ small pieces
@@ -138,11 +163,41 @@
   }
   const SLOT_KEY = `<div class="slotkey" aria-label="Slot colors"><span><i style="background:var(--evo)"></i>Evolution slot</span><span><i style="background:var(--hero)"></i>Hero slot</span><span><i style="background:var(--wild)"></i>Wild slot (Evolution, Hero or Champion)</span></div>`;
   function verdict(score) {
-    // plain-language reading of the estimate and its interval, computed from them
+    // plain-language reading of the model's 90% range, computed from it: a statement about the model, not a promise
     const [a, b] = score.interval;
-    if (a > 0.5) return ["good", "Wins more than it loses"];
-    if (b < 0.5) return ["bad", "Loses more than it wins"];
-    return ["weak", "About even"];
+    if (a > 0.5) return ["good", "Model estimate above 50%"];
+    if (b < 0.5) return ["bad", "Model estimate below 50%"];
+    return ["weak", "Range includes 50%: no clear modeled edge"];
+  }
+  // Evidence for one exact deck in this mode: its test-window record and how often it appears in all collected battles.
+  // Hero and base can't be told apart in battle data unless the mode says so, so heroes count as base here (as in Engine.explain).
+  function support(E, x) {
+    const obs = E.m.hero_observable ? x.entries : x.entries.map((e) => (e.form === "hero" ? { id: e.id, form: "base" } : e));
+    const tw = E.m.meta.test_window || [];
+    return { games: x.score.test_battles_exact_deck, wins: x.score.test_wins_exact_deck,
+             appearances: E.m.deck_appearances[CRDeck.deckKey(obs)] || 0, window: tw.length === 2 ? `${when(tw[0], true).split(",")[0]} to ${when(tw[1], true).split(",")[0]}` : "the test window" };
+  }
+  function supportText(E, x, label) {
+    const s = support(E, x);
+    const rec = s.games ? `Played ${num(s.games)} time${s.games === 1 ? "" : "s"} in the test battles (${s.window}), won ${num(s.wins)}.`
+      : `No exact-deck test records: these 8 cards weren't played together in the test battles (${s.window}).`;
+    const seen = s.appearances ? `Seen ${num(s.appearances)} time${s.appearances === 1 ? "" : "s"} in ${label} battles collected so far.`
+      : `Not seen in ${label} battles collected so far, so every number for it is built from its cards and pairs.`;
+    return { s, rec, seen };
+  }
+  // the opponent population behind an estimate, in words
+  function estimateBasis(E, x, label) {
+    const tw = E.m.meta.test_window || [];
+    return `${num(x.score.opponent_decks)} opponent decks sampled from ${label} battles${tw.length === 2 ? ` (${when(tw[0]).split(",")[0]} to ${when(tw[1]).split(",")[0]})` : ""}, at equal player rating`;
+  }
+  // Style label with its classifier probability kept apart from performance
+  function styleNote(a) {
+    if (a.probability === null) return "";
+    const probs = Object.entries(a.probabilities || {}).sort((p, q) => q[1] - p[1]);
+    const top = probs.length ? probs[0] : null;
+    const head = a.label === CRDeck.UNCERTAIN && top ? `No style reached the classifier's threshold; the closest is ${top[0]} at ${pct(top[1], 0)}.`
+      : `The style classifier gives this label ${pct(a.probability, 0)} among its ${probs.length} styles.`;
+    return `${head} That number describes how closely the cards match hand-labelled example decks. It is not a chance of winning and not a measured certainty.`;
   }
 
   // ------------------------------------------------------------ tooltip (hover and keyboard focus)
@@ -319,39 +374,55 @@
   // ------------------------------------------------------------ page start
   // Loads the index and the mode named in the link (or the last one used), draws the site bar
   // and mode switch, then calls render({INDEX, entry, m, E}). Switching mode reloads the model.
+  function headNote(id, msg) {
+    const head = $(".pagehead"); if (!head) return;
+    let note = $("#" + id);
+    if (!note) { note = document.createElement("p"); note.className = "notice"; note.id = id; note.setAttribute("role", "status"); head.appendChild(note); }
+    note.textContent = msg;
+  }
   async function start(page, render, opts = {}) {
     document.documentElement.lang = "en";
     initTip();
+    const target = opts.failTarget || "main";
     try {
       await loadIndex();
-      const h = readHash(), slug = pickSlug(INDEX, h.slug);
-      if (h.slug && h.slug !== slug) {
-        // the link named a mode that can't be shown: say so instead of switching silently
-        const asked = INDEX.modes.find((m) => m.slug === h.slug), shown = INDEX.modes.find((m) => m.slug === slug);
-        const msg = asked ? `${asked.label} has too few battles to build from (${num(asked.ok_battles)}), so this page shows ${shown.label}.`
-          : `The link's mode wasn't recognized, so this page shows ${shown.label}.`;
-        const head = $(".pagehead"), note = document.createElement("p");
-        note.className = "notice"; note.id = "fallback-note"; note.setAttribute("role", "status"); note.textContent = msg;
-        if (head) head.appendChild(note);
-      }
-      const go = async (s, first) => {
-        if (opts.onLoading) opts.onLoading();
-        if (!first && $("#fallback-note")) $("#fallback-note").remove();
-        const ctx = await loadMode(s);
-        ctx.INDEX = INDEX; ctx.hash = first ? h : { slug: s, deck: null, seeds: null };
-        siteBar(page, s); modeBar(INDEX, s, (n) => go(n, false).catch((e) => failed(opts.failTarget || "main", e)));
-        facts(ctx.entry, ctx.m);
-        render(ctx);
-      };
-      siteBar(page, slug);
-      await go(slug, true);
     } catch (e) {
       siteBar(page, null);
-      failed(opts.failTarget || "main", e);
+      failed(target, e, { stage: "index", label: "the site", retry: () => location.reload() });
+      return;
     }
+    const h = readHash(), slug = pickSlug(INDEX, h.slug);
+    if (h.slug && h.slug !== slug) {
+      // the link named a mode that can't be shown: say so instead of switching silently
+      const asked = INDEX.modes.find((m) => m.slug === h.slug), shown = INDEX.modes.find((m) => m.slug === slug);
+      headNote("fallback-note", asked ? `${asked.label} has too few battles to build from (${num(asked.ok_battles)}), so this page shows ${shown.label}.`
+        : `The link's mode wasn't recognized, so this page shows ${shown.label}.`);
+    }
+    if (h.malformed || h.bad) headNote("link-note", `Part of this link couldn't be read${h.bad ? ` (${h.bad} card code${h.bad === 1 ? "" : "s"} left out)` : ""}. Everything readable was kept.`);
+    // Only the newest mode request may draw: a slow earlier load that finishes later is dropped.
+    let latest = 0;
+    const go = async (s, first) => {
+      const mine = ++latest;
+      if (opts.onLoading) opts.onLoading();
+      if (!first) { for (const id of ["fallback-note", "link-note"]) if ($("#" + id)) $("#" + id).remove(); }
+      siteBar(page, s); modeBar(INDEX, s, pick);
+      const label = (INDEX.modes.find((m) => m.slug === s) || {}).label || s;
+      let ctx;
+      try { ctx = await loadMode(s); } catch (e) {
+        if (mine !== latest) return;
+        failed(target, e, { label, retry: () => go(s, first) });
+        return;
+      }
+      if (mine !== latest) return;
+      ctx.INDEX = INDEX; ctx.hash = first ? h : { slug: s, deck: null, seeds: null };
+      facts(ctx.entry, ctx.m);
+      try { render(ctx); } catch (e) { failed(target, e, { label, retry: () => go(s, first) }); }
+    };
+    const pick = (n) => { go(n, false); };
+    await go(slug, true);
   }
 
   root.UI = { $, esc, pct, signed, fmtPts, shorten, num, when, toDate, entTok, parseEnts, token, readHash, setHash, store,
-    drop, typeName, FORM_WORD, archName, tile, SLOT_KEY, verdict, tipAttr, niceStep, ticks, tickLabel, barPath,
+    drop, typeName, FORM_WORD, archName, tile, SLOT_KEY, verdict, support, supportText, estimateBasis, styleNote, LoadError, tipAttr, niceStep, ticks, tickLabel, barPath,
     meter, coefChart, lineChart, partsChart, fmtCell, recordsTable, kv, md, start, failed };
 })(typeof self !== "undefined" ? self : this);

@@ -126,13 +126,13 @@ table.near td.good, table.nums td.good { color: var(--ok); font-weight: 700; } t
     const ws = x.entries.map((e) => Object.assign(E.coefInfo(e), { role: "in" })).sort((p, q) => q.weight - p.weight);
     const known = ws.filter((w) => w.known), cardSum = ws.reduce((t, w) => t + w.weight, 0), pairSum = E.utility(x.entries) - cardSum;
     const best = known[0], worst = known[known.length - 1];
-    const exact = x.score.test_battles_exact_deck, bestPair = x.synergy_top[0];
+    const exact = x.score.test_battles_exact_deck, bestPair = x.synergy_top[0], sup = UI.supportText(E, x, ctx.entry.label);
     $("#title").textContent = `Why this deck: ${UI.archName(x.archetype)}`;
     $("#sub").textContent = `Everything below is worked out from ${ctx.entry.label} battles. Hover or tap a chart mark to see its numbers.`;
     document.title = `Why This Deck · ${UI.archName(x.archetype)} · crdeck`;
 
     const swapIntro = swaps.length && Math.max(...swaps.map((s) => s.delta_objective)) <= 0
-      ? "No single swap raises this deck's score, so the search already found its best version. These swaps cost the least."
+      ? "No single-card swap among the candidate cards raises this deck's score. That is a local check, not proof that no better deck exists. These swaps cost the least."
       : "Swaps that raise the deck's score come first. Pressing Swap changes the deck on this page and recomputes everything.";
 
     $("#body").innerHTML = `
@@ -149,12 +149,12 @@ table.near td.good, table.nums td.good { color: var(--ok); font-weight: 700; } t
           <h2 id="short-h" style="font-size:1.25rem">The short version</h2>
           <ul>
             <li><span class="line"><span class="big">${pct(x.score.meta_win_prob)}</span><span class="pill ${v[0]}">${v[1]}</span></span>
-              <span class="muted small">Estimated win rate, likely between ${pct(x.score.interval[0])} and ${pct(x.score.interval[1])}, against ${num(x.score.opponent_decks)} opponent decks top players used. <span class="src model">model estimate</span></span></li>
+              <span class="muted small">Estimated wins against sampled opponents. 90% model range ${pct(x.score.interval[0])} to ${pct(x.score.interval[1])}, against ${esc(UI.estimateBasis(E, x, ctx.entry.label))}. <span class="src model">model estimate</span></span></li>
             ${best ? `<li><b>${esc(best.name)} has the highest card weight here.</b><span class="muted small">${best.weight > 0 ? "Decks with it won more often, after accounting for the other cards and player rating." : "No card in this deck has a positive weight, so the deck leans on its pairs and matchups."}${worst && worst !== best ? ` ${esc(worst.name)} has the lowest.` : ""} <span class="src model">learned from ${num(best.games)} games</span></span></li>` : ""}
             ${bestPair ? `<li><b>Best pair: ${esc(bestPair.pair)}.</b><span class="muted small">Together they won ${pct(bestPair.shrunk_wr)} of ${num(bestPair.games)} games, ${bestPair.synergy > 0 ? "more" : "less"} than each card alone predicts. <span class="src measured">measured</span></span></li>` : ""}
-            <li><b>${exact ? `Played ${num(exact)} times in the test battles, won ${num(x.score.test_wins_exact_deck)}.` : "Nobody played these exact 8 cards in the test battles."}</b>
-              <span class="muted small">${exact ? "These battles were held back from training." : "The estimate comes from its cards and pairs, so treat it with more caution."} <span class="src measured">measured</span></span></li>
-            <li><b>${x.warnings.length ? `${x.warnings.length} thing${x.warnings.length === 1 ? "" : "s"} to watch` : "Passes every deck check"}.</b>
+            <li><b>${esc(sup.rec)}</b>
+              <span class="muted small">${exact ? "These battles were held back from training." : "Zero records is not zero wins: there is simply no exact-deck evidence in that window, so the estimate comes from its cards and pairs."} ${esc(sup.seen)} <span class="src measured">measured</span></span></li>
+            <li><b>${x.warnings.length ? `${x.warnings.length} thing${x.warnings.length === 1 ? "" : "s"} to watch` : "No deck-check warnings"}.</b>
               <span class="muted small">${x.warnings.length ? x.warnings.map((g) => esc(g.root_cause)).join(". ") + "." : "It has a win condition, air defense and spells, at a workable elixir cost."} <span class="src rule">deck checks</span></span></li>
           </ul>
         </section>
