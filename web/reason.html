@@ -93,17 +93,18 @@ table.near td.good, table.nums td.good { color: var(--ok); font-weight: 700; } t
     FORM_UNKNOWN: "Hero and base forms could not be told apart in the battle data.",
     UNKNOWN_CARD: "A card is missing from the card table.",
   };
-  let ctx = null, E = null, CAL = null, deck = null, seeds = [], original = [], past = [], swaps = [];
+  // source: the builder's deck source from the link (only "generated" is written; observed is the default)
+  let ctx = null, E = null, CAL = null, deck = null, seeds = [], original = [], past = [], swaps = [], source = null;
 
   UI.start("", (c) => {
     ctx = c; E = c.E; CAL = E.calibration(8);
-    if (c.hash.deck !== null && deck === null) { deck = c.hash.deck; seeds = c.hash.seeds || []; original = deck.map(CRDeck.keyOf); }
+    if (c.hash.deck !== null && deck === null) { deck = c.hash.deck; seeds = c.hash.seeds || []; original = deck.map(CRDeck.keyOf); source = c.hash.source; }
     render();
   }, { failTarget: "#body" });
 
   const slug = () => ctx.entry.slug;
   function render() {
-    $("#back").href = `index.html#${seeds.length ? UI.token(slug(), null, seeds) : slug() + "~~"}`;
+    $("#back").href = `index.html#${source ? UI.token(slug(), null, seeds, source) : seeds.length ? UI.token(slug(), null, seeds) : slug() + "~~"}`;
     if (!deck || !deck.length) return emptyState("This page needs a deck. Build one on the first page and press “Why this deck”.");
     if (deck.some((e) => !E.card(e.id) || !E.allowedForms(E.card(e.id)).includes(e.form)))
       return emptyState(`This deck has a card form that ${ctx.entry.label} has no data for. Switch back to the mode you built it in.`);
@@ -111,7 +112,7 @@ table.near td.good, table.nums td.good { color: var(--ok); font-weight: 700; } t
     if (locked.length) return emptyState(`This deck can't be played in ${E.m.availability.arena}: ${locked.map((e) => E.whyNot(e)).join("; ")}. Switch to the mode you built it in.`);
     const chk = E.checkDeck(deck);
     if (!chk.legal) return emptyState(`This link holds a deck that breaks the deck rules: ${[...new Set(chk.details)].join("; ")}. Build a new one on the first page.`);
-    UI.setHash(UI.token(slug(), deck, seeds));
+    UI.setHash(UI.token(slug(), deck, seeds, source));
     swaps = E.swaps(deck, { locked: seeds });
     draw();
   }

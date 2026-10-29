@@ -8,6 +8,7 @@ const { JSDOM, VirtualConsole } = require("jsdom");
 const WEB = path.join(__dirname, "..", "..", "web");
 const engine = fs.readFileSync(path.join(WEB, "engine.js"), "utf8");
 const common = fs.readFileSync(path.join(WEB, "common.js"), "utf8");
+const observed = fs.readFileSync(path.join(WEB, "observed.js"), "utf8");
 const { Engine, deckKey } = require(path.join(WEB, "engine.js"));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const fails = [], out = {};
@@ -20,6 +21,7 @@ async function open(page, hash = "", opts = {}) {
   vc.on("jsdomError", (e) => errors.push(String(e && (e.stack || e.message || e))));
   const html = fs.readFileSync(path.join(WEB, page), "utf8")
     .replace('<script src="engine.js"></script>', () => `<script>${engine}</script>`)
+    .replace('<script src="observed.js"></script>', () => `<script>${observed}</script>`)
     .replace('<script src="common.js"></script>', () => `<script>${common}</script>`);
   const dom = new JSDOM(html, {
     url: `http://localhost/${page}${hash ? "#" + hash : ""}`, runScripts: "dangerously", pretendToBeVisual: true, virtualConsole: vc,
@@ -54,8 +56,9 @@ const decksShown = (d) => d.querySelectorAll(".deck h3").length;
     expect(/<meta name="viewport" content="width=device-width, initial-scale=1/.test(h), `${page}: no responsive viewport meta`);
   }
 
-  // R1.5 / R1.6 no picks: same decks as the engine, honest labels
-  let p = await open("index.html", "ranked~~"), d = p.d;
+  // R1.5 / R1.6 no picks: same decks as the engine, honest labels. Since Run 2 the builder shows observed decks by
+  // default; "~g" asks for the generated decks, which must still equal Engine.complete.
+  let p = await open("index.html", "ranked~~~g"), d = p.d;
   await until(() => decksShown(d) === 3 && settled(d));
   const want = ranked.complete([]);
   const shownKeys = [...d.querySelectorAll(".deck a.btn.primary")].map((a) => {
@@ -127,7 +130,7 @@ const decksShown = (d) => d.querySelectorAll(".deck h3").length;
   } else fails.push("R1.2 no Bone Pit export to test locked cards");
 
   // R1.3 rapid mode switches: a slow Trophy Road load must not draw over a later Ranked choice
-  p = await open("index.html", "ranked~~28000015b", { slow: { "models/trophy_road.json": 1500 } }); d = p.d;
+  p = await open("index.html", "ranked~~28000015b~g", { slow: { "models/trophy_road.json": 1500 } }); d = p.d;
   await until(() => settled(d) && decksShown(d) === 3);
   d.querySelector('#modebar [data-slug="trophy_road"]').click();
   await wait(30);
@@ -136,7 +139,7 @@ const decksShown = (d) => d.querySelectorAll(".deck h3").length;
   await until(() => settled(d) && decksShown(d) === 3);
   out.rapid = { facts: text(d.querySelector("#facts")), hash: p.w.location.hash };
   expect(/Ranked/.test(out.rapid.facts) && !/Trophy Road/.test(out.rapid.facts), "R1.3 slow earlier mode load drew over the newer choice");
-  expect(/^#ranked~~28000015b$/.test(out.rapid.hash), "R1.3 valid pick lost across mode switches");
+  expect(/^#ranked~~28000015b~g$/.test(out.rapid.hash), "R1.3 valid pick lost across mode switches");
   const keyOfHref = (a) => deckKey(a.getAttribute("href").split("#")[1].split("~")[1].split("-").map((x) => ({ id: Number(x.slice(0, -1)), form: { b: "base", e: "evo", h: "hero" }[x.slice(-1)] })));
   const wantR = ranked.complete([{ id: 28000015, form: "base" }]).map((x) => x.key);
   expect(JSON.stringify([...d.querySelectorAll(".deck a.btn.primary")].map(keyOfHref)) === JSON.stringify(wantR), "R1.3 shown decks are not Ranked's decks for the kept pick");

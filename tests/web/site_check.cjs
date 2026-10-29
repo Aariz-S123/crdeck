@@ -8,6 +8,7 @@ const { JSDOM, VirtualConsole } = require("jsdom");
 const WEB = path.join(__dirname, "..", "..", "web");
 const engine = fs.readFileSync(path.join(WEB, "engine.js"), "utf8");
 const common = fs.readFileSync(path.join(WEB, "common.js"), "utf8");
+const observed = fs.readFileSync(path.join(WEB, "observed.js"), "utf8"); // the builder's observed decks (Run 2)
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const problems = [];
 const bad = (m) => { problems.push(m); console.log("PROBLEM", m); };
@@ -21,6 +22,7 @@ async function open(page, hash = "") {
   vc.on("warn", (e) => logs.push("warn " + e));
   let html = fs.readFileSync(path.join(WEB, page), "utf8")
     .replace('<script src="engine.js"></script>', () => `<script>${engine}</script>`)
+    .replace('<script src="observed.js"></script>', () => `<script>${observed}</script>`)
     .replace('<script src="common.js"></script>', () => `<script>${common}</script>`);
   if (!/^<!doctype/i.test(html)) html = `<!doctype html><html><head></head><body>${html}</body></html>`;
   const dom = new JSDOM(html, {

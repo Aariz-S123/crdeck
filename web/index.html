@@ -60,6 +60,15 @@
 .health { display: grid; gap: 6px; font-size: 0.875rem; }
 .health .okline { color: var(--ok); font-weight: 600; }
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.srcbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+.srcbar .lab { font-size: var(--step--1); color: var(--muted); font-weight: 600; }
+.srchelp { flex-basis: 100%; max-width: 75ch; }
+.prov { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 2px 0 4px; }
+.tag { font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); white-space: nowrap; }
+.tag.real { background: var(--ok-soft); color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
+.tag.gen { background: var(--hero-soft); color: var(--hero); border-color: color-mix(in srgb, var(--hero) 35%, transparent); }
+.obsnote { grid-column: 1 / -1; padding: var(--space-4); display: grid; gap: var(--space-2); justify-items: start; }
+.obsnote.empty { justify-items: center; }
 .viewres { display: none; }
 @media (max-width: 920px) { .viewres { display: inline-flex; } }
 .evidence { display: grid; gap: 6px; font-size: 0.9375rem; }
@@ -102,7 +111,7 @@
           <h2 class="stephead" id="res-h"><span class="n">2</span> Your decks</h2>
           <span class="status" id="status" aria-live="polite"></span>
         </div>
-        <p class="muted small" id="res-note">These are the highest-scoring options among many decks the model searched. Picking the best of a search makes the top estimates run high, and the ranges don't include that. The model doesn't play the game; it learns from recorded battle results.</p>
+        <div class="srcbar" id="srcbar"></div>
         <div id="slotkey"></div>
         <div class="decks" id="decks">
           <div class="panel deck" aria-hidden="true"><div class="skel" style="height:22px;width:60%"></div><div class="skel" style="height:170px"></div><div class="skel" style="height:60px"></div></div>
@@ -119,6 +128,7 @@
 </div>
 
 <script src="engine.js"></script>
+<script src="observed.js"></script>
 <script src="common.js"></script>
 <script>
 (() => {
@@ -126,16 +136,18 @@
   const { $, esc, pct, num } = UI;
   const TYPES = [["all", "All"], ["troop", "Troops"], ["spell", "Spells"], ["building", "Buildings"]];
   const FORM_ORDER = { base: 0, evo: 1, hero: 2 };
-  let ctx = null, E = null, seeds = null, decks = [], loaded = false;
+  // source: "observed" (real decks from the mode's pool, the default) or "generated" (the beam search, experimental)
+  let ctx = null, E = null, seeds = null, decks = [], loaded = false, source = null, obs = null;
   const view = { type: "all", q: "" };
   let timer = 0;
 
   UI.start("index.html", (c) => {
     ctx = c; E = c.E;
     if (seeds === null) {
-      // first load: cards from the link, else none (the builder then finds the strongest decks)
+      // first load: cards and deck source from the link, else no cards and observed decks
       if (c.hash.seeds !== null) seeds = c.hash.seeds;
       else seeds = [];
+      source = c.hash.source || "observed";
     }
     const before = seeds.length;
     seeds = seeds.filter((s) => E.card(s.id) && E.allowedForms(E.card(s.id)).includes(s.form));
@@ -145,13 +157,31 @@
     if (loaded) saveLink(); // a mode, league or arena switch goes into the link too
     loaded = true;
     $("#slotkey").innerHTML = UI.SLOT_KEY;
-    renderHelp(); renderTypes(); renderSeeds(); renderCards(); build();
+    renderHelp(); renderSource(); renderTypes(); renderSeeds(); renderCards(); build();
     if (lockedNow.length) showNote(`Left out because ${lockedNow.length === 1 ? "it isn't" : "they aren't"} unlocked in ${E.m.availability.arena}: ${lockedNow.map((s) => E.whyNot(s)).join("; ")}.`);
     else if (dropped) showNote(`${dropped} card${dropped === 1 ? "" : "s"} in the link ${dropped === 1 ? "isn't" : "aren't"} a card form in this game, so ${dropped === 1 ? "it was" : "they were"} left out.`);
   }, { failTarget: "#decks", onLoading: () => { $("#status").textContent = "Loading this mode…"; } });
 
   const slug = () => ctx.entry.slug;
-  function saveLink() { UI.setHash(seeds.length ? UI.token(slug(), null, seeds) : `${slug()}~~`); }
+  // observed is the default and stays out of the link, so older links and bookmarks keep working
+  const srcTok = () => (source === "generated" ? "generated" : null);
+  function saveLink() { UI.setHash(srcTok() ? UI.token(slug(), null, seeds, srcTok()) : seeds.length ? UI.token(slug(), null, seeds) : `${slug()}~~`); }
+
+  // ------------------------------------------------------------ deck source
+  function renderSource() {
+    const pool = E.counterPool().length;
+    $("#srcbar").innerHTML = `<span class="lab" id="srclab">Show</span>
+      <div class="modes" role="group" aria-labelledby="srclab">
+        <button class="chip" data-src="observed" aria-pressed="${source === "observed"}">Observed decks</button>
+        <button class="chip" data-src="generated" aria-pressed="${source === "generated"}">Generated decks · experimental</button></div>
+      <p class="muted small srchelp">${source === "observed"
+        ? `Real decks from this mode's candidate pool${pool ? ` (${num(pool)} decks, each played at least ${num(E.m.matchup.pool_min_battles)} times in the training battles and legal here; big modes keep only the most played)` : ""} that contain all your picks, ranked by the same score as the generated decks. Being played often doesn't make a deck good: check the warnings and records.`
+        : "New combinations built card by card by a search over the model's score. They may never have been played, and picking the best of a search makes the top estimates run high; the ranges don't include that. The model doesn't play the game; it learns from recorded battle results."}</p>`;
+  }
+  $("#srcbar").onclick = (ev) => {
+    const b = ev.target.closest("[data-src]"); if (!b || b.dataset.src === source) return;
+    source = b.dataset.src; renderSource(); saveLink(); build();
+  };
 
   // Short definitions for newcomers. Deck rules (size, special slots, champions) come from the model's rules,
   // and win-condition examples from the card table, so the text follows the data.
@@ -244,10 +274,21 @@
     setTimeout(() => {
       if (mine !== buildNo || eng !== E) return;
       try {
-        decks = eng.complete(picks).map((d) => d.entries);
-        renderDecks();
         const names = picks.map((s) => eng.describe(s)).join(", ");
-        $("#status").textContent = `${decks.length} options${names ? " with " + names : ""}.`;
+        if (source === "generated") {
+          obs = null;
+          decks = eng.complete(picks).map((d) => ({ entries: d.entries, source: "generated" }));
+          renderDecks();
+          $("#status").textContent = `${decks.length} generated options${names ? " with " + names : ""}.`;
+        } else {
+          // the picks must be able to share a legal deck before the pool is searched (same refusal as the search)
+          const chk = eng.checkPartial(picks);
+          if (!chk.legal) throw new CRDeck.SeedError("seed cards cannot form a legal deck: " + chk.details.join("; "));
+          obs = CRObserved.observedDecks(eng, picks);
+          decks = obs.decks.map((d) => ({ entries: d.entries, source: "observed", played: d.played }));
+          renderDecks();
+          $("#status").textContent = `${decks.length} observed deck${decks.length === 1 ? "" : "s"}${names ? " with " + names : ""}.`;
+        }
       } catch (e) {
         $("#status").textContent = "";
         if (!(e instanceof CRDeck.SeedError)) {
@@ -265,16 +306,40 @@
   }
   function friendly(msg) {
     if (msg.includes("max_champions")) return "A deck can hold at most two champions (one in the Hero slot, one in the Wild slot). Remove a champion.";
-    if (msg.includes("cannot be placed")) return "A deck has one Evolution slot, one Hero slot and one Wild slot. Switch one of your picks to its base form.";
+    if (msg.includes("cannot be placed")) {
+      const word = { evo: "Evolution", hero: "Hero", wild: "Wild" }, av = E.m.availability;
+      const sl = E.m.rules.special_slots.filter((x) => !av || av.slots.includes(x.name));
+      return `A deck has ${sl.map((x) => `one ${word[x.name]} slot`).join(", ").replace(/, ([^,]*)$/, " and $1")}. Switch one of your picks to its base form.`;
+    }
     return msg.replace("seed cards cannot form a legal deck: ", "");
+  }
+
+  // Why there are no (or fewer) observed decks. Never padded, never switched silently: the generated decks are one button away.
+  function observedNote() {
+    if (source !== "observed" || !obs || obs.state === "ok") return "";
+    const gen = `<button class="btn" type="button" data-gen>Show generated decks · experimental</button>`;
+    const picks = seeds.map((s) => E.describe(s)).join(", ");
+    const pool = `The pool holds ${num(obs.poolSize)} decks, each played at least ${num(obs.minBattles)} times in this mode's training battles and legal here; big modes keep only the most played. A deck missing from it may still have been played.`;
+    if (obs.state === "few") return `<div class="panel obsnote" role="status"><b>Only ${obs.decks.length} observed deck${obs.decks.length === 1 ? "" : "s"} fit.</b>
+      <span>${obs.matching === obs.decks.length ? `Only ${num(obs.matching)} pool deck${obs.matching === 1 ? " holds" : "s hold"} ${esc(picks || "your picks")}.`
+        : `${num(obs.matching)} pool decks hold ${esc(picks || "your picks")}, but only ${obs.decks.length} differ from each other by at least ${num(E.cfg.search.min_diff_cards)} cards.`} Nothing was added to fill the space.</span>${gen}</div>`;
+    const [head, body] = obs.state === "no_pool" ? ["No observed decks in this mode.", "This mode's export has no real-deck pool, so there are no observed options here."]
+      : obs.state === "hero_unobservable" ? ["Hero picks can't be matched here.", "Hero and base forms can't be told apart in this mode's battle data, so no recorded deck can be confirmed to hold a Hero."]
+      : ["No observed deck holds all your picks.", `No deck in this mode's pool holds all of: ${picks}. ${pool}`];
+    return `<div class="panel empty obsnote" role="status"><b>${esc(head)}</b><span>${esc(body)}</span>
+      <span>You can remove a pick, or look at decks the model generates instead.</span>${gen}</div>`;
   }
 
   function renderDecks() {
     const seedIds = new Set(seeds.map((s) => s.id));
-    $("#decks").innerHTML = decks.map((entries, i) => {
+    $("#decks").innerHTML = observedNote() + decks.map((dk, i) => {
+      const entries = dk.entries;
       const x = E.explain(entries, E.objectiveDict(E.evaluate(entries)));
       const v = UI.verdict(x.score), a = x.archetype, label = ctx.entry.label;
-      const href = `reason.html#${UI.token(slug(), x.entries, seeds)}`;
+      const href = `reason.html#${UI.token(slug(), x.entries, seeds, srcTok())}`;
+      const prov = dk.source === "observed"
+        ? `<span class="tag real">Observed deck</span><span class="muted small">${num(dk.played)} appearances in this mode's training battles (training and validation windows). One appearance is one side of one battle, so this counts uses, not players.</span>`
+        : `<span class="tag gen">Generated by the model · experimental</span><span class="muted small">A new combination from the search; see below whether anyone played it.</span>`;
       const sup = UI.supportText(E, x, label);
       // warnings first and in full: they are rules of thumb about the cards, shown before any estimate
       const health = x.warnings.length
@@ -282,7 +347,7 @@
         : `<div class="okline">✓ No deck-check warnings: it has a win condition, air defense and spells, at a workable elixir cost. <span class="src rule">rule of thumb</span></div>`;
       const note = UI.styleNote(a);
       return `<article class="panel deck" aria-labelledby="dk${i}">
-        <div class="deck-top"><span class="k">Option ${i + 1} · built by the model</span>
+        <div class="deck-top"><span class="k">Option ${i + 1}</span><div class="prov">${prov}</div>
           <h3 id="dk${i}">${a.label === CRDeck.NO_LABELS ? "Suggested deck" : `Predicted style: ${esc(UI.archName(a))}`}</h3>
           ${note ? `<details class="more"><summary>What “predicted style” means</summary><div class="body small">${esc(note)}</div></details>` : ""}</div>
         <div class="grid8">${x.entries.map((e) => UI.tile(E, e, x.legality.slots, seedIds, null)).join("")}</div>
@@ -306,8 +371,9 @@
     }).join("");
   }
   $("#decks").onclick = async (ev) => {
+    if (ev.target.closest("[data-gen]")) { source = "generated"; renderSource(); saveLink(); build(); return; }
     const t = ev.target.closest("[data-copy]"); if (!t) return;
-    const text = decks[Number(t.dataset.copy)].map((e) => E.describe(e)).join(", ");
+    const text = decks[Number(t.dataset.copy)].entries.map((e) => E.describe(e)).join(", ");
     try {
       if (!navigator.clipboard) throw new Error("no clipboard");
       await navigator.clipboard.writeText(text); t.textContent = "Copied";

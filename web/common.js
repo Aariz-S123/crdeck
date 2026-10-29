@@ -26,16 +26,19 @@
   }
 
   // ------------------------------------------------------------ links between pages
-  // A page's state travels in a plain #anchor token: <mode>~<deck>~<picked cards>,
+  // A page's state travels in a plain #anchor token: <mode>~<deck>~<picked cards>[~<source>],
   // each card written as its id plus b (base), e (Evolution) or h (Hero), joined by "-".
+  // The optional source is o (observed decks) or g (generated decks); older links simply leave it out.
   const FORM_LETTER = { base: "b", evo: "e", hero: "h" }, LETTER_FORM = { b: "base", e: "evo", h: "hero" };
   const entTok = (e) => `${e.id}${FORM_LETTER[e.form]}`;
   function parseEnts(s) {
     if (!s) return [];
     return s.split("-").map((t) => { const m = /^(\d+)([beh])$/.exec(t); return m ? { id: Number(m[1]), form: LETTER_FORM[m[2]] } : null; }).filter(Boolean);
   }
-  function token(slug, deck, seeds) {
+  const SRC_LETTER = { observed: "o", generated: "g" }, LETTER_SRC = { o: "observed", g: "generated" };
+  function token(slug, deck, seeds, source) {
     const d = deck && deck.length ? deck.map(entTok).join("-") : "", s = seeds && seeds.length ? seeds.map(entTok).join("-") : "";
+    if (source && SRC_LETTER[source]) return `${slug}~${d}~${s}~${SRC_LETTER[source]}`;
     return s || d ? `${slug}~${d}~${s}` : slug;
   }
   // A hand-edited or truncated link must not stop the page: bad percent-encoding is read as plain text,
@@ -44,10 +47,10 @@
     const raw = location.hash.replace(/^#/, "");
     let h = raw, malformed = false;
     try { h = decodeURIComponent(raw); } catch { malformed = true; }
-    const [slug, deck, seeds] = h.split("~");
+    const [slug, deck, seeds, src] = h.split("~");
     const count = (s) => (s ? s.split("-").filter((t) => t && !/^\d+[beh]$/.test(t)).length : 0);
     return { slug: slug || null, deck: deck !== undefined ? parseEnts(deck) : null, seeds: seeds !== undefined ? parseEnts(seeds) : null,
-      malformed, bad: count(deck) + count(seeds) };
+      source: LETTER_SRC[src] || null, malformed, bad: count(deck) + count(seeds) };
   }
   function setHash(tok) { history.replaceState(null, "", "#" + tok); }
   function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch { return null; } return null; }
@@ -414,7 +417,7 @@
         return;
       }
       if (mine !== latest) return;
-      ctx.INDEX = INDEX; ctx.hash = first ? h : { slug: s, deck: null, seeds: null };
+      ctx.INDEX = INDEX; ctx.hash = first ? h : { slug: s, deck: null, seeds: null, source: null };
       facts(ctx.entry, ctx.m);
       try { render(ctx); } catch (e) { failed(target, e, { label, retry: () => go(s, first) }); }
     };

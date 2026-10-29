@@ -342,3 +342,23 @@ def backtest(ctx, model: MatchupModel, searcher, pool: list, styles: dict, rec: 
         verdict = "not_shown"
     return {"top": top, "min_games": min_games, "styles": per_style, "pooled": pooled, "pooled_new": pooled_new,
             "headline": "new_players" if head_new else "all_players", "verdict": verdict}
+
+
+def observed_decks(pool: list, objectives: dict, seeds: list[str], n_results: int, min_diff: int) -> list[str]:
+    """Observed decks for the deck builder (website twin: web/observed.js `select`). From the real-deck pool
+    [(deck_key, played)], keep the decks holding every seed card form (keys such as "26000000:evo"), rank them
+    by the deck builder's objective `objectives[deck_key]` (fixed precision, then deck key), and keep each one
+    that differs from every earlier pick by at least `min_diff` cards (card ids), up to `n_results`. Fewer
+    matches give fewer results; nothing is padded."""
+    need = set(seeds)
+    rows = [d for d, _ in pool if need <= set(d.split("|"))]
+    rows.sort(key=lambda d: (-tie(objectives[d]), d))
+    chosen: list[str] = []
+    ids = lambda d: {int(k.split(":")[0]) for k in d.split("|") if k}  # noqa: E731
+    for d in rows:
+        mine = ids(d)
+        if all(len(mine - ids(c)) >= min_diff for c in chosen):
+            chosen.append(d)
+        if len(chosen) == n_results:
+            break
+    return chosen

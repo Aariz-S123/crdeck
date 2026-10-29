@@ -1,0 +1,191 @@
+{
+ "index": {
+  "title": "crdeck Deck Builder",
+  "modes": 3,
+  "facts": "270,458 Ranked (Path of Legends) battles 38,636 different decks Newest battle Oct 26, 9:22 PM EDT",
+  "decks": 3,
+  "picks": 184,
+  "hint": "Optional. With no cards picked, it shows the highest-scoring options under this model.",
+  "status": "3 observed decks.",
+  "pills": [
+   "Model estimate above 50%",
+   "Model estimate above 50%",
+   "Range includes 50%: no clear modeled edge"
+  ],
+  "links": [
+   "reason.html#ranked~26000003h-26000007e-26000025b-26000034h-26000052b-28000001b-28000010b-28000017b~",
+   "reason.html#ranked~26000010b-26000013e-26000030b-26000059b-26000072b-27000000e-28000014b-28000018b~",
+   "reason.html#ranked~26000007e-26000012e-26000048b-26000067b-26000069b-28000002b-28000023b-28000024b~"
+  ],
+  "hash": "",
+  "leagueOptions": [
+   "Every league · 270,458 battles",
+   "Master I · 3,114 battles",
+   "Master II · 1,741 battles",
+   "Master III · 958 battles",
+   "Champion · 971 battles",
+   "Grand Champion · 2,211 battles",
+   "Royal Champion · 9,824 battles",
+   "Ultimate Champion · 251,639 battles"
+  ],
+  "byBattles": [
+   "Ultimate Champion · 251,639 battles",
+   "Royal Champion · 9,824 battles",
+   "Master I · 3,114 battles"
+  ],
+  "fourth": "You already picked 3 cards. Remove one to pick another.",
+  "hash3": "#ranked~~26000021b-28000000b-28000011b",
+  "hashEmpty": "#ranked~~",
+  "threeChamps": "No legal deck can hold these cards together.A deck can hold at most two champions (one in the Hero slot, one in the Wild slot). Remove a champion. Your picks are kept so you can change one.",
+  "leagueFacts": "251,639 Ranked (Path of Legends): Ultimate Champion battles 26,673 different decks Newest battle Oct 26, 9:22 PM EDT",
+  "leagueHash": "#ranked__ultimate_champion~~26000072b-26000074b-26000069b",
+  "trophyFacts": "137,787 Trophy Road ladder battles 101,288 different decks Newest battle Oct 26, 9:22 PM EDT",
+  "arenaOptions": 35,
+  "firstArenas": [
+   "Every arena · 137,787 battles",
+   "Goblin Stadium (0+ trophies) · 243 battles",
+   "Bone Pit (300+ trophies) · 509 battles"
+  ]
+ },
+ "reason": {
+  "title": "Why this deck: Mixed style",
+  "docTitle": "Why This Deck · Mixed style · crdeck",
+  "short": [
+   "53.3%Model estimate above 50% Estimated wins against sampled opponents. 90% model range 51.9% to 54.7%, against 2,000 opponent decks sampled from Ranked (Path of Legends) battles (Oct 24 to Oct 26), at equal player rating. model estimate",
+   "Graveyard has the highest card weight here.Decks with it won more often, after accounting for the other cards and player rating. Guards has the lowest. learned from 30,483 games",
+   "Best pair: Witch + Guards.Together they won 51.9% of 3,032 games, more than each card alone predicts. measured",
+   "Played 11 times in the test battles (Oct 24 to Oct 26), won 7. These battles were held back from training. Seen 65 times in Ranked (Path of Legends) battles collected so far. measured",
+   "No deck-check warnings. It has a win condition, air defense and spells, at a workable elixir cost. deck checks"
+  ],
+  "charts": 6,
+  "swapRows": 24,
+  "openWhy": 4,
+  "sections": [
+   "The short version",
+   "The evidence",
+   "Cards that work together",
+   "Things to watch",
+   "Try a swap",
+   "Card map",
+   "Raw numbers"
+  ],
+  "back": "index.html#ranked~~",
+  "mathLines": 24,
+  "mathSample": "Δscore = Δwin + 0.5 × Δsynergy + 0.05 × Δplayed-together\n= (53.298% → 54.807%) + 0.5 × (+0.0101 → +0.0132) + 0.05 × (1.147 → 0.804)\n= (+1.510) + (+0.155) + (−1.717) = −0.053 points",
+  "mapPoints": 185,
+  "mapSugg": 6,
+  "nearRows": 8,
+  "nearChanged": true,
+  "afterSwap": {
+   "sub": "Swapped Witch (Evolution) for Barbarians (Evolution). Every number on this page is recomputed for the new deck.",
+   "changedTiles": 1,
+   "hashChanged": true,
+   "undo": true
+  },
+  "noDeck": "No deck to explain.This page needs a deck. Build one on the first page and press “Why this deck”.Go to the builder",
+  "badDeck": "No deck to explain.This deck has a card form that Ranked (Path of Legends) has no data for. Switch back to the mode you built it in.Go to the builder"
+ },
+ "cards": {
+  "rows": 187,
+  "sum": "184 card forms in Ranked (Path of Legends) (123 base, 43 Evolution, 18 Hero), plus 3 rows from your CSV that are not deck cards.",
+  "counts": "Showing 187 of 187 rows. 184 used by the builder · 1 not in the game · 1 tower troop · 1 duplicate row.",
+  "knight": [
+   "4Golden Knight",
+   "3Knight",
+   "3Knight (Evolution) EVO",
+   "3Knight (Hero) HERO",
+   "7Mega Knight",
+   "7Mega Knight (Evolution) EVO"
+  ],
+  "none": "No card matches “zzzz” with this filter. Clear the search or pick “All rows”."
+ },
+ "meta": {
+  "state": "Forecast shown",
+  "progress": "8 collected · 3 needed for a first forecast · 5 recommended",
+  "charts": 7,
+  "sections": [
+   "Forecast shown",
+   "Biggest changes, P7 → P8",
+   "Usage over time",
+   "Assumptions"
+  ]
+ },
+ "model": {
+  "verdicts": [
+   "Beats every baseline",
+   "Beats the baseline",
+   "Beats the baseline",
+   "Beats both"
+  ],
+  "steps": 5,
+  "gloss": 8,
+  "logs": [
+   "Data",
+   "Splits · Ranked (Path of Legends)",
+   "Model selection · Ranked (Path of Legends)",
+   "Test results · Ranked (Path of Legends)",
+   "Known caveats (docs/model-notes.md, word for word)",
+   "Versions"
+  ],
+  "sub": "Tested on 40,569 held-out battles from Oct 24, 12:59 PM EDT to Oct 26, 9:15 PM EDT. The model never saw them while training.",
+  "notes": ", Wild slots, and at most 2 champions. Style labels are a starting point. The classifier knows 8 styles and was checked on 20 decks; labels drafted by the project's assistant; accuracy is agreement with that labeler. Below 50% confidence it says “Mixed style”."
+ },
+ "arena": {
+  "open": 18,
+  "locked": 166,
+  "head": "Not unlocked in Bone Pit yet (166)",
+  "linkNote": "Left out because it isn't unlocked in Bone Pit: Knight (Evolution): Evolutions unlock at Arena 3.",
+  "firstLockedText": "Unlocks at Royal Crypt (Arena 17)",
+  "clickNote": "Archer Queen unlocks at Royal Crypt (Arena 17), so it can't be picked in Bone Pit.",
+  "lockedInDecks": []
+ },
+ "seasons": {
+  "lock": "Locked: not enough seasons yet",
+  "seasonBoxes": [
+   "2026-10263,249 battles",
+   "neededseason 2",
+   "neededseason 3"
+  ],
+  "decks": 12,
+  "tiles": 96,
+  "trends": 12,
+  "pills": [
+   "No clear change (+0.21 pts)",
+   "No clear change (+4.67 pts)",
+   "Falling −1.52 pts",
+   "Falling −1.49 pts",
+   "Falling −1.44 pts",
+   "Falling −1.04 pts",
+   "Falling −0.76 pts",
+   "Falling −0.72 pts",
+   "Falling −0.87 pts",
+   "Falling −0.60 pts",
+   "Rising +10.06 pts",
+   "Falling −0.84 pts"
+  ],
+  "newCards": "9 saved card lists, newest Oct 26, 9:23 PM EDT: 123 cards, 184 card forms (base, Evolution and Hero counted separately). No changes No card, Evolution or Hero was added or removed between Oct 18, 9:21 PM EDT and Oct 26, ",
+  "navHasSeason": true
+ },
+ "counters": {
+  "verdict": "Better than an average real deck; not clearly better than the strongest decks",
+  "verdictRows": 12,
+  "styles": 8,
+  "cards": 10,
+  "decks": 3,
+  "navHas": true,
+  "records": [
+   true,
+   true,
+   true
+  ],
+  "swaps": 3,
+  "secondStyleChanged": true,
+  "byCard": {
+   "picked": "Archer Queen",
+   "decks": 3
+  },
+  "lowArenaDecks": 3
+ },
+ "fails": []
+}
+exit 0

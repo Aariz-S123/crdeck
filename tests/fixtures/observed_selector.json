@@ -1,0 +1,25 @@
+{
+  "about": "Observed-deck selector cases, shared by tests/test_observed.py (Python) and tests/web/run2_test.cjs (JavaScript). Expected results were worked out by hand from the rule: keep decks holding every seed card form; order by objective at 1e-10 precision, then deck key; keep a deck only if it differs from every earlier pick by at least min_diff card ids; stop at n_results. D and G tie with float noise (0.58 vs 0.5800000000000001), so key order decides. C and D hold the same card ids (Knight base vs evo), so they never both pass min_diff 2.",
+  "pool": [
+    ["1:base|2:base|3:base|4:base", 40, 0.60],
+    ["1:base|2:base|3:base|5:base", 30, 0.59],
+    ["1:evo|2:base|6:base|7:base", 20, 0.58],
+    ["1:base|2:base|6:base|7:base", 25, 0.58],
+    ["1:base|2:base|6:base|9:base", 11, 0.5800000000000001],
+    ["1:base|4:base|8:base|9:base", 9, 0.57],
+    ["2:base|3:base|8:base|9:base", 7, 0.70]
+  ],
+  "cases": [
+    { "name": "one seed: near-duplicate and tie skipped by diversity", "seeds": ["1:base"], "n_results": 3, "min_diff": 2,
+      "expect": ["1:base|2:base|3:base|4:base", "1:base|2:base|6:base|7:base", "1:base|4:base|8:base|9:base"] },
+    { "name": "evolution seed matches only the evo deck (fewer than asked, not padded)", "seeds": ["1:evo"], "n_results": 3, "min_diff": 2,
+      "expect": ["1:evo|2:base|6:base|7:base"] },
+    { "name": "two seeds", "seeds": ["1:base", "5:base"], "n_results": 3, "min_diff": 2,
+      "expect": ["1:base|2:base|3:base|5:base"] },
+    { "name": "no deck holds the seed", "seeds": ["7:hero"], "n_results": 3, "min_diff": 2, "expect": [] },
+    { "name": "no seeds, four results", "seeds": [], "n_results": 4, "min_diff": 2,
+      "expect": ["2:base|3:base|8:base|9:base", "1:base|2:base|3:base|4:base", "1:base|2:base|6:base|7:base", "1:base|4:base|8:base|9:base"] },
+    { "name": "min_diff 1 lets the near-duplicate through", "seeds": ["1:base"], "n_results": 3, "min_diff": 1,
+      "expect": ["1:base|2:base|3:base|4:base", "1:base|2:base|3:base|5:base", "1:base|2:base|6:base|7:base"] }
+  ]
+}
