@@ -13,7 +13,7 @@ boundaries, protected files, validation and blocker rules still apply. Local com
 - Run 3: **PASS** (P0 items and P1 three-layer disclosures; new evaluation methods are backlog)
 - Run 4: **PASS** (P0 items; P1 forecast quantile visual deferred: the export has no forecast rows to draw, see below)
 - Run 5: **PASS** (user, 2026-10-29: "Carefully reread what was mentioned in the revamp spec and implement all of them"): every item Runs 1–4 deferred, from START-HERE, BACKLOG.md and the original monolithic prompt (`Downloads/Claude-Code-crdeck-Redesign-Prompt.md`, which START-HERE replaced), including the forward counter check. Not done: card imagery (no approved image source; the runs' rule is no image dependency) and the combined retrain design (needs retraining). See "Run 5" below.
-- Starting HEAD: `9b3ab4da2f7d30845ca8938d9891256ec7a59b51` (main, "Docs: final Trophy Road counter backtest numbers")
+- Starting HEAD: `c3b8363769697aa95acbe8bb03104702602ddef0` (main, "Docs: final Trophy Road counter backtest numbers")
 - Working-tree changes already present: none except the untracked prompt pack `docs/claude-redesign/` (extracted 2026-10-29 from `Downloads/crdeck-claude-prompt-pack.zip`, the only copy, all five files)
 - Inputs: REVIEW.md is not in the repository (it lives at `C:\Users\simty\crdeck-review\REVIEW.md`; read only as claims; its "no softmax" statement is wrong, see finding 1). `docs/crdeck-documentation.docx` is in the repository.
 - This is the full local project, not the review ZIP: all 44 mode models (`web/models/`) and 44 per-mode goldens (`web/golden/`) are present, so parity, sweep, page and site checks can run for real.
@@ -36,7 +36,7 @@ Proposed files (application): `web/index.html`, `web/common.js`, `web/app.css`, 
 
 Protected-file risks: none planned. `web/engine.js` is untouched in Run 1; no protected export, config, model or pipeline file is edited; nothing is retrained or exported.
 
-## Run 2 plan (starting HEAD 70a9c94)
+## Run 2 plan (starting HEAD ba1f27b)
 
 Checklist:
 1. `web/observed.js` (new, global `CRObserved`, also `module.exports`): pure `select(rows, seedKeys, nResults, minDiff)` (exact selected forms; sort by −tie(objective) then deck key; greedy diversity identical to `Engine.complete`: each pick differs from every earlier one by ≥ min_diff card ids) and `observedDecks(E, seeds)` building rows from `E.counterPool()` with `E.evaluate().objective`, re-checking `checkDeck` and `isAvailable`, and returning an explicit state: `no_pool`, `hero_unobservable`, `no_match`, `few`, `ok`.
@@ -50,7 +50,7 @@ Checklist:
 
 Files: `web/observed.js` (new), `web/index.html`, `web/common.js` (token/readHash 4th part), `web/reason.html` (back link), `src/crdeck/counters.py` (additive function), tests: `tests/fixtures/observed_selector.json`, `tests/test_observed.py`, `tests/web/run2_test.cjs`. `web/engine.js` not expected to change.
 
-## Run 5 scope (starting HEAD e19ef9b)
+## Run 5 scope (starting HEAD fdeed32)
 
 Reread: START-HERE.md, ACCEPTANCE.md, FINDINGS.md, MATH-CONTENT.md, BACKLOG.md and the original monolithic prompt in
 Downloads. The user's instruction authorizes what the four runs held back ("Do not begin P2", "do not implement
@@ -67,7 +67,7 @@ dependency, no fabricated results, tests not weakened. Gap inventory (all done u
 8. Trends and seasons: forecast picture (observed points, median, 50%/90% bands, no-change line, observed vs forecast region) when the export has forecast rows; table versions of the charts; quiet lookup status instead of a live region; dated "most-played decks"; no "unlocks" wording.
 9. How it works: one five-step story; glossary with synergy vs lift, regularization, splits, beam search, bootstrap, delta method, Wilson, logit/sigmoid, selection optimism, with current-data examples; loss-surface symbols defined; slice and illustration labels; glossary links.
 10. Shared: Escape hides tooltips; scrolling tables get a name and tab stop; 44 px small buttons; 75-character measure; consolidated picker styles; one light-theme contrast fix.
-11. Forward counter check (BACKLOG 1, 2, 4): design committed first (1131921, `docs/claude-redesign/EVAL-DESIGN.md`), then code, tests, results and page.
+11. Forward counter check (BACKLOG 1, 2, 4): design committed first (0afc0cd, `docs/claude-redesign/EVAL-DESIGN.md`), then code, tests, results and page.
 12. Not done: card imagery (decision for the user), combined retrain design (BACKLOG 3; needs retraining), two-way clustering.
 
 ## Source-of-truth mappings
@@ -209,7 +209,7 @@ Run 4 after (`docs/claude-redesign/evidence/run4-after/`), the final full run:
 | R4.3 | run4_test with blocked / not_better / shown (runs set to 1,234) / shown-but-empty fixtures served in place of modes.json | PASS | each state worded correctly; the exported run count is used; season readiness separate and stated as not built |
 | R4.4 | run4_test + hand-made fixture | PASS | coverage weighted by card forms scored (0.7 on the fixture); zero denominators give no coverage and n/a cells; "not 90%" and "not a significance test" shown |
 | R4.5 | `python -m pytest tests/test_doc_claims.py`; `PYTHONPATH=<local python-docx> python scripts/make_docs.py`; text check of the DOCX | PASS | 10 branch tests; DOCX regenerated and inspected: new sentences present, stale claims ("a bootstrap gives…", "five-page", "cards only at C", "stays hidden", "strongest decks overall", "top ranked players") gone |
-| R4.6 | full suite: pytest; check_web_engine; run1–run4 tests; page_test; site_check; `node scripts/sweep_web_engine.mjs`; engine snapshot `cmp`; screenshots | PASS | 169 passed; 137,367 checks agree; all `fails: []`; 44 modes no problems; sweep 16,905 searches and 150,141 swaps, no problems (7,816 s); snapshot identical to the pre-redesign baseline; 0 px overflow on How it works, Usage trends and Season readiness at 390 and 1440, light and dark (before shots from commit 4787d0e in run4-before/) |
+| R4.6 | full suite: pytest; check_web_engine; run1–run4 tests; page_test; site_check; `node scripts/sweep_web_engine.mjs`; engine snapshot `cmp`; screenshots | PASS | 169 passed; 137,367 checks agree; all `fails: []`; 44 modes no problems; sweep 16,905 searches and 150,141 swaps, no problems (7,816 s); snapshot identical to the pre-redesign baseline; 0 px overflow on How it works, Usage trends and Season readiness at 390 and 1440, light and dark (before shots from commit 2b6410b in run4-before/) |
 
 Newcomer walkthrough (heuristic, not user research): from the builder a first-time reader sees what a deck is and what the picks do, gets three observed decks with their main weakness first, can tell the measured test record from the model estimate (tags and wording), opens one deck to see roles, warnings and the best next step, and on How it works can read in order that the sigmoid gives win estimates, softmax gives style-label probabilities, and Monte Carlo gives next-period usage shares, each with real numbers.
 
@@ -226,7 +226,7 @@ Run 5 after (`docs/claude-redesign/evidence/run5-after/`):
 | R5.7 trends and seasons | run5_test (forecast fixture served in place of modes.json; file on disk untouched) | PASS | 6 forecast cells with no-change lines, region labels and a table version; live export: no picture, 7 charts as before; lookup announces a short status, no live region; seasons dated, no "right now", no "unlocks" |
 | R5.8 How it works | run5_test | PASS | five-step story; 14 glossary terms present; regularization example = selected C from the log; split counts from the export; N and C from the landscape slice |
 | R5.9 shared and accessibility | run5_test; `node docs/claude-redesign/evidence/keys.mjs …/keys.json` (real Tab presses in Chrome); contrast of token pairs; `OPEN_DETAILS=1 VIEWS=mobile-light,desktop-dark,zoom200-light,tablet-light node …/shots.mjs` on all 7 pages | PASS | Escape hides tooltips; a scrolling table box gets role, name and tab stop; small buttons 44 px; keyboard: every focus stop on all 7 pages shows a focus indicator, no trap, Shift+Tab steps back; contrast: dark theme ≥ 5.78:1, light ≥ 4.5:1 after `--wild` #0b7a6d → #0a766a (was 4.45:1); 0 px overflow and no script errors on 28 views with every disclosure open, incl. 200% zoom on every page |
-| R5.10 forward check | `pytest tests/test_counter_eval.py`; `python scripts/counter_eval.py` (all modes); run5_test | PASS | design committed first (1131921); 11 tests (paired groups give exactly 0, hand-computed rates, clustering widens ranges when players repeat, fixed seed, inclusion rule, membership, verdict words, counting equals `deck_records`, retrospective equals `backtest`, forward inputs only from the validation window, script never trains); 44 of 44 modes match the export; page shows it with a copy-without-file fallback |
+| R5.10 forward check | `pytest tests/test_counter_eval.py`; `python scripts/counter_eval.py` (all modes); run5_test | PASS | design committed first (0afc0cd); 11 tests (paired groups give exactly 0, hand-computed rates, clustering widens ranges when players repeat, fixed seed, inclusion rule, membership, verdict words, counting equals `deck_records`, retrospective equals `backtest`, forward inputs only from the validation window, script never trains); 44 of 44 modes match the export; page shows it with a copy-without-file fallback |
 | regression | `.venv/Scripts/python -m pytest`; `node scripts/check_web_engine.mjs`; run1–run5 tests; page_test; site_check; engine snapshot `cmp` with run1-before | PASS | 183 passed; all 137,367 checks agree; all `fails: []`; 44 modes x 4 pages + 2 pages + 10 edge links, no problems; engine snapshot identical to the pre-redesign baseline |
 | regression, rules sweep | `node scripts/sweep_web_engine.mjs` | PASS | 44 modes, each "0 problems"; 16,905 searches (9,429 correctly refused), 150,141 swaps checked, no problems found (5,249 s); same counts as Run 4 (`run5-after/sweep.txt`) |
 
@@ -248,15 +248,15 @@ Screenshots (local only, git-ignored): `docs/claude-redesign/evidence/run1-befor
 
 ## Checkpoints
 
-- Run 1 start: HEAD 9b3ab4d. Changed: web/app.css, web/common.js, web/index.html, web/reason.html (207+/69−); new tests/web/run1_test.cjs; PROMPT-PROGRESS.md; docs/claude-redesign/** (prompt pack + evidence).
+- Run 1 start: HEAD c3b8363. Changed: web/app.css, web/common.js, web/index.html, web/reason.html (207+/69−); new tests/web/run1_test.cjs; PROMPT-PROGRESS.md; docs/claude-redesign/** (prompt pack + evidence).
 
-- Run 2 start: HEAD 70a9c94 (Run 1 commit). Changed: web/observed.js (new), web/index.html, web/common.js, web/reason.html, src/crdeck/counters.py (additive `observed_decks`); tests: tests/fixtures/observed_selector.json, tests/test_observed.py, tests/web/run2_test.cjs (new), tests/web/run1_test.cjs, page_test.cjs, site_check.cjs (inline observed.js).
+- Run 2 start: HEAD ba1f27b (Run 1 commit). Changed: web/observed.js (new), web/index.html, web/common.js, web/reason.html, src/crdeck/counters.py (additive `observed_decks`); tests: tests/fixtures/observed_selector.json, tests/test_observed.py, tests/web/run2_test.cjs (new), tests/web/run1_test.cjs, page_test.cjs, site_check.cjs (inline observed.js).
 
-- Run 3 start: HEAD d060f8b (Run 2 commit). Changed: web/reason.html, web/counters.html, web/app.css, docs/model-notes.md (one sentence), docs/claude-redesign/BACKLOG.md (new), tests/web/run3_test.cjs (new).
+- Run 3 start: HEAD e44469c (Run 2 commit). Changed: web/reason.html, web/counters.html, web/app.css, docs/model-notes.md (one sentence), docs/claude-redesign/BACKLOG.md (new), tests/web/run3_test.cjs (new).
 
-- Run 5 start: HEAD e19ef9b (Run 4 commit). Checkpoints: 1131921 (forward-check design only, before any result), then the forward check (src/crdeck/counters.py additive, scripts/counter_eval.py, tests/test_counter_eval.py, web/counter_eval.json), then the site, tests, docs and evidence. Size: 10 application files, +730/−177 lines in all; split across the two code commits so each stays under the 12-file / 800-line review boundary.
+- Run 5 start: HEAD fdeed32 (Run 4 commit). Checkpoints: 0afc0cd (forward-check design only, before any result), then the forward check (src/crdeck/counters.py additive, scripts/counter_eval.py, tests/test_counter_eval.py, web/counter_eval.json), then the site, tests, docs and evidence. Size: 10 application files, +730/−177 lines in all; split across the two code commits so each stays under the 12-file / 800-line review boundary.
 
-- Run 4 start: HEAD 4787d0e (Run 3 commit). Changed: web/learn.js (new), web/model.html, web/meta.html, web/seasons.html, web/common.js; scripts/doc_claims.py (new), scripts/make_docs.py, docs/crdeck-documentation.docx; README.md, docs/model-notes.md; tests: tests/web/run4_test.cjs, tests/test_doc_claims.py (new), tests/web/page_test.cjs (menu label + inline learn.js), tests/web/site_check.cjs (inline learn.js).
+- Run 4 start: HEAD 2b6410b (Run 3 commit). Changed: web/learn.js (new), web/model.html, web/meta.html, web/seasons.html, web/common.js; scripts/doc_claims.py (new), scripts/make_docs.py, docs/crdeck-documentation.docx; README.md, docs/model-notes.md; tests: tests/web/run4_test.cjs, tests/test_doc_claims.py (new), tests/web/page_test.cjs (menu label + inline learn.js), tests/web/site_check.cjs (inline learn.js).
 
 ## Blockers
 

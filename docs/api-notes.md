@@ -13,7 +13,7 @@ Two kinds of evidence, kept separate:
 | IP registered for the key | 128.227.5.165 (keys are IP-bound; another network needs another key or IP entry) |
 | Gate run (UTC) | 2026-10-18 |
 | Collection | 2026-10-18: top 1000 global + top 200 of 12 countries = 2,894 players, 2,894 battle logs, 0 errors, 0 HTTP 429 |
-| Raw files | `data/raw/2026-10-w3/` (git-ignored); every file's fetch time is in `data/raw_manifest.csv` (tracked) |
+| Raw files | `data/raw/2026-10-w3/` (git-ignored); every file's fetch time is in `data/raw_manifest.csv` (also git-ignored: its file names are player tags) |
 
 ## Checklist
 

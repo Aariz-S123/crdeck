@@ -89,7 +89,7 @@ Or open `notebooks/07_demo.ipynb`.
    schtasks /Create /SC DAILY /ST 20:00 /TN crdeck-collect /TR "C:\Users\simty\crdeck\.venv\Scripts\python.exe -m crdeck collect --window auto"
    ```
    For lower arenas, also run `python -m crdeck collect --arenas --window auto`: it finds players in every Trophy Road arena through clan search (and their ladder opponents), up to `arena_sample.players_per_arena` each, and prints how many each arena got. Those logs are kept apart (`battlelog_arena/`) and are not used for the meta history.
-4. Refresh order: `collect` → `build` → `evaluate` → `python scripts/export_web.py` → `node scripts/check_web_engine.mjs` → `node scripts/sweep_web_engine.mjs`. The export re-runs the evaluation for any mode whose saved one is stale. Then the notebooks. Models retrain automatically when data, labels, configs or code change (cache: `data/processed/context_cache_<mode>.pkl`; `CRDECK_NO_CACHE=1` forces a retrain); the counter page's `src/crdeck/counters.py` and `config/counters.yaml` run after training and never trigger a retrain. `data/raw_manifest.csv` (tracked) records every raw file's fetch time, since `data/raw` itself is not committed.
+4. Refresh order: `collect` → `build` → `evaluate` → `python scripts/export_web.py` → `node scripts/check_web_engine.mjs` → `node scripts/sweep_web_engine.mjs`. The export re-runs the evaluation for any mode whose saved one is stale. Then the notebooks. Models retrain automatically when data, labels, configs or code change (cache: `data/processed/context_cache_<mode>.pkl`; `CRDECK_NO_CACHE=1` forces a retrain); the counter page's `src/crdeck/counters.py` and `config/counters.yaml` run after training and never trigger a retrain. `data/raw_manifest.csv` records every raw file's fetch time; like `data/raw`, it is not committed, because its file names are player tags.
 5. Re-check notebook 02's slot audit and notebook 06's co-occurrence tuning after each new window.
 
 ## Synthetic data (pipeline testing only)
@@ -101,7 +101,7 @@ Or open `notebooks/07_demo.ipynb`.
 ```
 config/          deck_rules.yaml (slot rules + evidence), collection.yaml (API, leaderboards, forms, split), model.yaml
 data/labels/     cards.csv, archetype_labels.csv, source/cards_meta.csv (your original CSV)
-data/raw/        immutable API responses (git-ignored); data/raw_manifest.csv lists them with fetch times
+data/raw/        immutable API responses; data/raw_manifest.csv lists them with fetch times (both git-ignored)
 src/crdeck/      cards, rules (only legality code), api (only network code), collect, parse, dataset, synergy,
                  strength, archetype, labeling, search, explain, evaluate, pipeline, synthetic, cli
 tests/           pytest: rules, parsing/dedupe, shrinkage, search invariants, API client, pipeline, tooling

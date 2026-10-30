@@ -296,7 +296,7 @@ table(["Folder", "Holds"], [
     ["data/raw/", "Every API response, cached as JSON per collection window (not committed)"],
     ["data/interim/, data/processed/", "Parsed tables, trained-model caches, evaluation reports and the run log (not committed)"],
     ["data/labels/", "Hand-labeled card roles and archetype labels"],
-    ["data/raw_manifest.csv", "One row per raw file with its fetch time (committed, since raw data is not)"],
+    ["data/raw_manifest.csv", "One row per raw file with its fetch time (not committed: its file names are player tags)"],
     ["notebooks/", "01 cards, 02 rules, 03 data, 04 baselines, 05 models, 06 search, 07 demo; each re-runs from scratch with the same outputs"],
     ["scripts/", "Web export, the website checks, notebook generation and running, the one-time card label bootstrap"],
     ["web/", f"The {doc_claims.page_count(ROOT / 'web')}-page website, its JavaScript engine and the exported models"],

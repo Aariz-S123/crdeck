@@ -8,6 +8,8 @@ __pycache__/
 # Raw API data stays out of git (spec 9.7); fetch dates live in each file's metadata.
 data/raw/*
 !data/raw/.gitkeep
+# The fetch manifest names files by player tag, so it stays out of git too.
+data/raw_manifest.csv
 data/interim/*
 !data/interim/.gitkeep
 data/processed/*
