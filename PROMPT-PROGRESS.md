@@ -6,7 +6,7 @@ boundaries, protected files, validation and blocker rules still apply. Local com
 
 ## Current state
 
-- Active run: **none: Runs 1–5 complete** (Run 5's final rules sweep: see "Run 5 after")
+- Active run: **none: Runs 1–5 complete**
 - Run 1: **PASS** (all P0 items; P1 newcomer definitions done)
 - Run 2: **PASS** (all P0 items; comparison view is P2 backlog, not started)
 - Run 3: **PASS** (P0 items and P1 three-layer disclosures; new evaluation methods are backlog)
@@ -214,7 +214,7 @@ Run 5 after (`docs/claude-redesign/evidence/run5-after/`):
 | R5.9 shared and accessibility | run5_test; `node docs/claude-redesign/evidence/keys.mjs …/keys.json` (real Tab presses in Chrome); contrast of token pairs; `OPEN_DETAILS=1 VIEWS=mobile-light,desktop-dark,zoom200-light,tablet-light node …/shots.mjs` on all 7 pages | PASS | Escape hides tooltips; a scrolling table box gets role, name and tab stop; small buttons 44 px; keyboard: every focus stop on all 7 pages shows a focus indicator, no trap, Shift+Tab steps back; contrast: dark theme ≥ 5.78:1, light ≥ 4.5:1 after `--wild` #0b7a6d → #0a766a (was 4.45:1); 0 px overflow and no script errors on 28 views with every disclosure open, incl. 200% zoom on every page |
 | R5.10 forward check | `pytest tests/test_counter_eval.py`; `python scripts/counter_eval.py` (all modes); run5_test | PASS | design committed first (1131921); 11 tests (paired groups give exactly 0, hand-computed rates, clustering widens ranges when players repeat, fixed seed, inclusion rule, membership, verdict words, counting equals `deck_records`, retrospective equals `backtest`, forward inputs only from the validation window, script never trains); 44 of 44 modes match the export; page shows it with a copy-without-file fallback |
 | regression | `.venv/Scripts/python -m pytest`; `node scripts/check_web_engine.mjs`; run1–run5 tests; page_test; site_check; engine snapshot `cmp` with run1-before | PASS | 183 passed; all 137,367 checks agree; all `fails: []`; 44 modes x 4 pages + 2 pages + 10 edge links, no problems; engine snapshot identical to the pre-redesign baseline |
-| regression, rules sweep | `node scripts/sweep_web_engine.mjs` | see below | started before the checkpoint commits; its result is recorded below when it finishes |
+| regression, rules sweep | `node scripts/sweep_web_engine.mjs` | PASS | 44 modes, each "0 problems"; 16,905 searches (9,429 correctly refused), 150,141 swaps checked, no problems found (5,249 s); same counts as Run 4 (`run5-after/sweep.txt`) |
 
 Screenshots (local only, git-ignored): `docs/claude-redesign/evidence/run1-before/*.png`, `run1-after/*.png`, `run1-after/extra/*.png`.
 
