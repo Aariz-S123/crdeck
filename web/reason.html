@@ -135,21 +135,21 @@ details.layer > .body { display: grid; gap: var(--space-6); margin-top: var(--sp
     $("#body").innerHTML = `<div class="panel empty"><b>No deck to explain.</b><span>${esc(msg)}</span><a class="btn primary" href="index.html#${esc(slug())}">Go to the builder</a></div>`;
   }
 
+  // The drawn deck's explanation and chart inputs: the three layers below the overview are filled from it
+  // the first time each one is opened, so a closed layer (the 3D map above all) costs nothing.
+  let cur = null;
   function draw() {
     const x = E.explain(deck, E.objectiveDict(E.evaluate(deck)));
     const seedIds = new Set(seeds.map((s) => s.id)), v = UI.verdict(x.score);
-    const ws = x.entries.map((e) => Object.assign(E.coefInfo(e), { role: "in" })).sort((p, q) => q.weight - p.weight);
+    const ws = x.entries.map((e) => Object.assign(E.coefInfo(e), { role: "in", entry: e })).sort((p, q) => q.weight - p.weight);
     const known = ws.filter((w) => w.known), cardSum = ws.reduce((t, w) => t + w.weight, 0), pairSum = E.utility(x.entries) - cardSum;
     const best = known[0], worst = known[known.length - 1];
     const exact = x.score.test_battles_exact_deck, bestPair = x.synergy_top[0], sup = UI.supportText(E, x, ctx.entry.label);
+    cur = { x, ws, known, cardSum, pairSum };
     $("#title").textContent = `Why this deck: ${UI.archName(x.archetype)}`;
-    $("#sub").textContent = `Everything below is worked out from ${ctx.entry.label} battles. Hover or tap a chart mark to see its numbers.`;
+    $("#sub").textContent = `Everything below is worked out from ${ctx.entry.label} battles. Hover or tap a chart mark to see its numbers, or open “Show as a table” under a chart.`;
     document.title = `Why This Deck · ${UI.archName(x.archetype)} · crdeck`;
-
-    const swapIntro = swaps.length && Math.max(...swaps.map((s) => s.delta_objective)) <= 0
-      ? "No single-card swap among the candidate cards raises this deck's score. That is a local check, not proof that no better deck exists. These swaps cost the least."
-      : "Swaps that raise the deck's score come first. Pressing Swap changes the deck on this page and recomputes everything.";
-    // layers the reader opened stay open when a swap redraws the page
+    // layers the reader opened stay open (and filled) when a swap redraws the page
     const wasOpen = new Set([...document.querySelectorAll("details.layer[open]")].map((el) => el.id));
 
     $("#body").innerHTML = `
@@ -179,40 +179,74 @@ details.layer > .body { display: grid; gap: var(--space-6); margin-top: var(--sp
 
       ${overview(x)}
 
-      <details class="layer" id="lay-swaps"${wasOpen.has("lay-swaps") ? " open" : ""}><summary><span class="h">All score swaps</span><span class="muted">${num(swaps.length)} single-card changes ranked by the deck builder's score</span></summary><div class="body">
-      <section class="section" aria-labelledby="swap-h">
+      <details class="layer" id="lay-swaps"${wasOpen.has("lay-swaps") ? " open" : ""}><summary><span class="h">All score swaps</span><span class="muted">${num(swaps.length)} single-card changes ranked by the deck builder's score</span></summary><div class="body" data-layer="swaps"></div></details>
+      <details class="layer" id="lay-ev"${wasOpen.has("lay-ev") ? " open" : ""}><summary><span class="h">Evidence</span><span class="muted">what each card adds, card pairs, deck checks, and how the model did on later battles</span></summary><div class="body" data-layer="ev"></div></details>
+      <details class="layer" id="lay-math"${wasOpen.has("lay-math") ? " open" : ""}><summary><span class="h">Math and model details</span><span class="muted">the ranking score written out, and the card map in 3D</span></summary><div class="body" data-layer="math"></div></details>`;
+    document.querySelectorAll("details.layer[open]").forEach(fillLayer);
+  }
+
+  // ------------------------------------------------------------------ the three layers, filled on first open
+  function fillLayer(det) {
+    const body = det.querySelector(".body[data-layer]");
+    if (!body || body.dataset.done || !cur) return;
+    body.dataset.done = "1";
+    const kind = body.dataset.layer;
+    if (kind === "swaps") { body.innerHTML = swapsLayer(); body.querySelectorAll("details.why[open]").forEach(renderWhy); }
+    else if (kind === "ev") body.innerHTML = evidenceLayer();
+    else if (kind === "math") { body.innerHTML = mathLayer(); renderMap(); }
+  }
+  function swapsLayer() {
+    const swapIntro = swaps.length && Math.max(...swaps.map((s) => s.delta_objective)) <= 0
+      ? "No single-card swap among the candidate cards raises this deck's score. That is a local check, not proof that no better deck exists. These swaps cost the least."
+      : "Swaps that raise the deck's score come first. Pressing Swap changes the deck on this page and recomputes everything.";
+    return `<section class="section" aria-labelledby="swap-h">
         <header><h2 id="swap-h">Try a swap</h2><p>${swapIntro} Score changes are in score points (100 × the ranking score); win changes are in percentage points of estimated wins. Your picked cards are never swapped out.</p></header>
         ${renderSwaps()}
-      </section></div></details>
-
-      <details class="layer" id="lay-ev"${wasOpen.has("lay-ev") ? " open" : ""}><summary><span class="h">Evidence</span><span class="muted">what each card adds, card pairs, deck checks, and how the model did on later battles</span></summary><div class="body">
-      <section class="section" aria-labelledby="ev-h">
-        <header><h2 id="ev-h">The evidence</h2><p>Two charts from the same model. The first shows what each card adds. The second checks the model against battles it never trained on.</p></header>
+      </section>`;
+  }
+  function evidenceLayer() {
+    const { x, ws, known, cardSum, pairSum } = cur;
+    const hi = known[0], lo = known[known.length - 1];
+    const fit = CAL.bins.filter((b) => b.lo <= b.model && b.model <= b.hi).length;
+    const r4 = (w) => (w >= 0 ? "+" : "−") + Math.abs(w).toFixed(4);
+    return `<section class="section" aria-labelledby="ev-h">
+        <header><h2 id="ev-h">The evidence</h2><p>Two charts from the same model. The first shows each card's learned weight. The second checks the model against battles it never trained on.</p></header>
         <div class="charts">
           <div class="panel chartbox">
-            <h3>Which cards carry this deck</h3>
-            <p>Each dot is how much a card raised the chance of winning in past battles. Right of the 0 line means it helped. The line around a dot is the range the true value likely sits in.</p>
-            <div class="key"><span><i style="background:var(--elixir)"></i>Card weight</span><span>line: 90% range</span><span class="src model">model</span></div>
+            <h3>Which cards carry this deck?</h3>
+            <p>Each dot is a card form's learned weight: how strongly decks with it went with winning in past battles, once the other cards and the players' ratings are accounted for. It is in log-odds (0 = no link with winning), it is not the card's own win rate, and it doesn't prove the card causes wins. The line around a dot is its 90% model range.</p>
+            <p class="small"><b>Takeaway:</b> ${hi ? `${esc(hi.name)} has the highest weight (${r4(hi.weight)})${lo && lo !== hi ? ` and ${esc(lo.name)} the lowest (${r4(lo.weight)})` : ""}.` : "No card form here has enough games for a learned weight."}</p>
+            <div class="key"><span><i style="background:var(--elixir)"></i>Card weight (log-odds)</span><span>line: 90% model range</span><span class="src model">model</span></div>
             ${UI.coefChart(ws)}
+            <details class="more alt"><summary>Show as a table</summary><div class="body"><div class="tblwrap"><table class="nums"><caption class="sr">Card weights of this deck</caption>
+              <thead><tr><th scope="col">Card</th><th scope="col">Weight (log-odds)</th><th scope="col">90% model range</th><th scope="col">Games to learn from</th></tr></thead><tbody>
+              ${ws.map((w) => `<tr><td><a href="${UI.cardHref(slug(), w.entry)}">${esc(w.name)}</a></td><td>${w.known ? r4(w.weight) : "n/a"}</td><td>${w.known ? `${r4(w.weight - 1.6448536269514722 * w.se)} to ${r4(w.weight + 1.6448536269514722 * w.se)}` : "too few games"}</td><td>${num(w.games)}</td></tr>`).join("")}
+              </tbody></table></div><p class="muted">The 90% model range is the weight ± 1.645 standard errors from the fit's covariance (a normal approximation). Card names open the All cards page.</p></div></details>
             <details class="more"><summary>Show the math</summary><div class="body small muted">
               <p>The model is a logistic regression. Each card form and each tracked card pair has a learned weight in log-odds. The 8 card weights here add up to ${signed(cardSum, 3)} and the tracked pairs add ${signed(pairSum, 3)}. Played against the sampled opponent decks at equal player rating, that gives the ${pct(x.score.meta_win_prob)} estimate.</p></div></details>
           </div>
           <div class="panel chartbox">
             <h3>Does the model match real results?</h3>
-            <p>The pink line is what the model predicts for decks of each strength. The dark dots are how real decks did in battles held back from training. Dots near the line mean the model's numbers can be trusted.</p>
-            <div class="key"><span><i style="background:var(--elixir)"></i>Model prediction</span><span><i style="background:var(--ink)"></i>Real win rate, 90% range</span><span class="src measured">measured</span></div>
+            <p>The pink line is what the model predicts for decks of each strength (the sum of their weights, in log-odds). The dark dots are how real decks did in battles held back from training, grouped by strength. Dots near the line mean the model's numbers held up on later battles.</p>
+            <p class="small"><b>Takeaway:</b> in ${fit} of ${CAL.bins.length} groups the real win rate's 90% Wilson range contains the line.</p>
+            <div class="key"><span><i style="background:var(--elixir)"></i>Model prediction</span><span><i style="background:var(--ink)"></i>Real win rate, 90% Wilson range</span><span class="src measured">measured</span></div>
             ${UI.lineChart(E, CAL, cardSum + pairSum, x.score.meta_win_prob)}
             <p class="small">Each dot groups about ${num(Math.round(CAL.total / CAL.bins.length))} deck appearances from ${esc(UI.when(E.m.meta.test_window[0]))} to ${esc(UI.when(E.m.meta.test_window[1]))}.</p>
+            <details class="more alt"><summary>Show as a table</summary><div class="body"><div class="tblwrap"><table class="nums"><caption class="sr">Model prediction against real results by strength group</caption>
+              <thead><tr><th scope="col">Group</th><th scope="col">Strength (log-odds)</th><th scope="col">Decks</th><th scope="col">Appearances</th><th scope="col">Real win rate</th><th scope="col">90% Wilson range</th><th scope="col">Model</th></tr></thead><tbody>
+              ${CAL.bins.map((b, i) => `<tr><td>${i + 1}</td><td>${signed(b.uLo, 3)} to ${signed(b.uHi, 3)}</td><td>${num(b.decks)}</td><td>${num(b.battles)}</td><td>${pct(b.win)}</td><td>${pct(b.lo)} to ${pct(b.hi)}</td><td>${pct(b.model)}</td></tr>`).join("")}
+              </tbody></table></div></div></details>
           </div>
         </div>
       </section>
 
       <section class="section" aria-labelledby="pairs-h">
-        <header><h2 id="pairs-h">Cards that work together</h2><p>Synergy compares how often two cards won together with what each card wins alone. Above 0 means they did better as a pair. It shows a pattern in the data, not proof of a combo.</p></header>
+        <header><h2 id="pairs-h">Which card pairs did better together?</h2><p>Synergy compares how often two cards won together with what each card wins without the other. Above 0 means they did better as a pair than that expectation. It shows a pattern in the data, not proof of a combo. Lift is a different number: how much more often the two are played together than chance.</p></header>
         <div class="charts">
           <div class="panel chartbox"><h3>Strongest pairs</h3>${x.synergy_top.length ? pairList(x.synergy_top) : `<p>No pair in this deck was played together often enough to score.</p>`}</div>
           <div class="panel chartbox"><h3>Weakest pairs</h3>${x.synergy_bottom.length ? pairList(x.synergy_bottom) : `<p>No pair in this deck was played together often enough to score.</p>`}</div>
         </div>
+        <p class="muted small measure">Synergy ranges are 90% ranges from a Beta distribution for the pair's win rate; the expected rate is treated as fixed, so they are a little narrow.</p>
       </section>
 
       <section class="section" aria-labelledby="warn-h">
@@ -222,12 +256,11 @@ details.layer > .body { display: grid; gap: var(--space-6); margin-top: var(--sp
             : `<p style="color:var(--ok);font-weight:600">✓ No warnings. It has a win condition, air defense and spells, at a workable elixir cost.</p>`}
           ${x.data_quality.length ? `<div><b>About the data for this deck</b><ul class="small muted" style="margin:6px 0 0;padding-left:18px">${x.data_quality.map((q) => `<li>${esc(DQ_HELP[q.state] || q.detail)}</li>`).join("")}</ul></div>` : ""}
         </div>
-      </section>
-
-      </div></details>
-
-      <details class="layer" id="lay-math"${wasOpen.has("lay-math") ? " open" : ""}><summary><span class="h">Math and model details</span><span class="muted">the ranking score written out, and the card map in 3D</span></summary><div class="body">
-      <section class="section" aria-labelledby="map-h" id="mapsec"></section>
+      </section>`;
+  }
+  function mathLayer() {
+    const { x } = cur;
+    return `<section class="section" aria-labelledby="map-h" id="mapsec"></section>
 
       <section class="section" aria-labelledby="raw-h">
         <header><h2 id="raw-h">Raw numbers</h2></header>
@@ -236,9 +269,7 @@ details.layer > .body { display: grid; gap: var(--space-6); margin-top: var(--sp
           <div class="formula">${x.objective.objective.toFixed(4)} = win ${x.objective.meta_win_prob.toFixed(4)} + ${E.weight} × synergy ${signed(x.objective.mean_pair_synergy, 4)} + ${E.coWeight} × played-together ${x.objective.mean_log_lift.toFixed(3)}</div>
           <p class="small">The weights ${E.weight} and ${E.coWeight} come from the project's config and were checked on validation battles. The score is a ranking number, not a probability. The full selection record is on <a href="model.html#${esc(slug())}">How it works</a>.</p>
         </div>
-      </section></div></details>`;
-    document.querySelectorAll("details.why[open]").forEach(renderWhy);
-    renderMap();
+      </section>`;
   }
 
   // ------------------------------------------------------------------ card map (embedding)
@@ -257,11 +288,11 @@ details.layer > .body { display: grid; gap: var(--space-6); margin-top: var(--sp
       : `<span class="pill weak">Not clearly better than popular cards in this mode</span>`;
     sec.innerHTML = `<header><h2 id="map-h">Card map</h2>
       <p>${verdict} On held-out ${esc(ctx.entry.label)} decks, the 10 cards closest to a deck found its hidden cards ${pct(ev.recall, 1)} of the time; the 10 most popular cards found them ${pct(ev.recall_popular, 1)}.${earned ? "" : " Treat card-map suggestions here with caution; the regular swaps above don't depend on it."}</p>
-      <p>Every card form is a list of ${em.dim} numbers (a vector) learned from which cards are played together in the training battles. Cards used in the same kinds of decks end up close. The deck's center is the average of its cards' vectors. <span class="src model">model</span></p></header>
+      <p>Every card form is a list of ${em.dim} numbers (a vector) learned from which cards are played together in the training battles. Cards used in the same kinds of decks end up close. Closeness means players combine them often; it doesn't mean they work well together. The deck's center is the average of its cards' vectors. <span class="src model">model</span></p></header>
       <div class="mapgrid">
         <div class="panel chartbox">
           <h3>The cards in 3D</h3>
-          <p>Drag to turn it (arrow keys work too). The picture squashes ${em.dim} dimensions into 3 and keeps ${pct(kept, 0)} of the spread, so closeness here is only a rough guide. Every distance in the tables is measured in all ${em.dim} dimensions.</p>
+          <p>Drag to turn it (arrow keys work too; Reset view puts it back). The picture squashes ${em.dim} dimensions into 3 and keeps ${pct(kept, 0)} of the spread, so it loses information and closeness here is only a rough guide. Every distance in the tables is measured in all ${em.dim} dimensions, and those distances are what the suggestions use. The tables hold the same information without the picture.</p>
           <div class="mapctl"><button class="btn small" id="mapreset">Reset view</button>
             <label class="small muted" for="mapcolor">Color</label><select id="mapcolor" class="sel" style="min-height:32px"><option value="style">by deck style</option><option value="plain">deck only</option></select></div>
           <div class="map3d" id="map3d" tabindex="0" aria-label="3D card map. Drag or use arrow keys to rotate."></div>
@@ -296,7 +327,7 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
     sec.querySelectorAll("[data-emb]").forEach((b) => { b.onclick = () => {
       const w = sugg[Number(b.dataset.emb)]; past.push(deck); deck = CRDeck.parseDeckKey(w.new_deck_key); render();
       $("#sub").textContent = `Swapped ${w.replace} for ${w.with} from the card map. Every number on this page is recomputed for the new deck.`;
-      $("#main").scrollIntoView({ behavior: "smooth" }); }; });
+      UI.scrollTo($("#main")); }; });
     const el = $("#map3d"); let drag = null;
     el.onpointerdown = (ev) => { drag = [ev.clientX, ev.clientY, map.yaw, map.pitch]; if (el.setPointerCapture) el.setPointerCapture(ev.pointerId); };
     el.onpointermove = (ev) => { if (!drag) return; map.yaw = drag[2] + (ev.clientX - drag[0]) * 0.01; map.pitch = Math.max(-1.5, Math.min(1.5, drag[3] + (ev.clientY - drag[1]) * 0.01)); drawMap(); };
@@ -315,8 +346,8 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
     el.innerHTML = `<p class="small muted">Closest of ${num(n.considered)} legal${E.m.availability ? ", unlocked" : ""} cards to the center of the other 7, measured in all ${E.m.embedding.dim} dimensions. Current estimated win rate ${pct(n.base, 2)}.</p>
       <div class="tblwrap"><table class="nums near"><thead><tr><th scope="col">#</th><th scope="col">Card</th><th scope="col">Distance</th><th scope="col">Win rate after</th><th scope="col">Change</th><th scope="col">Suggested?</th></tr></thead><tbody>
       ${n.rows.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.with)}</td><td>${r.distance.toFixed(3)}</td><td>${pct(r.win_after, 2)}</td>
-        <td class="${r.delta_win_prob > 0 ? "good" : "bad"}">${r.delta_win_prob >= 0 ? "+" : "−"}${(Math.abs(r.delta_win_prob) * 100).toFixed(2)} pts</td><td>${r.delta_win_prob > 0 ? "yes" : "no, lowers the win rate"}</td></tr>`).join("")}
-      </tbody></table></div>`;
+        <td class="${r.delta_win_prob > 0 ? "good" : "bad"}">${r.delta_win_prob >= 0 ? "+" : "−"}${(Math.abs(r.delta_win_prob) * 100).toFixed(2)} pp</td><td>${r.delta_win_prob > 0 ? "yes" : "no, lowers the win rate"}</td></tr>`).join("")}
+      </tbody></table></div><p class="small muted">Change: percentage points (pp) of estimated wins.</p>`;
   }
   function drawMap() {
     const em = E.m.embedding, el = $("#map3d"); if (!el) return;
@@ -400,8 +431,10 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
         <div class="actions"><button class="btn primary" data-apply="${best}">Apply this swap</button></div>
         <p class="muted small">The highest-scoring single change under the deck builder's score. Your picked cards are never swapped out. Card-map swaps (Math and model details) and counter tech swaps use different rules and can suggest other cards.</p></div>`;
     }
+    const a = x.archetype, sd = a.label === CRDeck.NO_LABELS ? "" : UI.styleDef(a.label);
     return `<section class="panel overview" aria-labelledby="ov-h">
       <h2 id="ov-h" style="font-size:1.25rem">At a glance</h2>
+      ${sd ? `<p class="small style-def"><b>Predicted style: ${esc(UI.archName(a))}.</b> ${esc(sd)} <span class="src rule">plain-language description, not model output</span></p>` : ""}
       <div class="ovgrid">
         <div><dl class="roles">${roles.map(([t, v]) => `<dt>${t}</dt><dd>${v.length ? v.join(", ") : "none"}</dd>`).join("")}
           <dt>Average elixir</dt><dd>${x.avg_elixir === null ? "n/a" : x.avg_elixir.toFixed(1)}</dd></dl>
@@ -415,7 +448,7 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
 
   function pairList(rows) {
     return `<ul class="pairs">${rows.map((p) => `<li><span>${esc(p.pair)}</span><span class="pv ${p.synergy >= 0 ? "pos" : "neg"}">${signed(p.synergy)}</span>
-      <span class="ev">won ${pct(p.shrunk_wr)} of ${num(p.games)} games together · 90% range ${signed(p.interval[0])} to ${signed(p.interval[1])} · played together ${p.lift.toFixed(2)}× as often as chance</span></li>`).join("")}</ul>`;
+      <span class="ev">won ${pct(p.shrunk_wr)} of ${num(p.games)} games together · 90% Beta range ${signed(p.interval[0])} to ${signed(p.interval[1])} · lift: played together ${p.lift.toFixed(2)}× as often as chance</span></li>`).join("")}</ul>`;
   }
 
   // The swap's score change written out: Δscore = Δwin + w·Δsynergy + c·Δplayed-together, with this swap's numbers
@@ -468,14 +501,18 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
 
   // after a swap or undo the buttons are redrawn, so keyboard focus moves to the summary instead of being lost
   function focusOverview() { const h = $("#ov-h"); if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); } }
-  document.addEventListener("toggle", (ev) => { const d = ev.target; if (d.matches && d.matches("details.why") && d.open) renderWhy(d); }, true);
+  document.addEventListener("toggle", (ev) => {
+    const d = ev.target; if (!d.matches || !d.open) return;
+    if (d.matches("details.why")) renderWhy(d);
+    else if (d.matches("details.layer")) fillLayer(d);
+  }, true);
   $("#body").addEventListener("click", async (ev) => {
     const t = ev.target.closest("button"); if (!t) return;
     if (t.dataset.apply) {
       const s = swaps[Number(t.dataset.apply)];
       past.push(deck); deck = CRDeck.parseDeckKey(s.new_deck_key); render();
       $("#sub").textContent = `Swapped ${s.replace} for ${s.with}. Every number on this page is recomputed for the new deck.`;
-      $("#main").scrollIntoView({ behavior: "smooth" });
+      UI.scrollTo($("#main"));
       $("#announce").textContent = `Swapped ${s.replace} for ${s.with}.`;
       focusOverview();
     } else if ((t.id === "undo" || t.dataset.undo) && past.length) { deck = past.pop(); render(); $("#sub").textContent = "Undid the last swap. Every number is recomputed."; $("#announce").textContent = "Undid the last swap."; focusOverview(); }

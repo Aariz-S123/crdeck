@@ -14,7 +14,7 @@
   --evo-soft: #ede6fb;
   --hero: #9a5a00;
   --hero-soft: #fbf0dc;
-  --wild: #0b7a6d;
+  --wild: #0a766a; /* 4.7:1 on --wild-soft, for the small form names on Wild-slot tiles */
   --wild-soft: #ddf1ee;
   --warn: #9c4317;
   --warn-soft: #fbeae0;
@@ -88,7 +88,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .nav { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 .nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--space-3); border-radius: 8px; color: var(--muted); text-decoration: none; font-weight: 600; font-size: 0.9375rem; }
 .nav a:hover { color: var(--ink); background: var(--sunken); }
-.nav a[aria-current="page"] { color: var(--ink); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.nav a[aria-current="page"], .nav a[aria-current="true"] { color: var(--ink); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+/* Explore trends sub-menu: its own row under the main menu */
+.subnav { flex-basis: 100%; gap: var(--space-1) var(--space-2); padding-top: var(--space-1); border-top: 1px dashed var(--line); }
+.subnav a { font-size: 0.875rem; }
+.subnav a[aria-current="page"] { box-shadow: inset 0 -2px 0 var(--elixir); background: transparent; border-radius: 0; }
 
 /* page head + mode switch */
 .pagehead { display: grid; gap: var(--space-3); grid-template-columns: minmax(0, 1fr); }
@@ -149,7 +153,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .btn.primary { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 .btn.primary:hover { background: var(--elixir); border-color: var(--elixir); }
 .btn[disabled] { opacity: 0.5; cursor: default; }
-.btn.small { min-height: 32px; padding: 0 var(--space-3); font-size: 0.8125rem; }
+/* smaller text, same 44px touch target as every other control */
+.btn.small { min-height: 44px; min-width: 44px; padding: 0 var(--space-3); font-size: 0.8125rem; }
+
+/* card picker: search box and card buttons, shared by the builder and the counter page */
+.search { width: 100%; min-height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--sunken); color: var(--ink); font: inherit; }
+.pick { display: flex; align-items: center; gap: var(--space-2); text-align: left; min-height: 48px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); min-width: 0; }
+.pick:hover { border-color: var(--elixir); }
+.pick[aria-pressed="true"] { border-color: var(--elixir); background: var(--elixir-soft); }
+.pick .pn { display: block; font-size: 0.875rem; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* deck tiles */
 .grid8 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
@@ -214,6 +226,15 @@ details.more > .body { display: grid; gap: var(--space-3); margin-top: var(--spa
 .newbie-list dt { font-weight: 700; margin-top: var(--space-2); }
 .newbie-list dd { margin: 0; color: var(--muted); }
 .modenote { flex-basis: 100%; }
+.modeinfo { flex-basis: 100%; }
+.modeinfo .body { max-width: 75ch; }
+.modeinfo .groupbar { flex-basis: auto; }
+/* explanatory text keeps a readable line length */
+.measure { max-width: 75ch; }
+/* plain-language style description next to a predicted style */
+.style-def { color: var(--muted); max-width: 75ch; }
+/* the "Show as a table" alternative under a chart */
+details.alt > .body { font-size: var(--step--1); }
 details.tech { justify-self: center; text-align: left; max-width: 100%; }
 details.tech code { font-size: 0.8125rem; overflow-wrap: anywhere; white-space: pre-wrap; }
 

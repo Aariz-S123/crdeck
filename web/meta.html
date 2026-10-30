@@ -25,17 +25,19 @@
 .multiples { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr)); gap: var(--space-3); }
 .mcell { border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: grid; gap: 4px; min-width: 0; }
 .mcell b { font-size: 0.875rem; }
-.assume { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--muted); font-size: 0.9375rem; max-width: 80ch; }
+.assume { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--muted); font-size: 0.9375rem; max-width: 75ch; }
+.mvchart { max-width: 720px; }
+.fcpic { display: grid; gap: var(--space-2); }
 </style>
 </head>
 <body>
-<a class="skip" href="#main">Skip to the meta</a>
+<a class="skip" href="#main">Skip to the usage trends</a>
 <div class="wrap">
   <header class="site" id="site"></header>
   <main id="main" class="wrap">
     <div class="pagehead">
       <h1>Card usage trends</h1>
-      <p class="lede">What the sampled Ranked (Path of Legends) players use, and how that changed between data collections. People call this the “meta”: what is commonly played right now. This page always uses Ranked battles.</p>
+      <p class="lede">What the sampled Ranked (Path of Legends) players use, and how that changed between data collections. People call this the “meta”: what is commonly played at the time of a collection. This page always uses Ranked battles.</p>
     </div>
     <div id="meta" class="wrap"><div class="panel state"><div class="skel" style="height:80px"></div></div></div>
   </main>
@@ -76,10 +78,11 @@
     return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="group" aria-label="Biggest usage changes between the last two periods">${g}</svg>`;
   }
   function historyCell(key, M) {
-    // one small multiple per card form: usage share per period with 90% ranges (and the forecast band once shown)
+    // one small multiple per card form: usage share per period with 90% ranges; once a forecast exists, the next
+    // period is drawn apart (shaded "forecast" region) with the median, the 50% and 90% bands and a dashed "no change" line
     const pts = M.history.filter((h) => h.key === key).sort((a, b) => a.period - b.period);
     const fc = M.forecast ? M.forecast.find((f) => f.key === key) : null;
-    const P = M.periods.length + (fc ? 1 : 0), W = 220, H = 110, L = 36, R = 8, T = 8, B = 20;
+    const P = M.periods.length + (fc ? 1 : 0), W = 220, H = 110 + (fc ? 12 : 0), L = 36, R = 8, T = fc ? 20 : 8, B = 20;
     const vals = pts.flatMap((p) => p.share_ci90).concat(fc ? fc.band90 : []);
     let y0 = Math.min(...vals), y1 = Math.max(...vals); const pad = (y1 - y0) * 0.15 || 0.005; y0 = Math.max(0, y0 - pad); y1 += pad;
     const X = (i) => L + (W - L - R) * (P === 1 ? 0.5 : i / (P - 1)), Y = (v) => T + (H - T - B) * (1 - (v - y0) / (y1 - y0));
@@ -87,11 +90,17 @@
       <text x="${L - 4}" y="${Y(v) + 4}" text-anchor="end">${(v * 100).toFixed(1)}%</text>`).join("");
     M.periods.forEach((p, i) => { g += `<text x="${X(i)}" y="${H - 5}" text-anchor="middle">P${i + 1}</text>`; });
     if (fc) {
-      const i = P - 1, last = pts[pts.length - 1];
-      g += `<text x="${X(i)}" y="${H - 5}" text-anchor="middle">next</text>
+      const i = P - 1, last = pts[pts.length - 1], mid = (X(i - 1) + X(i)) / 2;
+      g += `<rect x="${mid}" y="${T}" width="${W - R - mid}" height="${H - T - B}" fill="var(--sunken)" opacity="0.6"/>
+        <text x="${L}" y="12" font-size="10">observed</text><text x="${W - R}" y="12" font-size="10" text-anchor="end">forecast</text>
+        <text x="${X(i)}" y="${H - 5}" text-anchor="middle">next</text>
         <path d="M${X(i - 1)},${Y(last.share)}L${X(i)},${Y(fc.band90[1])}L${X(i)},${Y(fc.band90[0])}Z" fill="var(--elixir)" opacity="0.12"/>
         <path d="M${X(i - 1)},${Y(last.share)}L${X(i)},${Y(fc.band50[1])}L${X(i)},${Y(fc.band50[0])}Z" fill="var(--elixir)" opacity="0.22"/>
-        <line x1="${X(i - 1)}" y1="${Y(last.share)}" x2="${X(i)}" y2="${Y(fc.median)}" stroke="var(--elixir)" stroke-width="2"/>`;
+        <line class="nochange" x1="${X(i - 1)}" y1="${Y(last.share)}" x2="${X(i)}" y2="${Y(last.share)}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <line x1="${X(i - 1)}" y1="${Y(last.share)}" x2="${X(i)}" y2="${Y(fc.median)}" stroke="var(--elixir)" stroke-width="2"/>
+        <rect class="hit" x="${X(i) - 14}" y="${T}" width="28" height="${H - T - B}" ${UI.tipAttr(`${keyName(key)}, next period (forecast)`, [
+          `median ${pct(fc.median)} of ranked decks`, `50% band ${pct(fc.band50[0])} to ${pct(fc.band50[1])}`, `90% band ${pct(fc.band90[0])} to ${pct(fc.band90[1])}`,
+          `no change would say ${pct(last.share)}`])}/>`;
     }
     g += `<path d="${pts.map((p, i) => `${i ? "L" : "M"}${X(p.period)},${Y(p.share)}`).join("")}" fill="none" stroke="var(--ink)" stroke-width="2"/>`;
     pts.forEach((p) => {
@@ -107,17 +116,46 @@
   document.addEventListener("input", (ev) => {
     if (ev.target.id !== "tq" || !META) return;
     const q = ev.target.value.trim().toLowerCase(), el = $("#tres");
-    if (!q) { el.innerHTML = ""; return; }
+    // a short status line is announced; the charts themselves are not read out on every keystroke
+    if (!q) { el.innerHTML = ""; $("#tstatus").textContent = ""; return; }
     const keys = [...new Set(META.history.map((h) => h.key))].filter((k) => keyName(k).toLowerCase().includes(q)).sort((a, b) => keyName(a).localeCompare(keyName(b)));
     el.innerHTML = keys.length ? keys.slice(0, 8).map((k) => historyCell(k, META)).join("") + (keys.length > 8 ? `<p class="muted small">${keys.length - 8} more match; type more of the name.</p>` : "")
       : `<p class="muted small">No card form with usage history matches “${esc(ev.target.value)}”.</p>`;
+    $("#tstatus").textContent = keys.length ? `${keys.length} card form${keys.length === 1 ? "" : "s"} match${keys.length > 8 ? "; showing 8" : ""}.` : "No card form matches.";
   });
+  // the same numbers as a chart, as a table (usage share per period, with the next-period forecast when there is one)
+  function historyTable(keys, M, caption) {
+    const fc = (k) => (M.forecast || []).find((f) => f.key === k);
+    const anyFc = keys.some(fc);
+    return `<details class="more alt"><summary>Show as a table</summary><div class="body"><div class="tblwrap"><table class="nums"><caption class="sr">${esc(caption)}</caption>
+      <thead><tr><th scope="col">Card</th>${M.periods.map((_, i) => `<th scope="col">P${i + 1}</th>`).join("")}${anyFc ? `<th scope="col">Next: forecast median (90% band)</th>` : ""}</tr></thead><tbody>
+      ${keys.map((k) => { const by = {}; M.history.filter((h) => h.key === k).forEach((h) => { by[h.period] = h; }); const f = fc(k);
+        return `<tr><td>${esc(keyName(k))}</td>${M.periods.map((_, i) => `<td>${by[i] ? `${pct(by[i].share)} <span class="muted">(${pct(by[i].share_ci90[0])} to ${pct(by[i].share_ci90[1])})</span>` : "n/a"}</td>`).join("")}${anyFc ? `<td>${f ? `${pct(f.median)} (${pct(f.band90[0])} to ${pct(f.band90[1])})` : "n/a"}</td>` : ""}</tr>`; }).join("")}
+      </tbody></table></div><p class="muted">Usage share per collection period, 90% bootstrap range in brackets${anyFc ? "; the last column is a forecast, not a measurement" : ""}.</p></div></details>`;
+  }
+  // The forecast drawn next to the measured history: the six most-used forecast card forms (by their latest
+  // observed share), each with its observed points, the forecast median, 50% and 90% bands and the "no change" line.
+  // Only exported quantiles are drawn: no simulated run is invented or animated.
+  function forecastPicture(M) {
+    const fc = M.forecast || [];
+    if (!fc.length) return `<p class="muted small">No forecast picture: nothing is forecast in this export, so there are no bands to draw.</p>`;
+    const lastP = M.periods.length - 1, share = {};
+    M.history.forEach((h) => { if (h.period === lastP) share[h.key] = h.share; });
+    const keys = fc.map((f) => f.key).filter((k) => k in share).sort((a, b) => share[b] - share[a] || (a < b ? -1 : 1)).slice(0, 6);
+    if (!keys.length) return "";
+    const F = CRLearn.forecastSummary(M), narrow = F.coverage !== null && F.coverage < F.nominal;
+    return `<div class="fcpic"><h4 style="margin:0 0 4px">The forecast next to the history</h4>
+      <div class="key"><span><i style="background:var(--ink)"></i>Observed share, 90% bootstrap range</span><span><i style="background:var(--elixir)"></i>Forecast median, 50% and 90% bands</span><span>dashed: no change</span><span class="src model">forecast</span></div>
+      <div class="multiples">${keys.map((k) => historyCell(k, M)).join("")}</div>
+      ${historyTable(keys, M, "Observed usage share and the next-period forecast")}
+      <p class="muted small">The shaded column is predicted; everything left of it is measured. The bands come from the Monte Carlo runs${narrow ? " and, on past periods, held the real share less often than 90% (see above)" : "; how often they held on past periods is shown above"}.</p></div>`;
+  }
   let META = null;
   function render(M) {
     META = M;
     if (!M) { $("#meta").innerHTML = `<div class="panel empty"><b>No meta history yet.</b><span>The site has no Ranked model, so there is nothing to compare. Collect ranked battles and export again.</span></div>`; return; }
     const st = M.status, F = CRLearn.forecastSummary(M);
-    const label = F.shown_but_empty ? ["weak", "Experimental forecast: nothing to forecast right now"]
+    const label = F.shown_but_empty ? ["weak", "Experimental forecast: nothing to forecast in this export"]
       : { blocked: ["weak", "Experimental forecast: not available yet"], not_better: ["weak", "Experimental forecast hidden: it did not beat “no change”"], shown: ["weak", "Experimental forecast shown"] }[st.state];
     const pn = (t) => `P${t + 1}`;
     const btRows = M.backtest.map((b) => { const p = M.periods[b.target_period] || {};
@@ -153,17 +191,22 @@
         <header><h2 id="mv-h">All changes, P${M.periods.length - 1} → P${M.periods.length}</h2><p>Each bar is how much a card form's usage share rose or fell between the last two collections, in percentage points. The thin line is the 90% bootstrap range; bars whose line crosses zero are not clear changes.</p></header>
         <div class="panel box">
           <div class="key"><span><i style="background:var(--pos)"></i>More decks use it</span><span><i style="background:var(--neg)"></i>Fewer decks use it</span><span class="src measured">measured</span></div>
-          ${moversChart(M.movers)}
+          <div class="mvchart">${moversChart(M.movers)}</div>
+          <details class="more alt"><summary>Show as a table</summary><div class="body"><div class="tblwrap"><table class="nums"><caption class="sr">Usage changes between the last two periods</caption>
+            <thead><tr><th scope="col">Card</th><th scope="col">P${M.periods.length - 1}</th><th scope="col">P${M.periods.length}</th><th scope="col">Change (pp)</th><th scope="col">90% bootstrap range (pp)</th></tr></thead><tbody>
+            ${M.movers.slice(0, 14).map((m) => `<tr><td>${esc(keyName(m.key))}</td><td>${pct(m.share_before)}</td><td>${pct(m.share_after)}</td><td>${fmtPts(m.change)}</td><td>${fmtPts(m.change_ci90[0])} to ${fmtPts(m.change_ci90[1])}</td></tr>`).join("")}
+            </tbody></table></div></div></details>
         </div>
       </section>
       <section class="section" aria-labelledby="hist-h">
         <header><h2 id="hist-h">Usage over time</h2><p>The six cards that moved most, one small chart each, with their 90% bootstrap ranges. Every chart has its own scale. Look up any other card below.</p></header>
-        <div class="panel box"><div class="multiples">${top.map((k) => historyCell(k, M)).join("")}</div></div>
+        <div class="panel box"><div class="multiples">${top.map((k) => historyCell(k, M)).join("")}</div>${historyTable(top, M, "Usage share per period of the six cards that moved most")}</div>
       </section>` : ""}
 
       <section class="panel box" aria-labelledby="find-h"><h3 id="find-h">Look up a card</h3>
         <label class="small muted" for="tq">Card name</label><input class="search" id="tq" type="search" placeholder="For example Hog Rider" autocomplete="off">
-        <div class="multiples" id="tres" aria-live="polite"></div></section>
+        <p class="sr" id="tstatus" role="status"></p>
+        <div class="multiples" id="tres"></div></section>
 
       <section class="section" aria-labelledby="fc-sec">
         <header><h2 id="fc-sec">Experimental next-period forecast</h2><p>A guess at next period's usage share from a Monte Carlo simulation. It is a usage share, not a win rate. How it works is explained step by step on <a href="model.html#ranked">How it works</a>. <span class="src model">model</span></p></header>
@@ -173,6 +216,7 @@
           <div class="progress" aria-label="${st.periods} of ${st.recommended_periods} collection periods">${boxes}<span>${st.periods} collected · ${st.min_periods} needed for a first forecast · ${st.recommended_periods} recommended</span></div>
           ${F.backtests && F.coverage !== null ? `<p class="notice small"><b>Its 90% bands ${F.coverage < F.nominal ? "are too narrow" : "held up"}.</b> Across ${num(F.backtests)} past periods they held the real share ${pct(F.coverage, 0)} of the time (${pct(F.coverage_range[0], 0)} to ${pct(F.coverage_range[1], 0)} per period), not 90%. Average error ${F.mae_mc.toFixed(3)} percentage points against ${F.mae_nc.toFixed(3)} for “no change”; it was better in ${F.better_periods} of ${F.backtests} periods. The gate only asks that the average be no worse; it is not a significance test.</p>` : ""}
           <p class="muted small">${num(M.settings.monte_carlo_runs)} runs (seed ${M.settings.seed}), ${num(M.settings.bootstrap_resamples)} bootstrap resamples, forecasts only for card forms with at least ${num(M.settings.min_games)} games in the latest period.</p>
+          ${forecastPicture(M)}
           ${F.backtests ? `<details class="more"><summary>Every past period checked</summary><div class="body"><div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Predicted period</th><th scope="col">Dates</th><th scope="col">Battles</th><th scope="col">Card forms scored</th><th scope="col">Error, forecast (pp)</th><th scope="col">Error, no change (pp)</th><th scope="col">90% band held the real share</th></tr></thead><tbody>${btRows}</tbody></table></div>
             <p class="muted small">Errors are mean absolute errors in percentage points of usage share. Coverage is per period; the overall figure weights each period by the card forms it scored.</p></div></details>` : ""}
         </section>

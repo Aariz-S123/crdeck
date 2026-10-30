@@ -21,6 +21,9 @@ INDEX = json.loads((ROOT / "web" / "modes.json").read_text(encoding="utf-8"))
 import doc_claims  # noqa: E402  (scripts/doc_claims.py: sentences that depend on the exported results)
 RANKED = json.loads((ROOT / "web" / "models" / "ranked.json").read_text(encoding="utf-8"))
 EV = RANKED["evaluation"]
+# the forward counter check (scripts/counter_eval.py); optional, the document says so when it is missing
+_CE = ROOT / "web" / "counter_eval.json"
+COUNTER_EVAL = json.loads(_CE.read_text(encoding="utf-8")) if _CE.exists() else None
 BUILD = INDEX["log"]["build"]
 MODES = INDEX["modes"]
 
@@ -841,6 +844,8 @@ if MU:
           "second row keeps only games by players who don't appear in the training battles, scored by the same models; it is "
           "not a retrained model. The website shows this check for every league and arena separately; in some, such as "
           "Trophy Road as a whole, the highest-scoring general decks did better.")
+        p(doc_claims.forward_check(COUNTER_EVAL, "ranked", "Ranked") + " The design was committed before the check was "
+          "run (docs/claude-redesign/EVAL-DESIGN.md); the Counters page shows both checks for every mode.")
     snippet("Counter decks: ranking real decks against the opponents", "src/crdeck/counters.py",
             py_func("src/crdeck/counters.py", "counter_decks", 30),
             [("What it does.", "Every real deck in the pool is scored against the opponent decks with the counter score "
@@ -852,15 +857,17 @@ if MU:
 
 # ------------------------------------------------------------------ 7 website
 doc.add_heading("9. The website", 1)
-p("The website runs the trained model entirely in the browser; it needs no server beyond serving files. Each page has one job:")
+p("The website runs the trained model entirely in the browser; it needs no server beyond serving files. Its menu has four "
+  "destinations: Build a deck, Find counters, Explore trends (card usage trends, season readiness and the table of all "
+  "cards, under one sub-menu) and How it works. Each page has one job:")
 table(["Page", "What it shows"], [
-    ["Build decks (index.html)", "Pick up to 3 cards and a mode, league or arena. By default it shows observed decks: real decks from the mode's pool that hold your picks, ranked by the builder's score. Generated decks from the search are an explicit, experimental choice. Every deck shows its warnings first, its exact-deck test record, its predicted style, and the estimate with its 90% model range."],
-    ["Why this deck (reason.html)", "Opened from a deck: an overview first (roles from the card labels, main warnings, the best single swap with before and after, Apply and Undo), then layers with a plain-language summary, each card's weight, the model compared with real results, card pairs, warnings, swaps with their math written out, a rotatable 3D card map with card-map swaps and nearest-card tables, and the raw score."],
-    ["All cards (cards.html)", "Every card form and every row of your card CSV: battle stats, learned weight, and your CSV's own numbers."],
-    ["Card usage trends (meta.html)", "How ranked card usage changed between collections, deck styles per period, and the experimental forecast with its track record."],
-    ["Counters (counters.html)", "Pick a deck style or the cards you face first; get counter cards with their matchups and 3 real counter decks (played at least 5 times, legal, unlocked) with their style-wide record and a tech swap, then the retrospective held-out check of the ranking."],
-    ["Season readiness (seasons.html)", "Today's most-played ranked decks with their trend, new cards between saved card lists, and how many seasons are collected toward a next-season prediction (none is built yet; it would also need building and testing once enough seasons are collected."],
-    ["How it works (model.html)", "The method in five steps, held-out results against baselines, the three kinds of math with worked examples from real decks (sigmoid win estimates, softmax style probabilities, the Monte Carlo usage forecast), limits, a glossary, and the full model log."],
+    ["Build a deck (index.html)", "Pick up to 3 cards and a mode, league or arena, with short definitions of card types and forms, Clear picks, and a Try an example pick (the mode's most-played card form). By default it shows observed decks: real decks from the mode's pool that hold your picks, ranked by the builder's score. Generated decks from the search are an explicit, experimental choice. Every deck shows its warnings first, its exact-deck test record, its predicted style with a plain-language description, the estimate with its 90% model range, and “Why it ranks here” (the score's three parts and the strongest card pair). A side-by-side comparison of the options names no winner."],
+    ["Why this deck (reason.html)", "Opened from a deck: an overview first (predicted style, roles from the card labels, main warnings, the best single swap with before and after, Apply and Undo), then three layers drawn when first opened: all score swaps with their math written out; the evidence (each card's weight, the model compared with real results, card pairs, warnings), every chart with a question title, a takeaway and a table version; and the math (a rotatable 3D card map with card-map swaps and nearest-card tables, and the raw score)."],
+    ["All cards (cards.html)", "Every card form and every row of your card CSV, led by name, role, elixir and the measured games and win rate; the model's learned weights and your CSV's own numbers are separate views, each stating its source and dates."],
+    ["Card usage trends (meta.html)", "How ranked card usage changed between collections (at most three headline changes, then every change and a card lookup, each chart with a table version), deck styles per period, and the experimental forecast with its track record, drawn next to the history (median, 50% and 90% bands, a no-change line) whenever the export has forecast rows."],
+    ["Find counters (counters.html)", "Pick a deck style or the cards you face first (the choice is kept in the link); get counter cards with their matchups and 3 real counter decks (played at least 5 times, legal, unlocked) with their style-wide record and a tech swap. Then the forward check of the ranking (inputs fixed before the later battles, paired bootstrap ranges) and the retrospective one, with a row that counts every style equally."],
+    ["Season readiness (seasons.html)", "The most-played ranked decks up to the latest collection, with its date and their trend, new cards between saved card lists, and how many seasons are collected toward a next-season prediction (none is built yet; it would still need building and testing once enough seasons are collected)."],
+    ["How it works (model.html)", "The method as one five-step story, held-out results against baselines, the three kinds of math with worked examples from real decks (sigmoid win estimates, softmax style probabilities, the Monte Carlo usage forecast), limits, a glossary with examples from the current data, and the full model log."],
 ], widths=[4.4, 12.6])
 p("web/engine.js is a JavaScript copy of the Python legality, scoring, search, swap and explanation code. Because two "
   "copies can drift, every export writes Python's own answers for random decks and searches, and "

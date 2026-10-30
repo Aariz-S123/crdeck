@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>All Cards · crdeck</title>
-<meta name="description" content="Every Clash Royale card form, with how often it was played, its real win rate and its learned weight, next to the values from your card list.">
+<meta name="description" content="Every Clash Royale card form with its role, elixir, how often it was played and its real win rate; the model's learned weights and your own card list in separate views.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z' fill='%23a8247f'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,10 +15,13 @@
 .bar { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
 .search, select { min-height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 0.9375rem; }
 .search { flex: 1 1 220px; min-width: 0; }
-.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: var(--space-2) var(--space-5); font-size: 0.875rem; color: var(--muted); padding: var(--space-4); }
+.views { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+.views .lab { font-size: var(--step--1); color: var(--muted); font-weight: 600; }
+.legend { font-size: 0.875rem; color: var(--muted); padding: var(--space-3) var(--space-4); max-width: none; }
 .legend b { color: var(--ink); }
 .gtable { overflow-x: auto; position: relative; }
-table.cards { border-collapse: collapse; width: 100%; min-width: 900px; font-size: 0.9375rem; }
+table.cards { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 0.9375rem; }
+table.cards .role { font-size: 0.8125rem; color: var(--muted); max-width: 260px; }
 table.cards th { position: sticky; top: 0; background: var(--sunken); text-align: left; font-size: 0.8125rem; font-weight: 600; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 table.cards th.grp { text-align: center; border-bottom: 0; padding-bottom: 0; }
 table.cards td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
@@ -47,11 +50,11 @@ table.cards .csvv { color: var(--hero); }
       <div class="modebar" id="modebar"></div>
       <div class="facts" id="facts"></div>
     </div>
-    <div class="panel legend">
-      <span><b>Games</b> and <b>real win rate</b>: how often the card form was in a deck in this mode's training battles, and how many of those it won. <span class="src measured">measured</span></span>
-      <span><b>Card weight</b>: how much the card raised the chance of winning once the other cards and player rating are accounted for. Right of the middle line helps. <span class="src model">model</span></span>
-      <span><b>Your CSV</b>: rating, usage and win rate from your own card list. The model does not use them. <span class="src csv">your CSV</span></span>
+    <div class="views">
+      <span class="lab" id="viewlab">Columns</span>
+      <div class="modes" role="group" aria-labelledby="viewlab" id="viewbar"></div>
     </div>
+    <p class="panel legend" id="prov"></p>
     <div class="bar">
       <label class="sr" for="gq">Search cards</label>
       <input class="search" id="gq" type="search" placeholder="Search cards" autocomplete="off">
@@ -89,10 +92,20 @@ table.cards .csvv { color: var(--hero); }
   const { $, esc, pct, signed, num } = UI;
   const STATUS = { locked: "Not unlocked here", in_search: "Used by the builder", seed_only: "Pick only", no_weight: "Too few games", no_games: "Not played in this mode",
     tower_troop: "Tower troop", not_in_game: "Not in the game", duplicate: "Duplicate row" };
-  const view = { q: "", status: "all", sort: "name" };
-  let ctx = null, E = null, ROWS = null, WDOM = 0.1;
+  // Three column views over the same rows: what the battles show (default), the model's weights, and the
+  // user's own CSV. Measured numbers, fitted coefficients and imported values are never mixed in one view.
+  const VIEWS = [["obs", "Observed in battles"], ["model", "Model weights · advanced"], ["csv", "Your CSV · advanced"]];
+  const ROLE_WORD = { mini_tank: "mini tank", air_defense: "air defense", cycle: "cheap cycle card", tank: "tank", tank_killer: "tank killer",
+    splash: "splash damage", building: "building", big_spell: "big spell", small_spell: "small spell" };
+  const view = { q: "", status: "all", sort: "name", cols: "obs" };
+  let ctx = null, E = null, ROWS = null, WDOM = 0.1, first = true;
 
-  UI.start("cards.html", (c) => { ctx = c; E = c.E; ROWS = null; UI.setHash(c.entry.slug); render(); }, { failTarget: "#gtable" });
+  UI.start("cards.html", (c) => {
+    ctx = c; E = c.E; ROWS = null;
+    // a link with one card form (cards.html#<mode>~~<card>) opens the page searched to that card
+    if (first) { first = false; const e = c.hash.seeds && c.hash.seeds[0]; if (e && E.card(e.id)) { view.q = E.describe(e); $("#gq").value = view.q; } }
+    UI.setHash(c.entry.slug); render();
+  }, { failTarget: "#gtable" });
 
   function rows() {
     if (ROWS) return ROWS;
@@ -124,11 +137,26 @@ table.cards .csvv { color: var(--hero); }
       <line x1="${X(ci.weight - h)}" y1="9" x2="${X(ci.weight + h)}" y2="9" stroke="var(--elixir)" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
       <circle cx="${X(ci.weight)}" cy="9" r="4" fill="var(--elixir)" stroke="var(--surface)" stroke-width="2"/></svg>`;
   }
+  function role(r) {
+    if (!r.c) return esc(r.csv ? r.csv.type : "");
+    const c = r.c, parts = [UI.typeName(c)].concat(c.wincon ? ["win condition"] : [], c.roles.map((x) => ROLE_WORD[x] || x.replace(/_/g, " ")));
+    return esc(parts.join(" · "));
+  }
+  function provenance() {
+    const tw = E.m.meta.train_window || [], span = tw.length === 2 ? `${UI.when(tw[0]).split(",")[0]} to ${UI.when(tw[1]).split(",")[0]}` : "the training window";
+    return {
+      obs: `<b>Games</b> and <b>real win rate</b>: how often the card form was in a deck in the training battles of ${esc(ctx.entry.label)} (${esc(span)}), and how often those decks won. Counted from battles, no model involved. <b>Role</b> comes from the project's hand-made card labels. <span class="src measured">measured</span> <span class="src rule">labels</span>`,
+      model: `<b>Card weight</b>: the strength model's learned weight for the card form, in log-odds, fitted on the training battles (${esc(span)}). It says how strongly decks with the card went with winning once the other cards and player rating are accounted for: not the card's own win rate, and not proof that it causes wins. The 90% model range is ± 1.645 standard errors. <span class="src model">model</span>`,
+      csv: `<b>Your CSV</b>: rating, usage and win rate from your own card list (data/labels/source/cards_meta.csv). The model does not use them, and the file records no dates or sources, so they can't be compared with the battle numbers or the weights. <span class="src csv">your CSV</span>`,
+    }[view.cols];
+  }
   function render() {
     const all = rows(), q = view.q.trim().toLowerCase(), counts = {};
     all.forEach((r) => { counts[r.status] = (counts[r.status] || 0) + 1; });
     const forms = all.filter((r) => !r.csvOnly);
     $("#sum").textContent = `${forms.length} card forms in ${ctx.entry.label} (${forms.filter((r) => r.form === "base").length} base, ${forms.filter((r) => r.form === "evo").length} Evolution, ${forms.filter((r) => r.form === "hero").length} Hero), plus ${all.length - forms.length} rows from your CSV that are not deck cards.`;
+    $("#viewbar").innerHTML = VIEWS.map(([k, l]) => `<button class="chip" data-view="${k}" aria-pressed="${view.cols === k}">${l}</button>`).join("");
+    $("#prov").innerHTML = provenance();
     let list = all.filter((r) => (!q || r.name.toLowerCase().includes(q)) &&
       (view.status === "all" || (view.status === "in_search" ? r.status === "in_search" : view.status === "csv_only" ? r.csvOnly : r.status !== "in_search")));
     const key = { name: (r) => r.name.toLowerCase(), weight: (r) => (r.ci ? -r.ci.weight : Infinity), games: (r) => -r.games,
@@ -136,28 +164,35 @@ table.cards .csvv { color: var(--hero); }
       rating: (r) => (Number.isNaN(r.rating) ? Infinity : -r.rating) }[view.sort];
     list = list.slice().sort((a, b) => { const x = key(a), y = key(b); return x < y ? -1 : x > y ? 1 : String(a.row).localeCompare(String(b.row)); });
     $("#counts").textContent = `Showing ${list.length} of ${all.length} rows. ` + Object.entries(counts).map(([k, n]) => `${n} ${STATUS[k].toLowerCase()}`).join(" · ") + ".";
-    $("#gtable").innerHTML = `<thead>
-        <tr><th scope="col" rowspan="2">Card</th><th scope="col" rowspan="2">Status</th><th scope="col" class="n" rowspan="2">Elixir</th><th scope="col" rowspan="2">Type</th>
-          <th scope="colgroup" colspan="2" class="grp">Battles</th><th scope="colgroup" colspan="2" class="grp">Model</th><th scope="colgroup" colspan="3" class="grp">Your CSV</th><th rowspan="2"><span class="sr">Action</span></th></tr>
-        <tr><th scope="col" class="n">Games</th><th scope="col" class="n">Real win rate</th><th scope="col">Card weight</th><th scope="col" class="n">Weight</th>
-          <th scope="col" class="n">Rating</th><th scope="col" class="n">Usage</th><th scope="col" class="n">Win%</th></tr></thead>
+    // columns of the chosen view; card, role, elixir and status lead in every view
+    const COLS = {
+      obs: { head: `<th scope="col" class="n">Games</th><th scope="col" class="n">Real win rate</th>`, n: 2,
+        cells: (r) => `<td class="n">${r.ok ? (r.games ? num(r.games) : "0") : "n/a"}</td><td class="n">${r.ok && r.wr !== null ? pct(r.wr) : "n/a"}</td>` },
+      model: { head: `<th scope="col">Card weight</th><th scope="col" class="n">Weight (log-odds)</th><th scope="col" class="n">90% model range</th><th scope="col" class="n">Games to learn from</th>`, n: 4,
+        cells: (r) => `<td class="wbar">${mini(r.ci)}</td><td class="n">${r.ci ? signed(r.ci.weight, 4) : "n/a"}</td>
+          <td class="n">${r.ci ? `${signed(r.ci.weight - 1.645 * (r.ci.se || 0), 4)} to ${signed(r.ci.weight + 1.645 * (r.ci.se || 0), 4)}` : "n/a"}</td><td class="n">${r.ci ? num(r.ci.games) : "n/a"}</td>` },
+      csv: { head: `<th scope="col" class="n">Rating</th><th scope="col" class="n">Usage</th><th scope="col" class="n">Win%</th>`, n: 3,
+        cells: (r) => (r.csv ? `<td class="n csvv">${esc(r.csv.rating)}</td><td class="n csvv">${esc(r.csv.usage)}%</td><td class="n csvv">${esc(r.csv.win_rate)}%</td>` : `<td class="n muted" colspan="3">not in your CSV</td>`) },
+    }[view.cols];
+    $("#gtable").innerHTML = `<caption class="sr">Card forms in ${esc(ctx.entry.label)}: ${esc(VIEWS.find(([k]) => k === view.cols)[1])}</caption><thead>
+        <tr><th scope="col">Card</th><th scope="col">Role</th><th scope="col" class="n">Elixir</th><th scope="col">Status</th>${COLS.head}<th scope="col"><span class="sr">Action</span></th></tr></thead>
       <tbody>${list.length ? list.map((r) => {
         const c = r.c, fb = r.form !== "base" && !r.csvOnly ? ` <span class="fbadge ${r.form}">${r.form === "evo" ? "EVO" : "HERO"}</span>` : "";
-        const typ = c ? `${UI.typeName(c)}<span class="sub">${esc(c.rarity)}${c.wincon ? " · win condition" : ""}</span>` : esc(r.csv ? r.csv.type : "");
         return `<tr>
-          <td><span class="cn">${c ? UI.drop(c) : `<span class="drop"><span>${esc(r.csv ? r.csv.elixir : "?")}</span></span>`}<span>${esc(r.name)}</span>${fb}</span></td>
-          <td><span class="st ${r.status}">${STATUS[r.status]}</span>${r.note ? `<span class="gnote">${esc(r.note)}</span>` : ""}</td>
+          <td><span class="cn">${c ? UI.drop(c) : `<span class="drop"><span>${esc(r.csv ? r.csv.elixir : "?")}</span></span>`}<span>${esc(r.name)}</span>${fb}</span>${c ? `<span class="sub">${esc(c.rarity)}</span>` : ""}</td>
+          <td class="role">${role(r)}</td>
           <td class="n">${c ? (c.elixir_variable ? "varies" : c.elixir) : esc(r.csv ? r.csv.elixir : "n/a")}</td>
-          <td>${typ}</td>
-          <td class="n">${r.ok ? (r.games ? num(r.games) : "0") : "n/a"}</td>
-          <td class="n">${r.ok && r.wr !== null ? pct(r.wr) : "n/a"}</td>
-          <td class="wbar">${mini(r.ci)}</td>
-          <td class="n">${r.ci ? signed(r.ci.weight, 4) : "n/a"}</td>
-          ${r.csv ? `<td class="n csvv">${esc(r.csv.rating)}</td><td class="n csvv">${esc(r.csv.usage)}%</td><td class="n csvv">${esc(r.csv.win_rate)}%</td>` : `<td class="n muted" colspan="3">not in your CSV</td>`}
+          <td><span class="st ${r.status}">${STATUS[r.status]}</span>${r.note ? `<span class="gnote">${esc(r.note)}</span>` : ""}</td>
+          ${COLS.cells(r)}
           <td>${r.ok && r.status !== "locked" ? `<a class="btn small" href="index.html#${UI.token(ctx.entry.slug, null, [r.e])}">Build with it</a>` : ""}</td>
-        </tr>`; }).join("") : `<tr><td colspan="12"><div class="empty">No card matches “${esc(view.q)}” with this filter. Clear the search or pick “All rows”.</div></td></tr>`}</tbody>`;
+        </tr>`; }).join("") : `<tr><td colspan="${5 + COLS.n}"><div class="empty">No card matches “${esc(view.q)}” with this filter. <button class="btn small" type="button" data-clearq>Clear the search and filter</button></div></td></tr>`}</tbody>`;
   }
   let t = 0;
+  $("#viewbar").addEventListener("click", (ev) => { const b = ev.target.closest("[data-view]"); if (!b || b.dataset.view === view.cols) return; view.cols = b.dataset.view; render(); });
+  $("#gtable").addEventListener("click", (ev) => {
+    if (!ev.target.closest("[data-clearq]")) return;
+    view.q = ""; view.status = "all"; $("#gq").value = ""; $("#gstatus").value = "all"; render(); $("#gq").focus();
+  });
   $("#gq").addEventListener("input", (ev) => { view.q = ev.target.value; clearTimeout(t); t = setTimeout(render, 120); });
   $("#gstatus").addEventListener("change", (ev) => { view.status = ev.target.value; render(); });
   $("#gsort").addEventListener("change", (ev) => { view.sort = ev.target.value; render(); });

@@ -75,3 +75,30 @@ def test_generator_no_longer_hardcodes_the_stale_claims():
     for stale in ("a bootstrap gives its 90% range", "five-page website", "Ranked chose cards only at",
                   "rating alone is not clear", "So it stays hidden", "one more daily leaderboard collection unlocks"):
         assert stale not in src, stale
+
+
+def ev_file(fwd="beats_average", retro="beats_average", headline="new_players", games=90):
+    pop = {"games": {"counter": games, "field": 200, "all": 3000}, "wins": {"counter": 55 if games else 0, "field": 100, "all": 1500},
+           "rate": {"counter": (55 / games) if games else None, "field": 0.5, "all": 0.5},
+           "vs_field": [0.068, -0.03, 0.161], "vs_all": [0.1, 0.017, 0.164]}
+    v = lambda verdict: {"verdict": verdict, "headline": headline, "populations": {headline: pop}}  # noqa: E731
+    return {"settings": {"replicates": 2000}, "modes": {"ranked": {"forward": v(fwd), "retrospective": v(retro)}}}
+
+
+def test_forward_check_reports_its_population_ranges_and_agreement():
+    t = dc.forward_check(ev_file())
+    assert "players not in the training battles" in t and "61.1% (55 of 90)" in t
+    assert "+6.8 points (90% range -3.0 to +16.1)" in t and "+10.0 points (90% range +1.7 to +16.4)" in t
+    assert "beat an average eligible pool deck, but not clearly" in t and "reaches the same verdict" in t
+
+
+def test_forward_check_names_a_different_retrospective_verdict_and_every_player():
+    t = dc.forward_check(ev_file(retro="not_shown", headline="all_players"))
+    assert "counting every player" in t and "in the retrospective check" in t and "were not shown to beat" in t
+
+
+def test_forward_check_missing_skipped_or_without_games():
+    assert "has not been run" in dc.forward_check(None) and "has not been run" in dc.forward_check({"modes": {}})
+    assert "not run for Ranked: no matchup model" in dc.forward_check({"modes": {"ranked": {"skipped": "no matchup model"}}})
+    t = dc.forward_check(ev_file(fwd="too_few", retro="too_few", games=0))
+    assert "counter decks had no games" in t and "too few games to judge" in t

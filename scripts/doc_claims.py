@@ -65,7 +65,40 @@ def forecast_status(meta: dict) -> str:
         last = periods[-1] if periods else {}
         return ("The Monte Carlo forecast passed its backtest gate, but the latest collection period has only "
                 f"{last.get('battles', 0):,} battles, so no card form reaches the {settings.get('min_games', 0)} games a "
-                "forecast needs and nothing is forecast right now. It is labelled experimental." + record)
+                "forecast needs and nothing is forecast in this export. It is labelled experimental." + record)
     if state == "shown":
         return f"The Monte Carlo forecast is shown, labelled experimental, for {len(fc)} card forms." + record
     return f"The Monte Carlo forecast's state is “{state}”." + record
+
+
+# the existing check's verdict words, as sentence endings ("the counter decks ...")
+COUNTER_VERDICT = {"beats_strongest": "beat the highest-scoring general decks against their target style",
+                   "beats_average": "beat an average eligible pool deck, but not clearly the highest-scoring general decks",
+                   "not_shown": "were not shown to beat an average eligible pool deck",
+                   "too_few": "had too few games to judge"}
+
+
+def forward_check(ev: dict | None, slug: str = "ranked", label: str = "Ranked") -> str:
+    """The forward counter check for one mode (web/counter_eval.json; design: docs/claude-redesign/EVAL-DESIGN.md):
+    its verdict population, rates and paired-bootstrap ranges, and whether the retrospective version agrees."""
+    if not ev or slug not in ev.get("modes", {}):
+        return f"The forward check of the counter ranking has not been run for {label} in this copy."
+    m = ev["modes"][slug]
+    if "skipped" in m:
+        return f"The forward check of the counter ranking was not run for {label}: {m['skipped']}."
+    f, r = m["forward"], m["retrospective"]
+    pop = f["populations"][f["headline"]]
+    who = "players not in the training battles" if f["headline"] == "new_players" else "every player"
+    rng = lambda d: f"{100 * d[0]:+.1f} points (90% range {100 * d[1]:+.1f} to {100 * d[2]:+.1f})" if d else "not available"  # noqa: E731
+    games = pop["games"]["counter"]
+    won = (f"counter decks won {100 * pop['rate']['counter']:.1f}% ({pop['wins']['counter']:,} of {games:,})" if games
+           else "counter decks had no games")
+    s = (f"A forward version of this check, designed before any of its numbers were computed, fixes every input before the "
+         f"test window: each style's opponent decks and the general score's opponents come from the validation window. Its "
+         f"ranges come from a paired bootstrap over players ({ev['settings']['replicates']:,} replicates), so shared decks, "
+         f"battles and repeat players are allowed for. For {label}, counting {who}, {won}; counter minus highest-scoring "
+         f"general decks {rng(pop['vs_field'])}, counter minus all eligible pool decks {rng(pop['vs_all'])}. In the forward "
+         f"check the counter decks {COUNTER_VERDICT[f['verdict']]}")
+    if r["verdict"] == f["verdict"]:
+        return s + "; the retrospective check, with the same kind of ranges, reaches the same verdict."
+    return s + f"; in the retrospective check, with the same kind of ranges, they {COUNTER_VERDICT[r['verdict']]}."

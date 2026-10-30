@@ -1,0 +1,26 @@
+{
+ "nav": [
+  "Build a deck",
+  "Find counters",
+  "Explore trends",
+  "How it works"
+ ],
+ "modeinfo": "About these battles Ranked (Path of Legends): 270,458 usable battles from the players the collector sampled, not from every player. Training battles Sep 1 to Oct 22; test battles Oct 24 to Oct 26. Every mode and league has its own model, trained only on its own battles: the oldest 70% train it, the next 15% tune its settings and the newest 15% test it. 7 of 7 leagues have enough battles to build from; the others stay in the list but can't be picked. Sort the league list Game orderMost battles",
+ "example": "Example pick: Barbarian Barrel, the most-played card form in this mode's training battles (128,980 games). It's only an example: remove it or pick your own cards.",
+ "equalWeight": "Every style counted equally (6 styles)65.7%52.6%49.8%",
+ "forward": {
+  "retro": "beats_average",
+  "forward": "beats_average",
+  "matches": true
+ },
+ "cardsHeads": [
+  "Card",
+  "Role",
+  "Elixir",
+  "Status",
+  "Games",
+  "Real win rate",
+  "Action"
+ ],
+ "fails": []
+}

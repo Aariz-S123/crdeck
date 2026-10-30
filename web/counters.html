@@ -22,13 +22,9 @@
 .styles .chip small { font-weight: 400; margin-left: 6px; opacity: 0.8; }
 .oppcards { display: flex; flex-wrap: wrap; gap: 6px; }
 .oppcard { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunken); font-size: 0.875rem; font-weight: 600; }
-.oppcard button { border: 0; background: transparent; color: var(--muted); width: 28px; height: 28px; border-radius: 6px; font-size: 18px; }
-.search { width: 100%; min-height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--sunken); color: var(--ink); font: inherit; }
+.oppcard button { border: 0; background: transparent; color: var(--muted); width: 44px; height: 44px; border-radius: 6px; font-size: 18px; }
 .cardlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); gap: 6px; max-height: 300px; overflow-y: auto; padding: 2px; }
-.pick { display: flex; align-items: center; gap: 8px; text-align: left; min-height: 44px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); min-width: 0; }
-.pick:hover { border-color: var(--elixir); }
-.pick[aria-pressed="true"] { border-color: var(--elixir); background: var(--elixir-soft); }
-.pick .pn { font-size: 0.875rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick { min-height: 44px; }
 .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: var(--space-4); align-items: start; }
 @media (max-width: 960px) { .two { grid-template-columns: minmax(0, 1fr); } }
 .ccard { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px var(--space-3); align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
@@ -49,6 +45,8 @@
 .realtag { font-size: 0.75rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--sunken); color: var(--ink); white-space: nowrap; }
 .swapbox { display: grid; gap: 4px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 8px; font-size: 0.875rem; }
 .opps .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); font-size: 0.8125rem; color: var(--muted); }
+.fwd { display: grid; gap: var(--space-3); padding-bottom: var(--space-4); border-bottom: 1px solid var(--line); }
+#verdict h3 { font-size: 1.0625rem; }
 </style>
 </head>
 <body>
@@ -83,34 +81,44 @@
 (() => {
   "use strict";
   const { $, esc, pct, num, signed } = UI;
-  let ctx = null, E = null;
+  let ctx = null, E = null, first = true;
   const sel = { tab: "style", style: null, cards: [], q: "" };
   const styleName = (s) => (s === CRDeck.UNCERTAIN ? "Mixed style" : s);
+  // The forward check (scripts/counter_eval.py, design in docs/claude-redesign/EVAL-DESIGN.md) is an optional
+  // file: a copy of the site without it shows the exported retrospective check only.
+  let EVAL = null;
+  const evalReady = fetch("counter_eval.json").then((r) => (r.ok ? r.json() : null)).catch(() => null).then((j) => { EVAL = j; });
 
-  UI.start("counters.html", (c) => { ctx = c; E = c.E; UI.setHash(c.entry.slug); sel.cards = sel.cards.filter((k) => E.m.matchup && k in E.m.matchup.cards); render(); },
-    { failTarget: "#results", onLoading: () => { $("#results").innerHTML = `<div class="panel box"><div class="skel" style="height:120px"></div></div>`; } });
+  UI.start("counters.html", (c) => {
+    ctx = c; E = c.E;
+    if (first) {
+      // the choice travels in the link: <mode>~~<opponent cards> for cards, <mode>~~~~<style> for a style
+      first = false;
+      if (c.hash.seeds && c.hash.seeds.length) { sel.tab = "cards"; sel.cards = c.hash.seeds.slice(0, 8).map(CRDeck.keyOf); }
+      else if (c.hash.extra) sel.style = c.hash.extra;
+    }
+    sel.cards = sel.cards.filter((k) => E.m.matchup && k in E.m.matchup.cards);
+    evalReady.then(() => { if (ctx === c) render(); });
+  }, { failTarget: "#results", onLoading: () => { $("#results").innerHTML = `<div class="panel box"><div class="skel" style="height:120px"></div></div>`; } });
+  // Old links (just the mode) still work; a style or card choice is added after it.
+  function saveLink() {
+    const s = ctx.entry.slug;
+    if (sel.tab === "cards") UI.setHash(sel.cards.length ? UI.token(s, null, sel.cards.map(CRDeck.parseKey)) : s);
+    else UI.setHash(sel.style ? `${s}~~~~${encodeURIComponent(sel.style)}` : s);
+  }
 
   function render() {
     const mu = E.m.matchup;
     if (!mu) {
       $("#verdict").innerHTML = `<p>${esc(ctx.entry.label)} has too few battles for a matchup model.</p>`;
-      $("#whobody").innerHTML = ""; $("#results").innerHTML = ""; return;
+      $("#whobody").innerHTML = ""; $("#results").innerHTML = ""; UI.setHash(ctx.entry.slug); return;
     }
-    renderVerdict(mu); renderWho(mu); run();
+    renderVerdict(mu); renderWho(mu); saveLink(); run();
   }
 
-  // One-sentence descriptions of the classifier's styles, written for newcomers (editorial, not model output).
-  const STYLE_DEF = {
-    Beatdown: "builds one big push behind a heavy tank such as Golem, Giant or Lava Hound.",
-    Cycle: "plays cheap cards quickly so its win condition comes back around often.",
-    Control: "defends efficiently and wins with small, steady damage and counter-pushes.",
-    Siege: "places a building such as X-Bow or Mortar that hits towers from its own side.",
-    Bait: "carries several cards one spell would answer, so the opponent runs out of answers.",
-    "Bridge Spam": "drops fast, aggressive troops at the bridge to punish an opponent who just spent elixir.",
-    Graveyard: "is built around the Graveyard spell, which spawns skeletons on a tower.",
-    Hybrid: "mixes two of these plans (a trained label of its own).",
-  };
-  let VERDICT_NOW = null;
+  // one-sentence style descriptions for newcomers (editorial, not model output), shared with the builder
+  const STYLE_DEF = UI.STYLE_DEF;
+  let VERDICT_NOW = null, FORWARD_NOW = null;
   const VERDICT = {
     beats_strongest: ["good", "Counter decks beat their target style more often than the highest-scoring general decks"],
     beats_average: ["weak", "Better than an average eligible pool deck; not clearly better than the highest-scoring general decks"],
@@ -118,6 +126,54 @@
     too_few: ["weak", "Too few later games to check in this mode"],
   };
   const cell = (g) => (g && g.games ? `<td>${pct(g.rate)} <span class="muted small">(${num(g.wins)} of ${num(g.games)}; 90% ${pct(g.ci90[0], 0)} to ${pct(g.ci90[1], 0)})</span></td>` : `<td class="muted">no games</td>`);
+  // Style-standardized rates: the mean of the per-style win rates with every included style weighted equally, so a
+  // group isn't helped or hurt by facing a different mix of styles. A style is included only when every group has
+  // at least FEW games against it (the "few games" line this page already uses for records).
+  const FEW = 30;
+  function stdRates(styles) {
+    const inc = styles.filter(([, r]) => ["counter", "field", "all"].every((g) => r.all_players[g][0] >= FEW));
+    const mean = (g) => inc.reduce((t, [, r]) => t + r.all_players[g][1] / r.all_players[g][0], 0) / inc.length;
+    return { inc, rates: inc.length ? { counter: mean("counter"), field: mean("field"), all: mean("all") } : null };
+  }
+  function standardized(styles) {
+    const s = stdRates(styles);
+    return s.rates ? `<tr><td><b>Every style counted equally</b> <span class="muted small">(${s.inc.length} style${s.inc.length === 1 ? "" : "s"})</span></td><td><b>${pct(s.rates.counter)}</b></td><td><b>${pct(s.rates.field)}</b></td><td><b>${pct(s.rates.all)}</b></td></tr>` : "";
+  }
+  function standardizedNote(styles) {
+    const s = stdRates(styles), left = styles.filter(([st]) => !s.inc.some(([x]) => x === st)).map(([st]) => esc(styleName(st)));
+    return `<p class="muted small">Pooled numbers weight each style by how many games it had, so a group that happened to face more of an easier style looks better. ${s.rates
+      ? `The last row instead averages the per-style win rates with every style counted equally, using only styles where each group has at least ${FEW} games${left.length ? ` (left out: ${left.join(", ")})` : ""}.`
+      : `No style has at least ${FEW} games in every group, so no equal-weight average is shown.`} It has no range: the three groups share decks and players, so a range that treats them as independent would be wrong. It is part of the same retrospective check.</p>`;
+  }
+  // The forward check for this mode (counter_eval.json): decks chosen with every input fixed before the later
+  // battles, and 90% ranges from a paired bootstrap over players, shown with the retrospective check's own counts.
+  function forwardBlock(top) {
+    FORWARD_NOW = null;
+    if (!EVAL) return "";
+    const fe = EVAL.modes[ctx.entry.slug];
+    if (!fe) return `<p class="muted small">The forward check hasn't been run for this mode in this copy of the site.</p>`;
+    if (fe.skipped) return `<p class="muted small">The forward check was not run for this mode: ${esc(fe.skipped)}.</p>`;
+    const F = fe.forward, R = fe.retrospective, [cls, txt] = VERDICT[F.verdict];
+    FORWARD_NOW = txt;
+    const sp = (v) => `${v >= 0 ? "+" : "−"}${Math.abs(100 * v).toFixed(1)}`;
+    const pp = (d) => (d ? `${sp(d[0])} pp <span class="muted small">(90%: ${sp(d[1])} to ${sp(d[2])})</span>` : `<span class="muted">n/a</span>`);
+    const span = (w) => (w && w.length === 2 ? `${UI.when(w[0])} to ${UI.when(w[1])}` : "");
+    const popName = { all_players: "every player", new_players: "players not in the training battles" };
+    const rate = (r, g) => (r.games[g] ? `${pct(r.rate[g])} <span class="muted small">(${num(r.wins[g])} of ${num(r.games[g])})</span>` : `<span class="muted">no games</span>`);
+    const rows = [["Forward", F], ["Retrospective", R]].flatMap(([name, V]) => ["all_players", "new_players"].filter((p) => V.populations[p]).map((p) => {
+      const r = V.populations[p];
+      return `<tr><td>${name}${V.headline === p ? " <b>(verdict)</b>" : ""}</td><td>${popName[p]}</td><td>${rate(r, "counter")}</td><td>${rate(r, "field")}</td><td>${rate(r, "all")}</td><td>${pp(r.vs_field)}</td><td>${pp(r.vs_all)}</td></tr>`;
+    })).join("");
+    const head = F.populations[F.headline], oc = head.opponent_clusters, st = head.standardized;
+    return `<section class="fwd" aria-labelledby="fwd-h"><h3 id="fwd-h">Forward check: decks chosen before the later battles</h3>
+      <p><span class="pill ${cls}">${txt}</span> <span class="muted small">forward check</span></p>
+      <p class="small">The same check with every input fixed before the later battles (${esc(span(fe.test_window))}): the opponent decks standing for each style, and the opponents of the general score, come from the validation battles (${esc(span(fe.valid_window))}), the latest ones before them; the models and the deck pool were fixed even earlier. Its 90% ranges come from resampling players, with all three groups recomputed from the same draw, so shared decks, shared battles and players with many games are allowed for. The design was written down before any of these numbers were computed. <span class="src measured">measured</span></p>
+      <details class="more"><summary>The forward numbers, next to the retrospective ones with the same kind of range</summary><div class="body">
+        <div class="tblwrap"><table class="nums"><caption class="sr">Forward and retrospective checks with paired bootstrap ranges</caption><thead><tr><th scope="col">Check</th><th scope="col">Games by</th><th scope="col">Top ${num(top)} counter decks</th><th scope="col">Top ${num(top)} highest-scoring general decks</th><th scope="col">All eligible pool decks</th><th scope="col">Counter − general</th><th scope="col">Counter − all</th></tr></thead><tbody>${rows}</tbody></table></div>
+        <p class="muted small">Win rates against the target styles in the later battles; differences in percentage points. Ranges are the 5th to 95th percentiles of ${num(EVAL.settings.replicates)} paired resamples of players (seed ${EVAL.settings.seed}). With the opponent's player as the resampled unit instead, the verdict row's ranges are ${oc.vs_field ? `${sp(oc.vs_field[1])} to ${sp(oc.vs_field[2])}` : "n/a"} (counter − general) and ${oc.vs_all ? `${sp(oc.vs_all[1])} to ${sp(oc.vs_all[2])}` : "n/a"} (counter − all). ${st.styles.length ? `With every style counted equally (${st.styles.map((s) => esc(styleName(s))).join(", ")}): counter − general ${pp(st.vs_field)}, counter − all ${pp(st.vs_all)}.` : `No style has at least ${num(EVAL.settings.few)} games in every group here, so there is no equal-weight version.`} No significance test is made: a range above zero is only described as such.</p>
+        ${fe.matches_export === false ? `<p class="notice small">The retrospective counts here differ from the exported check: the two files come from different runs.</p>` : ""}
+      </div></details></section>`;
+  }
   function renderVerdict(mu) {
     const bt = mu.backtest, ev = mu.evaluation, pd = ev.player_disjoint, tw = ctx.entry.test_window || ["", ""];
     const [cls, text] = bt ? VERDICT[bt.verdict] : ["weak", "No deck styles to check in this mode"];
@@ -126,6 +182,8 @@
     const rate = ([n, w]) => (n ? `${pct(w / n)} <span class="muted small">(${num(w)} of ${num(n)})</span>` : `<span class="muted">no games</span>`);
     VERDICT_NOW = bt ? text : null;
     $("#verdict").innerHTML = `<h2 id="verdict-h" style="font-size:1.25rem">How much can you trust these counters?</h2>
+      ${bt ? forwardBlock(bt.top) : ""}
+      <h3 id="retro-h">Retrospective check (the exported one)</h3>
       <p><span class="pill ${cls}">${text}</span> <span class="muted small">retrospective check</span></p>
       ${bt ? `<p class="small">The check: for every deck style, the ${num(bt.top)} decks this page ranks best against it, and how often they actually beat that style in the later battles (${esc(UI.when(tw[0]))} to ${esc(UI.when(tw[1]))}), whose results no model was trained on. For comparison, the ${num(bt.top)} decks the deck builder scores highest overall, and every eligible deck in the pool, against the same styles. <span class="src measured">measured</span></p>
       <p class="small"><b>Why "retrospective":</b> the opponent decks that stand for each style are the most-played decks of those same later battles, so the ranking already knew which decks would be common then. It never saw who won, but this is not a strict test of recommendations made in advance.</p>
@@ -134,9 +192,11 @@
         ${row("Every player", bt.pooled)}${row("Only players who don't appear in the training battles", bt.pooled_new)}
       </tbody></table></div>
       <p class="muted small">The verdict uses ${bt.headline === "new_players" ? "only games by players who don't appear in the training battles: the same top players appear before and after training, so the first row partly shows the model recognizing regulars. (The models were not retrained for this row; the stricter retrained check is the second table below.)" : `every player (fewer than ${num(bt.min_games)} games by players who don't appear in the training battles)`}. Ranges are 90% Wilson ranges for each column on its own; the columns share decks and players, so their difference is not given a range here.</p></div></details>
-      ${styles.length ? `<details class="more"><summary>By style</summary><div class="body"><div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Style</th><th scope="col">Counter decks</th><th scope="col">Strongest decks</th><th scope="col">All real decks</th></tr></thead><tbody>
+      ${styles.length ? `<details class="more"><summary>By style, and with every style counted equally</summary><div class="body"><div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Style</th><th scope="col">Top ${num(bt.top)} counter decks</th><th scope="col">Top ${num(bt.top)} highest-scoring general decks</th><th scope="col">All eligible pool decks</th></tr></thead><tbody>
         ${styles.map(([s, r]) => `<tr><td>${esc(styleName(s))}</td><td>${rate(r.all_players.counter)}</td><td>${rate(r.all_players.field)}</td><td>${rate(r.all_players.all)}</td></tr>`).join("")}
-      </tbody></table></div><p class="muted small">Every player, games against that style after training.</p></div></details>` : ""}` : ""}
+        ${standardized(styles)}
+      </tbody></table></div><p class="muted small">Every player, games against that style in the later battles. A style's record is style-wide: it is not a record against any one exact deck.</p>
+      ${standardizedNote(styles)}</div></details>` : ""}` : ""}
       <details class="more"><summary>Does adding matchups predict battles better?</summary><div class="body">
       <div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Held-out check</th><th scope="col">Battles</th><th scope="col">AUC without matchups</th><th scope="col">AUC with matchups</th><th scope="col">Log-loss change (90%)</th></tr></thead><tbody>
         <tr><td>Later battles, same models</td><td>${num(ev.battles)}</td><td>${ev.auc_strength.toFixed(3)}</td><td>${ev.auc_matchup.toFixed(3)}</td><td>${signed(ev.difference, 4)} (${signed(ev.difference_ci90[0], 4)} to ${signed(ev.difference_ci90[1], 4)})</td></tr>
@@ -162,21 +222,22 @@
       $("#whobody").innerHTML = `
         <div class="oppcards" aria-label="Opponent cards picked">${sel.cards.length ? sel.cards.map((k) => `<span class="oppcard">${esc(E.describe(CRDeck.parseKey(k)))}<button data-rm="${k}" aria-label="Remove ${esc(E.describe(CRDeck.parseKey(k)))}">×</button></span>`).join("") : `<span class="muted small">No cards picked yet. Pick 1 to 8 cards your opponent plays.</span>`}</div>
         <label class="sr" for="oq">Search opponent cards</label><input class="search" id="oq" type="search" placeholder="Search cards" autocomplete="off" value="${esc(sel.q)}">
-        <div class="cardlist" aria-label="Opponent cards">${forms.map((f) => `<button class="pick" data-key="${f.key}" aria-pressed="${sel.cards.includes(f.key)}">${UI.drop(f.c)}<span class="pn">${esc(E.describe({ id: f.card_id, form: f.form }))}</span></button>`).join("") || `<p class="muted small">No card matches.</p>`}</div>
+        <div class="cardlist" aria-label="Opponent cards">${forms.map((f) => `<button class="pick" data-key="${f.key}" aria-pressed="${sel.cards.includes(f.key)}">${UI.drop(f.c)}<span class="pn">${esc(E.describe({ id: f.card_id, form: f.form }))}</span></button>`).join("") || `<p class="muted small">No card matches “${esc(sel.q)}”. <button class="btn small" type="button" data-clearq>Clear the search</button></p>`}</div>
         <p class="muted small">With all 8 cards (a legal deck), the counters target that exact deck. With fewer, the opponents are the up to ${num(mu.opponents_per_set)} most-played decks in this mode's later battles that hold every card form you picked, weighted by how often each was played.</p>`;
       const oq = $("#oq"); oq.oninput = () => { sel.q = oq.value; renderWho(mu); const n = $("#oq"); n.focus(); n.setSelectionRange(n.value.length, n.value.length); };
     }
   }
   document.addEventListener("click", (ev) => {
-    const t = ev.target.closest("[data-tab],[data-style],[data-key],[data-rm],[data-copy]"); if (!t || !E) return;
-    if (t.dataset.tab) { sel.tab = t.dataset.tab; renderWho(E.m.matchup); run(); }
-    else if (t.dataset.style) { sel.style = t.dataset.style; renderWho(E.m.matchup); run(); }
+    const t = ev.target.closest("[data-tab],[data-style],[data-key],[data-rm],[data-copy],[data-clearq]"); if (!t || !E) return;
+    if (t.dataset.tab) { sel.tab = t.dataset.tab; renderWho(E.m.matchup); saveLink(); run(); }
+    else if (t.dataset.style) { sel.style = t.dataset.style; renderWho(E.m.matchup); saveLink(); run(); }
+    else if (t.hasAttribute("data-clearq")) { sel.q = ""; renderWho(E.m.matchup); const n = $("#oq"); if (n) n.focus(); }
     else if (t.dataset.key && t.closest(".cardlist")) {
       const k = t.dataset.key, i = sel.cards.indexOf(k), id = k.split(":")[0];
       if (i >= 0) sel.cards.splice(i, 1);
       else { sel.cards = sel.cards.filter((x) => x.split(":")[0] !== id); if (sel.cards.length < 8) sel.cards.push(k); }
-      renderWho(E.m.matchup); run();
-    } else if (t.dataset.rm) { sel.cards = sel.cards.filter((x) => x !== t.dataset.rm); renderWho(E.m.matchup); run(); }
+      renderWho(E.m.matchup); saveLink(); run();
+    } else if (t.dataset.rm) { sel.cards = sel.cards.filter((x) => x !== t.dataset.rm); renderWho(E.m.matchup); saveLink(); run(); }
     else if (t.dataset.copy) {
       const text = t.dataset.copy;
       const blocked = () => { $("#announce").textContent = "Copying was blocked."; t.insertAdjacentHTML("afterend", `<label class="small" style="flex-basis:100%">Copying was blocked by the browser. Copy it from here: <input readonly class="search" value="${esc(text)}"></label>`); const i = t.parentElement.querySelector("input"); i.focus(); i.select(); };
@@ -206,14 +267,14 @@
       const nOpp = opps.reduce((t, [, n]) => t + n, 0), name = (k) => E.describe(CRDeck.parseKey(k));
       const atEven = (z) => 100 * (1 / (1 + Math.exp(-z)) - 0.5);   // points away from 50% in an even battle
       el.innerHTML = `
-        ${VERDICT_NOW ? `<p class="notice small"><b>Evidence so far:</b> ${esc(VERDICT_NOW)} (retrospective check, details at the end of the page). The estimates are model numbers, not results of these exact matchups.</p>` : ""}
+        ${VERDICT_NOW ? `<p class="notice small"><b>Evidence so far:</b> ${FORWARD_NOW ? `forward check: ${esc(FORWARD_NOW)}; retrospective check: ${esc(VERDICT_NOW)}` : `${esc(VERDICT_NOW)} (retrospective check)`}. Details at the end of the page. The estimates are model numbers, not results of these exact matchups.</p>` : ""}
         <div class="two">
           <section class="panel box" aria-labelledby="cc-h">
             <h2 id="cc-h" style="font-size:1.25rem">2. Counter cards</h2>
             <p class="muted small">Cards whose learned matchups did best against ${esc(what)}. The effect is in log-odds; next to it, what it means for an otherwise even battle. These are patterns in which decks won, not measured one-on-one fights between cards. <span class="src model">model</span></p>
             ${cards.map((c, i) => `<div class="ccard">
               <span class="muted small">${i + 1}</span>
-              <span class="nm">${esc(name(c.card))}</span>
+              <span class="nm"><a href="${UI.cardHref(ctx.entry.slug, CRDeck.parseKey(c.card))}">${esc(name(c.card))}</a></span>
               <span class="eff" title="log-odds effect against these decks">${signed(c.effect, 3)}</span>
               <span class="why"><span>≈ ${atEven(c.effect) >= 0 ? "+" : "−"}${Math.abs(atEven(c.effect)).toFixed(1)} percentage points of win rate in an even battle (own strength ${signed(c.own_weight, 3)})</span>
                 ${c.best_against.length ? `<span>Best against: ${c.best_against.map((t) => `<b>${esc(name(t.card))}</b> ${signed(t.weight, 3)}${t.ci90 ? ` (90% ${signed(t.ci90[0], 3)} to ${signed(t.ci90[1], 3)})` : ""}${t.share < 0.999 ? ` in ${pct(t.share, 0)} of them` : ""}`).join("; ")}</span>` : ""}
@@ -252,7 +313,7 @@ P(A beats B) = σ(z(A, B))
 win rate vs the opponents = Σ_o n_o · σ(z(A, o)) / Σ_o n_o
 card effect(i) = w_i + Σ_o n_o Σ_{j∈o} K(i, j) / Σ_o n_o
 deck score(A) = win rate vs the opponents + ${E.weight} × mean pair synergy + ${E.coWeight} × mean log-lift     (A a real deck)</div>
-            <p class="muted">w is a card's overall strength, K(i, j) how much better a deck with i did against decks with j than both cards' strengths predict (K(i, j) = −K(j, i)). ${num(mu.pairs.length)} card pairings with at least ${num(mu.min_pair_battles)} battles have a K. Ranges shown for single matchups are exact 90% ranges for that weight; no range is shown for a card's total effect, because its parts move together.</p>
+            <p class="muted">A is your deck and B or o an opponent deck; i is a card form in A and j one in B. n_o is how many times opponent deck o appears in the set, so common decks count more. σ is the sigmoid, 1 / (1 + e^(−z)). w is a card's overall strength, K(i, j) how much better a deck with i did against decks with j than both cards' strengths predict (K(i, j) = −K(j, i)); all are in log-odds. ${num(mu.pairs.length)} card pairings with at least ${num(mu.min_pair_battles)} battles have a K. Ranges shown for single matchups are exact 90% ranges for that weight; no range is shown for a card's total effect, because its parts move together.</p>
             <p class="muted">Why only real decks: searching every card combination for the highest estimate produced decks nobody plays (four tanks and no spell, with estimates of 85 to 93%). The model adds up card effects and was only ever checked on decks people play, so it is only trusted there. A tech swap changes one card for one of the same type and win-condition role, only if it raises both the estimate against these decks and the deck score and adds no deck warning.</p>
           </div></details>
         </section>`;

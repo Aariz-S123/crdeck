@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="app.css">
 <style>
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
-.steps { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-4); counter-reset: s; max-width: 78ch; }
+.steps { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-4); counter-reset: s; max-width: 75ch; }
 .steps li { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: var(--space-3); counter-increment: s; }
 .steps li::before { content: counter(s); font-family: var(--display); font-weight: 700; font-size: 1.25rem; color: var(--elixir); }
 .steps b { display: block; }
@@ -24,7 +24,7 @@
 table.results { border-collapse: collapse; width: 100%; min-width: 720px; font-size: 0.9375rem; }
 table.results th { text-align: left; font-size: 0.8125rem; color: var(--muted); font-weight: 600; background: var(--sunken); padding: 8px 12px; }
 table.results td { padding: 12px; border-top: 1px solid var(--line); }
-.notes { margin: 0; padding-left: 18px; display: grid; gap: var(--space-2); max-width: 80ch; color: var(--muted); }
+.notes { margin: 0; padding-left: 18px; display: grid; gap: var(--space-2); max-width: 75ch; color: var(--muted); }
 .notes b { color: var(--ink); }
 .gloss { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: var(--space-3) var(--space-6); margin: 0; }
 .gloss div { display: grid; gap: 2px; }
@@ -39,7 +39,7 @@ table.results td { padding: 12px; border-top: 1px solid var(--line); }
 .twocol { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: var(--space-4); align-items: start; }
 .kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; font-size: 0.875rem; margin: 0; }
 .kv dt { color: var(--muted); } .kv dd { margin: 0; overflow-wrap: anywhere; }
-.md { font-size: 0.9375rem; max-width: 80ch; } .md p { margin: 0 0 8px; } .md ul { margin: 0 0 8px; padding-left: 18px; }
+.md { font-size: 0.9375rem; max-width: 75ch; } .md p { margin: 0 0 8px; } .md ul { margin: 0 0 8px; padding-left: 18px; }
 .md code, pre.cfg { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.8125rem; }
 .md code { background: var(--sunken); padding: 1px 4px; border-radius: 4px; }
 .lrow { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
@@ -60,7 +60,7 @@ pre.cfg { background: var(--sunken); padding: 12px; border-radius: 8px; overflow
 .three .box p { max-width: 70ch; }
 .three .q { font-size: 0.8125rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 table.nums tr.top td { font-weight: 700; background: var(--elixir-soft); }
-.contrast { margin: 0; padding-left: 18px; display: grid; gap: 4px; max-width: 80ch; }
+.contrast { margin: 0; padding-left: 18px; display: grid; gap: 4px; max-width: 75ch; }
 </style>
 </head>
 <body>
@@ -83,7 +83,7 @@ table.nums tr.top td { font-weight: 700; background: var(--elixir-soft); }
     <section class="section" aria-labelledby="rep-h">
       <header><h2 id="rep-h">How good is it?</h2><p id="rep-sub">Loading…</p></header>
       <div class="panel tblwrap"><table class="results" id="report"></table></div>
-      <p class="muted small">A check passes only when its 90% range clears the simple baseline it is compared with. Otherwise it says “not clearly better”.</p>
+      <p class="muted small">A check passes only when its 90% range clears the simple baseline it is compared with. Otherwise it says “not clearly better”. Ranges here are <a href="#g-bootstrap">bootstrap</a> ranges: the test battles (for the deck-finishing and style rows, the test decks) re-drawn many times.</p>
     </section>
 
     <section class="section" aria-labelledby="three-h">
@@ -148,7 +148,7 @@ table.nums tr.top td { font-weight: 700; background: var(--elixir-soft); }
 z = u_A − u_B = ${f4(sg.z)}
 P(A wins) = 1 / (1 + e^(−z)) = ${pct(sg.p, 2)}
 average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single matchups range ${pct(sg.min, 1)} to ${pct(sg.max, 1)})</div>
-        <p>That average is exactly the ${pct(x.score.meta_win_prob, 1)} shown for this deck. Its 90% model range (${pct(x.score.interval[0], 1)} to ${pct(x.score.interval[1], 1)}) combines two things: uncertainty in the learned weights, carried through with their covariance (the delta method), and which opponent decks happened to be sampled. It is not a bootstrap range and not a Wilson range for a record. Weights are in log-odds: they are not percentage points, and they show association in the data, not cause.</p>
+        <p>That average is exactly the ${pct(x.score.meta_win_prob, 1)} shown for this deck. Its 90% model range (${pct(x.score.interval[0], 1)} to ${pct(x.score.interval[1], 1)}) combines two things: uncertainty in the learned weights, carried through with their covariance (the <a href="#g-delta-method">delta method</a>), and which opponent decks happened to be sampled. It is not a <a href="#g-bootstrap">bootstrap</a> range and not a <a href="#g-wilson-range">Wilson range</a> for a record. Weights are in log-odds: they are not percentage points, and they show association in the data, not cause.</p>
         <p>The Counters page uses a related matchup model that also has card-against-card weights K(i, j). Those are different from the pair weights here, which are about two cards in the same deck.</p></div></details>
     </div>`;
     // softmax
@@ -169,7 +169,7 @@ average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single m
     let mc;
     if (!F) mc = `<div class="panel box"><span class="q">Monte Carlo · usage next period?</span><p>This export has no usage history.</p></div>`;
     else {
-      const stLine = F.shown_but_empty ? `The forecast passed its backtest gate, but the latest collection period has only ${num(F.last.battles)} battles, so no card form has the ${num(F.settings.min_games)} games a forecast needs. Nothing is forecast right now.`
+      const stLine = F.shown_but_empty ? `The forecast passed its backtest gate, but the latest collection period has only ${num(F.last.battles)} battles, so no card form has the ${num(F.settings.min_games)} games a forecast needs. Nothing is forecast in this export.`
         : F.state === "shown" ? `A forecast is shown for ${num(F.forecast_count)} card forms on the <a href="meta.html#ranked">Card usage trends</a> page, marked experimental.`
         : F.state === "not_better" ? "The forecast is hidden: on past periods it did worse than assuming no change." : "The forecast is not available yet: there are too few collection periods to test it.";
       mc = `<div class="panel box">
@@ -210,18 +210,19 @@ average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single m
           <div class="slicepick" role="group" aria-label="Which two card weights">${L.slices.map((s, i) => `<button class="chip" data-slice="${i}" aria-pressed="${i === surf.pick}">${esc(s.label)}</button>`).join("")}</div>
           <div class="surf" id="surf" tabindex="0" aria-label="3D training-loss surface. Drag or use arrow keys to rotate."></div>
           <div class="scale-bar"><span>${lo.toFixed(5)}</span><i></i><span>${hi.toFixed(5)}</span></div>
-          <p class="muted small" style="text-align:center">Training loss J(a, b): low (blue) to high (orange). Height is stretched so the shape is visible; the whole surface spans ${(hi - lo).toFixed(5)}.</p>
+          <p class="muted small" style="text-align:center">Training loss J(a, b): low (blue) to high (orange). The height is stretched so the shape is visible; the whole surface only spans ${(hi - lo).toFixed(5)}. The pink path is illustrative.</p>
           <div class="mapctl" style="justify-content:center"><button class="btn small" id="surfreset">Reset view</button></div>
         </div>
         <div class="panel box" style="min-width:0">
           <h3>What you're looking at</h3>
-          <p>The surface is the model's real training loss over the ${num(sl.n_train)} Ranked battles it was fitted on (training and validation windows), as two card weights change: <b>a = ${esc(A)}</b> and <b>b = ${esc(B)}</b>. Every other weight stays exactly as trained, so this is a slice through the full ${num(E.m.strength.coef.length)}-weight landscape.</p>
+          <p>The surface is the model's real training loss over the ${num(sl.n_train)} Ranked battles it was fitted on (training and validation windows), as two card weights change: <b>a = ${esc(A)}</b> and <b>b = ${esc(B)}</b>. Every other weight stays exactly as trained, so this is a two-parameter slice through the full ${num(E.m.strength.coef.length)}-weight landscape, not the whole landscape.</p>
           <div class="formula">J(a, b) = mean log loss + ‖w‖² / (2 C N)
 ∂J/∂a = mean((p − y) · x_a) + a / (C N)
 ∂J/∂b = mean((p − y) · x_b) + b / (C N)</div>
+          <p class="small">Symbols: J is the training loss (lower is better). The mean log loss averages −[y log p + (1 − y) log(1 − p)] over the N = ${num(sl.n_train)} training battles, where p is the model's win probability for deck A and y is 1 if A won, else 0. x_a is +1 when only deck A holds card a, −1 when only deck B does, and 0 otherwise. w is the list of all weights and ‖w‖² the sum of their squares: the regularization penalty, whose strength C = ${sl.C} was chosen on validation battles. ∂J/∂a is the slope of J along a.</p>
           <p><b>The dot f(a, b)</b> is where training ended: a = ${signed(sl.fitted[0], 4)}, b = ${signed(sl.fitted[1], 4)}, at the bottom of the bowl, where both slopes are zero.</p>
           <p><b>White arrows</b> point downhill, along −∇J. They shrink toward the bottom because the slope does.</p>
-          <p><b>The pink path</b> starts in a corner and repeatedly takes a step against the gradient (step size ${sl.learning_rate.toFixed(1)}, set by the surface's steepest curvature). It reaches the bottom in about ${sl.path.findIndex((q) => Math.abs(q[2] - sl.path[sl.path.length - 1][2]) < 1e-7) + 1} of ${sl.path.length - 1} steps. The real fit doesn't walk like this: it uses L-BFGS and then exact Newton steps on all weights at once.</p>
+          <p><b>The pink path is an illustration.</b> It starts in a corner and repeatedly takes a step against the gradient (step size ${sl.learning_rate.toFixed(1)}, set by the surface's steepest curvature), reaching the bottom in about ${sl.path.findIndex((q) => Math.abs(q[2] - sl.path[sl.path.length - 1][2]) < 1e-7) + 1} of ${sl.path.length - 1} steps. The real fit doesn't walk like this: it uses L-BFGS and then exact Newton steps on all weights at once.</p>
           <p class="muted small">Ranges shown: each weight ± ${(sl.a[sl.a.length - 1] - sl.fitted[0]).toFixed(3)} (about 4 standard errors). ${esc(A)} was in ${num(sl.games[0])} training decks, ${esc(B)} in ${num(sl.games[1])}.</p>
         </div>
       </div>`;
@@ -307,14 +308,16 @@ average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single m
     el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Training loss surface over the weights of ${esc(A)} and ${esc(B)}; the fitted point is at the bottom.">${g}</svg>`;
   }
 
+  // One story, in order: recorded battles → learned relationships → candidate decks → scores and recommendations → tests on later battles
   function steps({ entry, m, E }) {
     const ev = m.evaluation || {}, sp = ev.splits || [], part = (p) => sp.find((x) => x.part === p) || {};
+    const pool = E.counterPool().length, minB = m.matchup ? m.matchup.pool_min_battles : null, sc = E.cfg.search;
     $("#steps").innerHTML = `
-      <li><div><b>Collect real battles.</b><span>${num(entry.ok_battles)} recorded ${esc(entry.label)} battles, fetched from the official Clash Royale API. Battles are only used once, even when both players were collected.</span></div></li>
-      <li><div><b>Split them by time.</b><span>The oldest battles train the model (${num(part("train").battles || 0)}), the next ones pick its settings (${num(part("valid").battles || 0)}), and the newest ones are held back to test it (${num(part("test").battles || 0)}). Testing on later battles is closer to how you would use it.</span></div></li>
-      <li><div><b>Learn a weight for every card and card pair.</b><span>A logistic regression learns how much each card form and each common pair raised the chance of winning, after accounting for the two players' ratings. That is the “card weight” you see on the other pages.</span></div></li>
-      <li><div><b>Find decks.</b><span>By default the builder shows observed decks: real decks from this mode's pool that hold your picks. On request it generates new combinations card by card (experimental). Both are ranked by the same score, estimated win rate plus how well the cards work and are played together, and the ${E.cfg.search.n_results} shown differ by at least ${E.cfg.search.min_diff_cards} cards.</span></div></li>
-      <li><div><b>Check the result.</b><span>Each deck gets deck checks (win condition, air defense, spells, elixir cost) and a predicted style. Checks give advice; they never block a deck.</span></div></li>`;
+      <li><div><b>Recorded battles.</b><span>${num(entry.ok_battles)} recorded ${esc(entry.label)} battles, fetched from the official Clash Royale API from the players the collector sampled (not from everyone). A battle is only used once, even when both players were collected.</span></div></li>
+      <li><div><b>Learned relationships.</b><span>The battles are split by time: the oldest train the model (${num(part("train").battles || 0)}), the next ones tune its settings (${num(part("valid").battles || 0)}), and the newest are held back to test it (${num(part("test").battles || 0)}). A logistic regression then learns a weight for every card form and common card pair: how strongly decks with them went with winning, after accounting for the two players' ratings. That is the “card weight” on the other pages. It describes association, not cause.</span></div></li>
+      <li><div><b>Candidate decks.</b><span>Observed decks, the default, are real decks from this mode's pool${pool ? ` (${num(pool)} decks, each played at least ${num(minB)} times in the training battles)` : ""} that hold your picks. Generated decks, experimental, are built card by card by a beam search that keeps the ${num(sc.beam_width)} best partial decks at each step, so they may never have been played.</span></div></li>
+      <li><div><b>Scores and recommendations.</b><span>Every candidate gets the same score: estimated wins + ${E.weight} × pair synergy + ${E.coWeight} × how often the cards are played together. The ${sc.n_results} shown differ by at least ${sc.min_diff_cards} cards. Each also gets deck checks (win condition, air defense, spells, elixir cost; advice, never a block) and a predicted style.</span></div></li>
+      <li><div><b>Tests on later battles.</b><span>Last, the model is checked on the held-out battles it never saw while training, against simple baselines: the next section.</span></div></li>`;
   }
 
   function report({ m }) {
@@ -333,8 +336,8 @@ average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single m
     $("#rep-sub").textContent = `Tested on ${tb ? num(tb.battles) : num(m.meta.test_battles_total)} held-out battles from ${UI.when(m.meta.test_window[0])} to ${UI.when(m.meta.test_window[1])}. The model never saw them while training.`;
     $("#report").innerHTML = `<thead><tr><th scope="col">Check</th><th scope="col">The question</th><th scope="col">Result</th><th scope="col">Compared with</th><th scope="col">Verdict</th></tr></thead><tbody>
       <tr><td>Picking winners</td><td>Given two decks, does the model know which one won?</td>
-        <td><span class="big">AUC ${(mt.auc || 0).toFixed(3)}</span><span class="vs">90% range ${si.auc_ci90 ? si.auc_ci90.map((v) => v.toFixed(3)).join(" to ") : "n/a"}. 0.5 is a coin flip.</span></td>
-        <td>Coin flip, card popularity, player rating alone.<span class="vs">Log loss ${(mt.log_loss || 0).toFixed(5)}; lower is better. ${sig.map((x) => `vs ${esc(x.vs)}: ${x.delta_log_loss.toFixed(5)} (90% ${x.ci90_lo.toFixed(5)} to ${x.ci90_hi.toFixed(5)})`).join("; ")}</span></td>
+        <td><span class="big"><a href="#g-auc">AUC</a> ${(mt.auc || 0).toFixed(3)}</span><span class="vs">90% bootstrap range ${si.auc_ci90 ? si.auc_ci90.map((v) => v.toFixed(3)).join(" to ") : "n/a"}. 0.5 is a coin flip.</span></td>
+        <td>Coin flip, card popularity, player rating alone.<span class="vs"><a href="#g-log-loss">Log loss</a> ${(mt.log_loss || 0).toFixed(5)}; lower is better. ${sig.map((x) => `vs ${esc(x.vs)}: ${x.delta_log_loss.toFixed(5)} (90% ${x.ci90_lo.toFixed(5)} to ${x.ci90_hi.toFixed(5)})`).join("; ")}</span></td>
         <td>${pill(vStr, "Beats every baseline")}</td></tr>
       <tr><td>Finishing decks</td><td>Hide 2 cards of a real deck. Are they in the builder's top 10 guesses?</td>
         <td><span class="big">${pct(comp.recall_model || 0, 0)}</span><span class="vs">90% range ${r1(comp.recall_model_ci90)}, on ${num(comp.decks_evaluated || 0)} decks</span></td>
@@ -345,7 +348,7 @@ average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single m
         <td>Always guessing “${esc(ar.majority_class || "")}”: ${ar.majority_accuracy !== undefined ? pct(ar.majority_accuracy, 0) : "n/a"}<span class="vs">${esc(ar.labels_note || "")}</span></td>
         <td>${pill(vArch, "Beats the baseline")}</td></tr>
       <tr><td>Card pairs</td><td>Does a deck's pair score pick the winner of a battle?</td>
-        <td><span class="big">AUC ${(synUsed.test_auc || 0).toFixed(3)}</span><span class="vs">90% range ${synUsed.auc_ci90 ? synUsed.auc_ci90.map((v) => v.toFixed(3)).join(" to ") : "n/a"}</span></td>
+        <td><span class="big"><a href="#g-auc">AUC</a> ${(synUsed.test_auc || 0).toFixed(3)}</span><span class="vs">90% bootstrap range ${synUsed.auc_ci90 ? synUsed.auc_ci90.map((v) => v.toFixed(3)).join(" to ") : "n/a"}</span></td>
         <td>Raw pair lift ${(lift.test_auc || 0).toFixed(3)}, popularity ${(spop.test_auc || 0).toFixed(3)}</td>
         <td>${pill(vSyn, "Beats both")}</td></tr></tbody>`;
   }
@@ -361,23 +364,42 @@ average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single m
       <li><b>Style labels are a starting point.</b> The classifier knows ${A.classes.length} styles and was checked on ${num(ae.heldout_decks || 0)} decks; ${esc(ae.labels_note || "")}. When no style reaches ${Math.round(A.threshold * 100)}% it says “Mixed style”.</li>`;
   }
 
-  function gloss({ m }) {
+  // Short definitions; where the project has a real example, it is computed from this mode's export and labelled as such.
+  function gloss({ INDEX, entry, m, E }) {
+    const sp = ((m.evaluation || {}).splits || []), part = (p) => sp.find((x) => x.part === p);
+    const span = (p) => (p ? `${num(p.battles)} battles, ${UI.when(p.from).split(",")[0]} to ${UI.when(p.to).split(",")[0]}` : "");
+    const cand = ((INDEX.log || {})[`evaluate:${entry.slug}`] || {}).strength_candidates || [], chosen = cand.find((c) => c.selected);
+    // the most-played pair with a synergy score in this mode
+    let pair = null;
+    for (const p of E.synPairs.values()) if (p.ok && (!pair || p.games > pair.games)) pair = p;
+    const ex = (t) => (t ? ` Here: ${t}` : "");
     const words = [
       ["Estimated win rate", "How often the model expects the deck to win against opponent decks sampled from the chosen mode's later battles, with both players equally rated."],
-      ["90% range", "A range for an estimate; how it is made depends on the number. Deck estimates: model uncertainty plus opponent sampling. Records: Wilson ranges. Usage shares: bootstrap. Forecasts: Monte Carlo bands."],
-      ["Percentage points", "The difference between two percentages: 52% to 54% is +2 percentage points."],
+      ["90% range", "A range for an estimate; how it is made depends on the number. Deck estimates: model uncertainty plus opponent sampling (the delta method). Records: Wilson ranges. Usage shares and test results: bootstrap. Card-pair synergy: a Beta range. Forecasts: Monte Carlo bands."],
+      ["Percentage points", "The difference between two percentages: 52% to 54% is +2 percentage points (pp)."],
       ["AUC", "How often the model ranks the winner above the loser in a pair of battles; 0.5 is a coin flip. It is not accuracy."],
       ["Log loss", "How far predicted probabilities were from what happened; lower is better. A small difference can be real without mattering much in practice."],
       ["Calibration", "Whether events predicted at 60% happen about 60% of the time."],
       ["Association", "Two things go together in the data. It doesn't show that one causes the other."],
-      ["Card weight", "How much having a card form in a deck raised the chance of winning in past battles. Above 0 helps, below 0 hurts."],
-      ["Synergy", "Whether two cards won more together than each one wins on its own."],
+      ["Card weight", "How strongly decks with a card form went with winning in past battles, once the other cards and the players' ratings are accounted for, in log-odds. Above 0 goes with winning, below 0 with losing; it is not the card's own win rate."],
+      ["Synergy and lift", "Synergy: whether two cards won more together than each one wins without the other. Lift: how much more often two cards are played together than chance. Lift is about popularity, synergy about results." +
+        ex(pair ? `${E.name(pair.card_i)} + ${E.name(pair.card_j)}, the most-played scored pair, appeared together in ${num(pair.games)} games: lift ${pair.lift.toFixed(2)}× and synergy ${signed(pair.synergy, 3)} (won ${pct(pair.shrunk_wr)} together).` : "")],
+      ["Regularization", "A penalty that pulls every weight toward 0, so a card seen in few battles can't get an extreme weight. Its strength is set by C, chosen on the validation battles; a smaller C pulls harder." + ex(chosen ? `C = ${chosen.C} for the chosen model.` : "")],
+      ["Training, validation and test battles", "The battles split by time. Training battles fit the weights, validation battles choose settings such as C and the score weights, and test battles are only used for the final check, so the test is fair." +
+        ex(part("train") ? `training ${span(part("train"))}; validation ${span(part("valid"))}; test ${span(part("test"))}.` : "")],
+      ["Beam search", `Builds a deck one card at a time and keeps only the best partial decks at each step, instead of checking every possible deck. It makes the generated decks.${ex(`the ${num(E.cfg.search.beam_width)} best partial decks are kept at each step.`)}`],
+      ["Bootstrap", "Re-draw the data with replacement many times and recompute the number each time; the spread of the results gives a range. It treats the re-drawn units (battles) as independent."],
+      ["Delta method", "Carries the uncertainty of the learned weights, through their covariance, to a deck's win estimate. Together with opponent sampling it gives each deck's 90% model range."],
+      ["Wilson range", "A 90% range for a record such as 12 wins in 20 games that stays sensible for small counts."],
+      ["Logit and sigmoid", "logit turns a share or probability into an unbounded number (log-odds); the sigmoid, 1 / (1 + e^(−z)), turns it back."],
+      ["Selection optimism", "Picking the highest of many noisy estimates tends to pick a lucky one, so the top estimate runs high. The 90% ranges don't cover this."],
       ["Evolution, Hero and Wild slots", "A deck has one slot for an Evolution, one for a Hero or Champion, and a Wild slot that takes any of them."],
       ["Held-out battles", "The newest battles, kept away from training so the test is fair."],
       ["Deck style", `A guess at the deck's archetype from a small classifier. Its styles: ${m.archetype.classes.join(", ")}.`],
       ["Score points", "What decks and swaps are ranked by: 100 × the ranking score. Its win part counts in percentage points; the synergy and played-together parts are added on the same scale. It is not a probability."],
     ];
-    $("#gloss").innerHTML = words.map(([t, d]) => `<div><dt>${esc(t)}</dt><dd>${esc(d)}</dd></div>`).join("");
+    const id = (t) => "g-" + t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    $("#gloss").innerHTML = words.map(([t, d]) => `<div id="${id(t)}"><dt>${esc(t)}</dt><dd>${esc(d)}</dd></div>`).join("");
   }
 
   function log({ INDEX, entry }) {

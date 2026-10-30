@@ -6,11 +6,12 @@ boundaries, protected files, validation and blocker rules still apply. Local com
 
 ## Current state
 
-- Active run: **none: Runs 1–4 complete**
+- Active run: **none: Runs 1–5 complete** (Run 5's final rules sweep: see "Run 5 after")
 - Run 1: **PASS** (all P0 items; P1 newcomer definitions done)
 - Run 2: **PASS** (all P0 items; comparison view is P2 backlog, not started)
 - Run 3: **PASS** (P0 items and P1 three-layer disclosures; new evaluation methods are backlog)
 - Run 4: **PASS** (P0 items; P1 forecast quantile visual deferred: the export has no forecast rows to draw, see below)
+- Run 5: **PASS** (user, 2026-10-29: "Carefully reread what was mentioned in the revamp spec and implement all of them"): every item Runs 1–4 deferred, from START-HERE, BACKLOG.md and the original monolithic prompt (`Downloads/Claude-Code-crdeck-Redesign-Prompt.md`, which START-HERE replaced), including the forward counter check. Not done: card imagery (no approved image source; the runs' rule is no image dependency) and the combined retrain design (needs retraining). See "Run 5" below.
 - Starting HEAD: `9b3ab4da2f7d30845ca8938d9891256ec7a59b51` (main, "Docs: final Trophy Road counter backtest numbers")
 - Working-tree changes already present: none except the untracked prompt pack `docs/claude-redesign/` (extracted 2026-10-29 from `Downloads/crdeck-claude-prompt-pack.zip`, the only copy, all five files)
 - Inputs: REVIEW.md is not in the repository (it lives at `C:\Users\simty\crdeck-review\REVIEW.md`; read only as claims; its "no softmax" statement is wrong, see finding 1). `docs/crdeck-documentation.docx` is in the repository.
@@ -47,6 +48,26 @@ Checklist:
 8. Checks: run2_test, test_observed, engine snapshot identical, run1_test, page_test, site_check, check_web_engine, pytest; screenshots.
 
 Files: `web/observed.js` (new), `web/index.html`, `web/common.js` (token/readHash 4th part), `web/reason.html` (back link), `src/crdeck/counters.py` (additive function), tests: `tests/fixtures/observed_selector.json`, `tests/test_observed.py`, `tests/web/run2_test.cjs`. `web/engine.js` not expected to change.
+
+## Run 5 scope (starting HEAD e19ef9b)
+
+Reread: START-HERE.md, ACCEPTANCE.md, FINDINGS.md, MATH-CONTENT.md, BACKLOG.md and the original monolithic prompt in
+Downloads. The user's instruction authorizes what the four runs held back ("Do not begin P2", "do not implement
+prospective evaluation … in these four runs"). Still in force: protected files and exports, no retraining, no new
+dependency, no fabricated results, tests not weakened. Gap inventory (all done unless marked):
+
+1. Navigation: four destinations (Build a deck, Find counters, Explore trends, How it works), Explore sub-menu with usage trends, season readiness and All cards; old routes kept; contextual card links to All cards.
+2. Mode bar: sort order, usable-group count, battle windows and the train/tune/test split behind "About these battles"; mode, group and freshness stay visible.
+3. Builder picker: Clear picks; Try an example (the mode's most-played usable card form, labelled as an example); visible type definitions; Base/EVO/HERO definition from the rules and unlocks; "early" explained in visible text; Clear the search.
+4. Builder results: editorial style description (labelled, not model output); "Why it ranks here" (score parts in score points, strongest pair, not causal); comparison view (shared/different cards, elixir, warnings, record, estimates, no winner); selection-optimism note for both sources.
+5. Explanation page: layers filled on first open (map last); question chart titles, takeaways, units, "Show as a table" for card weights and calibration; card links; association wording for weights; Beta/Wilson/model range names; map closeness ≠ synergy, projection loses information, tables as the non-3D alternative; percentage points in the nearest-card table; reduced-motion scrolling.
+6. Counters: style or cards kept in the link (old links work); "strongest"/"all real decks" labels fixed; every-style-counted-equally row; symbols defined; card links; Clear the search.
+7. All cards: name, role, elixir, status, measured games and win rate first; model weights and the user's CSV as separate views with their own provenance and dates.
+8. Trends and seasons: forecast picture (observed points, median, 50%/90% bands, no-change line, observed vs forecast region) when the export has forecast rows; table versions of the charts; quiet lookup status instead of a live region; dated "most-played decks"; no "unlocks" wording.
+9. How it works: one five-step story; glossary with synergy vs lift, regularization, splits, beam search, bootstrap, delta method, Wilson, logit/sigmoid, selection optimism, with current-data examples; loss-surface symbols defined; slice and illustration labels; glossary links.
+10. Shared: Escape hides tooltips; scrolling tables get a name and tab stop; 44 px small buttons; 75-character measure; consolidated picker styles; one light-theme contrast fix.
+11. Forward counter check (BACKLOG 1, 2, 4): design committed first (1131921, `docs/claude-redesign/EVAL-DESIGN.md`), then code, tests, results and page.
+12. Not done: card imagery (decision for the user), combined retrain design (BACKLOG 3; needs retraining), two-way clustering.
 
 ## Source-of-truth mappings
 
@@ -107,6 +128,13 @@ Files: `web/observed.js` (new), `web/index.html`, `web/common.js` (token/readHas
 - Docs generator: `scripts/doc_claims.py` (deck interval method, model choice from the exported name, edge wording from the interval, page count, forecast status for blocked / not_better / shown / shown-but-empty with weighted coverage); `make_docs.py` uses it and fixes counters wording (highest-scoring general decks, eligible pool decks, retrospective, unseen-player row is not a retrain) and the page list. DOCX regenerated (python-docx from the session's local copy) and its text inspected.
 - Documentation (user request, 2026-10-29): README website table, helper files, link format, redesign tests and a redesign pointer; docs/model-notes.md §4 (opponent part of the deck range is the analytic standard error, not a bootstrap), §9 (observed/generated policy, redesign record), §12 (stale "with 2 periods it is not shown" replaced with the current state, gate wording, backtest vs live size), §14 renamed Season readiness without the automatic-prediction implication; Word page table updated for the builder, explanation and counters; DOCX regenerated again and its text checked (all new sentences present, no stale claim).
 - Findings confirmed in Run 4 preflight: the export's forecast is "shown" yet empty (P8 has 23 battles after an interrupted collection, below min_games 200); the only backtest period where the forecast beat no change is that 23-battle period; weighted coverage 45.9% (per period 34–85%).
+
+### Run 5 (web/common.js, app.css, index.html, reason.html, counters.html, cards.html, meta.html, seasons.html, model.html; src/crdeck/counters.py additive; scripts/counter_eval.py, doc_claims.py, make_docs.py; web/counter_eval.json; tests; docs)
+- Everything in the Run 5 scope list above, items 1–11. Engine untouched (`web/engine.js` not edited; snapshot identical); no export, model, config or protected file changed; nothing retrained.
+- Forward counter check: `crdeck.counters` gained `style_sets`, `window_scorer`, `check_lists`, `test_games`, `memberships`, `paired_bootstrap`, `check_verdict`, `check_version` (post-training file, outside the cache fingerprint); `scripts/counter_eval.py` loads each mode's cached models from the pickle only when its fingerprint matches (never `load_context`, so it cannot retrain) and writes `web/counter_eval.json` (133 KB). All 44 modes ran; in every one the retrospective version reproduces the exported check's counts exactly; forward and retrospective verdicts agree in 43 of 44 (Trophy Road: not shown → better than an average deck, with the population switching to every player because only 26 unseen-player games remain); 38 modes have too few counter games either way. Numbers: docs/model-notes.md §17.
+- `counters.py` docstring no longer says the independent-groups difference range "only makes it wider".
+- Docs: README (pages, menu, script, tests, test count 183), model-notes §17 (forward check), BACKLOG (what Run 5 closed), Word document regenerated (forward-check paragraph from `doc_claims.forward_check`, website table, a bracket fix) and its text checked; "right now" without a date replaced by "in this export".
+- Test changes: page_test, site_check and run3_test open the layers before checking their charts (lazy layers; every assertion kept); page_test's menu label "Counters" → "Find counters". New: `tests/web/run5_test.cjs`, `tests/test_counter_eval.py` (11), 3 doc_claims tests.
 
 Not done in Run 1 (explicitly deferred): "Try an example" action and comparison view (not Run 1 P0); model.html still says "Win rates describe top players" (Run 4 teaching page); counters.html "strongest" wording (Run 3).
 
@@ -170,6 +198,23 @@ Run 4 after (`docs/claude-redesign/evidence/run4-after/`), the final full run:
 
 Newcomer walkthrough (heuristic, not user research): from the builder a first-time reader sees what a deck is and what the picks do, gets three observed decks with their main weakness first, can tell the measured test record from the model estimate (tags and wording), opens one deck to see roles, warnings and the best next step, and on How it works can read in order that the sigmoid gives win estimates, softmax gives style-label probabilities, and Monte Carlo gives next-period usage shares, each with real numbers.
 
+Run 5 after (`docs/claude-redesign/evidence/run5-after/`):
+
+| Acceptance ID | Exact command/manual action | Result | Evidence |
+|---|---|---|---|
+| R5.1 navigation | `cd tests/web && node run5_test.cjs`; `node page_test.cjs` | PASS | four destinations in order; Explore sub-menu on its three pages with the page and section marked; menu label checks |
+| R5.2 picker | run5_test | PASS | type definition follows the filter; form definition from the rules (Ranked) and unlocks (Bone Pit: base only); example = most-played usable card form recomputed from `strength.feature_games`, in the link; Clear picks clears, announces, resets the link; Clear the search restores 184 forms; "early" explained |
+| R5.3 builder results | run5_test | PASS | style description matches each deck's label and is marked editorial; "Why it ranks here" parts add up (±0.02) and equal the engine; strongest pair named with its caveat; comparison's shared cards and estimates recomputed from the deck links; no winner named; first pill is still the estimate verdict |
+| R5.4 explanation | run5_test; run3_test; page_test | PASS | layers empty until opened, map not drawn until its layer opens; table versions (8 weights, all calibration bins) with card links; takeaway names the top-weight card; Beta range named; pp in the nearest-card table; reduced motion gives non-smooth scrolling |
+| R5.5 counters | run5_test | PASS | `#ranked~~~~Siege` selects Siege; style and card choices written to and restored from the link; old `#ranked` works; equal-weight row equals a recomputation from the export (styles with ≥ 30 games in every group); no old labels; card links |
+| R5.6 All cards | run5_test; page_test; site_check | PASS | default columns Card, Role, Elixir, Status, Games, Real win rate; 187 rows in every view; model and CSV views with their provenance; `cards.html#ranked~~26000021b` opens on Hog Rider |
+| R5.7 trends and seasons | run5_test (forecast fixture served in place of modes.json; file on disk untouched) | PASS | 6 forecast cells with no-change lines, region labels and a table version; live export: no picture, 7 charts as before; lookup announces a short status, no live region; seasons dated, no "right now", no "unlocks" |
+| R5.8 How it works | run5_test | PASS | five-step story; 14 glossary terms present; regularization example = selected C from the log; split counts from the export; N and C from the landscape slice |
+| R5.9 shared and accessibility | run5_test; `node docs/claude-redesign/evidence/keys.mjs …/keys.json` (real Tab presses in Chrome); contrast of token pairs; `OPEN_DETAILS=1 VIEWS=mobile-light,desktop-dark,zoom200-light,tablet-light node …/shots.mjs` on all 7 pages | PASS | Escape hides tooltips; a scrolling table box gets role, name and tab stop; small buttons 44 px; keyboard: every focus stop on all 7 pages shows a focus indicator, no trap, Shift+Tab steps back; contrast: dark theme ≥ 5.78:1, light ≥ 4.5:1 after `--wild` #0b7a6d → #0a766a (was 4.45:1); 0 px overflow and no script errors on 28 views with every disclosure open, incl. 200% zoom on every page |
+| R5.10 forward check | `pytest tests/test_counter_eval.py`; `python scripts/counter_eval.py` (all modes); run5_test | PASS | design committed first (1131921); 11 tests (paired groups give exactly 0, hand-computed rates, clustering widens ranges when players repeat, fixed seed, inclusion rule, membership, verdict words, counting equals `deck_records`, retrospective equals `backtest`, forward inputs only from the validation window, script never trains); 44 of 44 modes match the export; page shows it with a copy-without-file fallback |
+| regression | `.venv/Scripts/python -m pytest`; `node scripts/check_web_engine.mjs`; run1–run5 tests; page_test; site_check; engine snapshot `cmp` with run1-before | PASS | 183 passed; all 137,367 checks agree; all `fails: []`; 44 modes x 4 pages + 2 pages + 10 edge links, no problems; engine snapshot identical to the pre-redesign baseline |
+| regression, rules sweep | `node scripts/sweep_web_engine.mjs` | see below | started before the checkpoint commits; its result is recorded below when it finishes |
+
 Screenshots (local only, git-ignored): `docs/claude-redesign/evidence/run1-before/*.png`, `run1-after/*.png`, `run1-after/extra/*.png`.
 
 ## Checkpoints
@@ -180,6 +225,8 @@ Screenshots (local only, git-ignored): `docs/claude-redesign/evidence/run1-befor
 
 - Run 3 start: HEAD d060f8b (Run 2 commit). Changed: web/reason.html, web/counters.html, web/app.css, docs/model-notes.md (one sentence), docs/claude-redesign/BACKLOG.md (new), tests/web/run3_test.cjs (new).
 
+- Run 5 start: HEAD e19ef9b (Run 4 commit). Checkpoints: 1131921 (forward-check design only, before any result), then the forward check (src/crdeck/counters.py additive, scripts/counter_eval.py, tests/test_counter_eval.py, web/counter_eval.json), then the site, tests, docs and evidence. Size: 10 application files, +730/−177 lines in all; split across the two code commits so each stays under the 12-file / 800-line review boundary.
+
 - Run 4 start: HEAD 4787d0e (Run 3 commit). Changed: web/learn.js (new), web/model.html, web/meta.html, web/seasons.html, web/common.js; scripts/doc_claims.py (new), scripts/make_docs.py, docs/crdeck-documentation.docx; README.md, docs/model-notes.md; tests: tests/web/run4_test.cjs, tests/test_doc_claims.py (new), tests/web/page_test.cjs (menu label + inline learn.js), tests/web/site_check.cjs (inline learn.js).
 
 ## Blockers
@@ -188,12 +235,13 @@ None for Run 1. Note for later runs: a new top-level `src/crdeck/*.py` would cha
 
 ## Remaining limitations
 
-- The P1 forecast picture (observed points with median and bands) is not drawn: the current export has no forecast rows because the latest period has 23 battles. The page explains this instead of inventing bands.
-- The usage-change bar chart on Usage trends stretches to the full width, so its labels are large on wide screens (pre-existing).
-- The counters held-out check stays retrospective; prospective evaluation and dependence-aware intervals are in docs/claude-redesign/BACKLOG.md.
-- Keyboard use relies on native buttons, links and `<details>`; it was checked by structure and focus tests, not by a full key-press walk of every page. 200% zoom was measured for the builder and explanation pages only.
-- Screenshots stay local (git-ignored, about 11 MB per run).
+- Card imagery is not added: the repository has no card images and no image source is approved (the raw API responses hold icon URLs on Supercell's server, but hotlinking or copying them is the user's call). Cards keep their text names.
+- The forecast picture is drawn only when the export has forecast rows; the current export has none (the latest period has 23 battles), so the live page explains that instead. It was checked with a fixture.
+- The forward counter check uses the validation window for its inputs and one-way player clustering; two-way clustering and the combined retrain design (BACKLOG item 3) are not done. The exported retrospective check stays as exported and is shown next to the forward one.
+- The builder still takes 0–3 picks, as every version of the spec says ("pick up to three cards"); the user's question about picking 8 cards is a separate decision.
+- The shared Artifact copy of the site was not republished (not asked); it predates Run 5.
+- Screenshots stay local (git-ignored).
 
 ## Next exact action
 
-None. All four runs are done and committed. Possible next steps (not started): the P2 backlog in docs/claude-redesign/BACKLOG.md, a fresh daily collection so the latest period is a normal size again, and republishing the shared Artifact only if the user asks.
+None. Runs 1–5 are done and committed (no push). Open decisions for the user: card imagery source, an 8-card "check my own deck" entry, and whether to republish the shared Artifact. A fresh daily collection would give the forecast a normal-sized latest period.

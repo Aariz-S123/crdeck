@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Season Readiness · crdeck</title>
-<meta name="description" content="The Clash Royale meta decks top ranked players use right now, new cards to watch for, and when a next-season prediction becomes possible.">
+<meta name="description" content="The Clash Royale decks sampled top ranked players played most in the latest collections, new cards between saved card lists, and how many seasons are collected toward a next-season prediction (none is built).">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z' fill='%23a8247f'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,12 +40,12 @@
   <main id="main" class="wrap">
     <div class="pagehead">
       <h1>Season readiness</h1>
-      <p class="lede">What top ranked players play right now, which new cards to watch for, and how many seasons are collected toward a next-season prediction (none is built yet). This page uses Ranked battles of leaderboard players.</p>
+      <p class="lede" id="lede">What the sampled top ranked players played most in the latest collections, which new cards to watch for, and how many seasons are collected toward a next-season prediction (none is built yet). This page uses Ranked battles of leaderboard players.</p>
     </div>
     <div id="body" class="wrap"><div class="panel box"><div class="skel" style="height:90px"></div></div></div>
   </main>
   <footer class="site-foot">
-    <span>Every number here is measured from collected battles. Nothing on this page is a prediction until the prediction section unlocks.</span>
+    <span>Every number here is measured from collected battles. Nothing on this page is a prediction: no next-season prediction is built.</span>
     <span>A fan-made learning project. Not affiliated with, endorsed by or sponsored by Supercell. Battle data from the official Clash Royale API.</span>
   </footer>
 </div>
@@ -97,6 +97,8 @@
     const short = st.seasons.filter((s) => !s.covered);
     const noGames = E.m.forms.filter((f) => f.games === 0).map((f) => E.describe({ id: f.card_id, form: f.form }));
     const snaps = cards.snapshots, last = snaps[snaps.length - 1];
+    // the date the deck numbers run up to: never call a snapshot "current" without it
+    const lastP = md.periods[md.periods.length - 1], asOf = lastP ? UI.when(lastP.end) : "";
     $("#body").innerHTML = `
       <section class="panel box" aria-labelledby="pred-h">
         <div class="lockrow"><h2 id="pred-h" style="font-size:1.25rem">Season readiness</h2>
@@ -109,8 +111,8 @@
       </section>
 
       <section class="section" aria-labelledby="md-h">
-        <header><h2 id="md-h">Meta decks right now</h2>
-          <p>The ${md.decks.length} most-played exact decks among top ranked players across ${md.periods.length} collection periods (each with at least ${num(md.min_games)} games). Rising or falling compares the last two periods and counts only when the 90% range is clear of zero. <span class="src measured">measured</span></p></header>
+        <header><h2 id="md-h">Most-played decks${asOf ? `, as of ${esc(asOf)}` : ""}</h2>
+          <p>The ${md.decks.length} most-played exact decks among the sampled top ranked players across ${md.periods.length} collection periods (each with at least ${num(md.min_games)} games), up to the latest collection${asOf ? ` (${esc(asOf)})` : ""}. Rising or falling compares the last two periods and counts only when the 90% bootstrap range is clear of zero. <span class="src measured">measured</span></p></header>
         <div class="decks">${md.decks.map((d, i) => {
           const es = entries(d.deck_key), chk = E.checkDeck(es);
           return `<article class="panel deck" aria-label="Meta deck ${i + 1}">
@@ -122,6 +124,10 @@
               <div><b>${d.history[d.history.length - 1].share !== null ? pct(d.history[d.history.length - 1].share, 2) : "n/a"}</b><span>of decks in the last period</span></div>
             </div>
             <div class="trend">${trend(d, md.periods)}</div>
+            <details class="more alt"><summary>Show as a table</summary><div class="body"><div class="tblwrap"><table class="nums"><caption class="sr">Usage share of meta deck ${i + 1} per period</caption>
+              <thead><tr><th scope="col">Period</th><th scope="col">Dates</th><th scope="col">Share of decks</th><th scope="col">90% bootstrap range</th><th scope="col">Games</th></tr></thead><tbody>
+              ${d.history.map((x, k) => `<tr><td>P${k + 1}</td><td>${md.periods[k] ? `${esc(UI.when(md.periods[k].start))} to ${esc(UI.when(md.periods[k].end))}` : ""}</td><td>${x.share !== null ? pct(x.share, 2) : "n/a"}</td><td>${x.share_ci90 ? `${pct(x.share_ci90[0], 2)} to ${pct(x.share_ci90[1], 2)}` : "n/a"}</td><td>${num(x.games || 0)}</td></tr>`).join("")}
+              </tbody></table></div></div></details>
             <a class="btn small" href="reason.html#${UI.token("ranked", es, [])}" style="justify-self:start">Why this deck →</a>
           </article>`; }).join("")}</div>
       </section>

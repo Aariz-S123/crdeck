@@ -51,6 +51,9 @@ const SECTIONS = ["ov-h", "swap-h", "ev-h", "pairs-h", "warn-h", "map-h", "raw-h
   const warned = ranked.complete([])[0].entries, wx = ranked.explain(warned);
   p = await open("reason.html", `ranked~${tok(warned)}~`); let d = p.d;
   await until(() => d.querySelector("#ov-h"));
+  // Run 5: the three layers are filled the first time they are opened; open them as a reader would
+  d.querySelectorAll("details.layer").forEach((x) => { x.open = true; });
+  await until(() => d.querySelector("#map3d circle") && d.querySelectorAll("svg.chart").length >= 4);
   const ov = d.querySelector(".overview");
   out.warned = { overview: text(ov).slice(0, 600), sections: SECTIONS.filter((id) => d.getElementById(id)) };
   expect(out.warned.sections.length === SECTIONS.length, `R3.1 sections missing: ${SECTIONS.filter((id) => !d.getElementById(id))}`);

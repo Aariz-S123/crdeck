@@ -122,6 +122,9 @@ function clean(name, d, errors) {
   // ---------------- reason page
   p = await open("reason.html", reasonHash); d = p.d;
   await until(() => d.querySelector("#short-h"));
+  // redesign Run 5: the three layers are filled when first opened; open them as a reader would
+  d.querySelectorAll("details.layer").forEach((x) => { x.open = true; });
+  await until(() => d.querySelector("#map3d circle") && d.querySelector("details.why[open] .whybody svg"));
   out.reason = {
     title: d.querySelector("#title").textContent, docTitle: d.title, short: [...d.querySelectorAll(".short li")].map((li) => li.textContent.replace(/\s+/g, " ").trim()),
     charts: d.querySelectorAll("svg.chart").length, swapRows: d.querySelectorAll(".swaprow").length, openWhy: d.querySelectorAll("details.why[open] .whybody svg").length,
@@ -244,7 +247,7 @@ function clean(name, d, errors) {
   out.counters = { verdict: d.querySelector("#verdict .pill") && d.querySelector("#verdict .pill").textContent,
     verdictRows: d.querySelectorAll("#verdict tbody tr").length, styles: d.querySelectorAll("[data-style]").length,
     cards: d.querySelectorAll(".ccard").length, decks: d.querySelectorAll(".deck").length,
-    navHas: !![...d.querySelectorAll(".nav a")].find((a) => a.textContent === "Counters") };
+    navHas: !![...d.querySelectorAll(".nav a")].find((a) => a.textContent === "Find counters") }; // renamed in redesign Run 5 (four destinations)
   expect(out.counters.verdict && out.counters.verdictRows >= 1, "counters: honest verdict shown");
   out.counters.records = [...d.querySelectorAll(".deck .wins")].map((x) => /won [\d,]+ of [\d,]+|no games vs/.test(x.textContent));
   expect(out.counters.records.every(Boolean), "counters: each deck shows its real record against the style (or says it has none)");

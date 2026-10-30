@@ -26,9 +26,10 @@
   }
 
   // ------------------------------------------------------------ links between pages
-  // A page's state travels in a plain #anchor token: <mode>~<deck>~<picked cards>[~<source>],
+  // A page's state travels in a plain #anchor token: <mode>~<deck>~<picked cards>[~<source>[~<extra>]],
   // each card written as its id plus b (base), e (Evolution) or h (Hero), joined by "-".
   // The optional source is o (observed decks) or g (generated decks); older links simply leave it out.
+  // The optional extra part is page-specific text (the counter page's deck style).
   const FORM_LETTER = { base: "b", evo: "e", hero: "h" }, LETTER_FORM = { b: "base", e: "evo", h: "hero" };
   const entTok = (e) => `${e.id}${FORM_LETTER[e.form]}`;
   function parseEnts(s) {
@@ -47,27 +48,37 @@
     const raw = location.hash.replace(/^#/, "");
     let h = raw, malformed = false;
     try { h = decodeURIComponent(raw); } catch { malformed = true; }
-    const [slug, deck, seeds, src] = h.split("~");
+    const [slug, deck, seeds, src, extra] = h.split("~");
     const count = (s) => (s ? s.split("-").filter((t) => t && !/^\d+[beh]$/.test(t)).length : 0);
     return { slug: slug || null, deck: deck !== undefined ? parseEnts(deck) : null, seeds: seeds !== undefined ? parseEnts(seeds) : null,
-      source: LETTER_SRC[src] || null, malformed, bad: count(deck) + count(seeds) };
+      source: LETTER_SRC[src] || null, extra: extra || null, malformed, bad: count(deck) + count(seeds) };
   }
   function setHash(tok) { history.replaceState(null, "", "#" + tok); }
   function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch { return null; } return null; }
+  // the All cards page opened on one card form (contextual card links)
+  const cardHref = (slug, e) => `cards.html#${token(slug, null, [e])}`;
 
   // ------------------------------------------------------------ site bar and mode switch
-  const PAGES = [["index.html", "Build decks"], ["cards.html", "All cards"], ["counters.html", "Counters"], ["meta.html", "Usage trends"], ["seasons.html", "Season readiness"], ["model.html", "How it works"]];
+  // Four destinations. Explore trends groups usage trends, season readiness and the card table under one
+  // menu entry with its own sub-menu; every old page address still works.
+  const PAGES = [["index.html", "Build a deck"], ["counters.html", "Find counters"], ["meta.html", "Explore trends"], ["model.html", "How it works"]];
+  const EXPLORE = [["meta.html", "Card usage trends"], ["seasons.html", "Season readiness"], ["cards.html", "All cards"]];
   const LOGO = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z" fill="var(--elixir)"/><path d="M9.2 14.5a2.9 2.9 0 0 0 2.8 2.9" stroke="var(--surface)" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>`;
   function siteBar(page, slug) {
     const el = $("#site"); if (!el) return;
-    el.innerHTML = `<a class="brand" href="index.html#${esc(slug || "")}">${LOGO}crdeck</a>
-      <nav class="nav" aria-label="Pages">${PAGES.map(([href, label]) =>
-        `<a href="${href}#${esc(slug || "")}"${href === page ? ' aria-current="page"' : ""}>${label}</a>`).join("")}</nav>`;
+    const s = esc(slug || ""), explore = EXPLORE.some(([h]) => h === page);
+    // the page itself is "page"; the section it belongs to ("Build a deck" for a deck explanation) is "true"
+    const cur = (href) => (href === page ? ' aria-current="page"' : (href === "meta.html" && explore) || (href === "index.html" && page === "") ? ' aria-current="true"' : "");
+    el.innerHTML = `<a class="brand" href="index.html#${s}">${LOGO}crdeck</a>
+      <nav class="nav" aria-label="Pages">${PAGES.map(([href, label]) => `<a href="${href}#${s}"${cur(href)}>${label}</a>`).join("")}</nav>
+      ${explore ? `<nav class="nav subnav" aria-label="Explore trends">${EXPLORE.map(([href, label]) => `<a href="${href}#${s}"${href === page ? ' aria-current="page"' : ""}>${label}</a>`).join("")}</nav>` : ""}`;
   }
   // Mode buttons (Ranked / Trophy Road / All), then a League or Arena list for the chosen mode.
   // Every configured league and arena is listed with its battle count; ones with too few battles
-  // stay visible but cannot be picked. Sorted by game order or by battles.
+  // stay visible but cannot be picked. The list's sort order, how many groups are usable and how
+  // the battles are split sit in a compact "About these battles" disclosure.
   const MODE_SHORT = { ranked: "Ranked", trophy_road: "Trophy Road", all: "All modes" };
+  let modeInfoOpen = false;
   function modeBar(INDEX, slug, onPick) {
     const el = $("#modebar"); if (!el) return;
     const cur = INDEX.modes.find((m) => m.slug === slug) || {};
@@ -83,21 +94,29 @@
       const ok = g.status === "exported";
       return `<option value="${esc(g.slug)}"${g.slug === slug ? " selected" : ""}${ok ? "" : " disabled"}>${esc(g.group)}${floor} · ${num(g.ok_battles)} battles${ok ? "" : " · too few"}</option>`;
     };
+    const split = (((INDEX.log || {}).export || {}).config || {}).collection;
+    const fr = split && split.split ? split.split : null, wl = word.toLowerCase();
+    const span = (w) => (w && w.length === 2 ? `${esc(when(w[0]).split(",")[0])} to ${esc(when(w[1]).split(",")[0])}` : "");
     el.innerHTML = `<span class="lab" id="modelab">Game mode</span>
       <div class="modes" role="group" aria-labelledby="modelab">${tops.map((m) => `<button class="chip" data-slug="${esc(m.slug)}" aria-pressed="${m.mode === cur.mode}"
         title="${num(m.ok_battles)} battles">${esc(MODE_SHORT[m.mode] || m.label)}</button>`).join("")}</div>
       ${groups.length ? `<div class="groupbar">
         <label class="lab" for="groupsel">${esc(word)}</label>
-        <select id="groupsel" class="sel">${top ? `<option value="${esc(top.slug)}"${!cur.group ? " selected" : ""}>Every ${esc(word.toLowerCase())} · ${num(top.ok_battles)} battles</option>` : ""}${sorted.map(opt).join("")}</select>
-        <label class="lab" for="groupsort">Sort</label>
-        <select id="groupsort" class="sel"><option value="order"${sort === "order" ? " selected" : ""}>Game order</option><option value="battles"${sort === "battles" ? " selected" : ""}>Most battles</option></select>
-        <span class="muted small">${usable} of ${groups.length} ${esc(word.toLowerCase())}s have enough battles to build from.</span>
+        <select id="groupsel" class="sel">${top ? `<option value="${esc(top.slug)}"${!cur.group ? " selected" : ""}>Every ${esc(wl)} · ${num(top.ok_battles)} battles</option>` : ""}${sorted.map(opt).join("")}</select>
       </div>` : ""}
-      <p class="muted small modenote">This picks which recorded battles the numbers come from${groups.length && word === "Arena" ? " and which cards count as unlocked" : ""}. It doesn't look at your account or your skill.</p>`;
+      <p class="muted small modenote">This picks which recorded battles the numbers come from${groups.length && word === "Arena" ? " and which cards count as unlocked" : ""}. It doesn't look at your account or your skill.</p>
+      <details class="more modeinfo" id="modeinfo"${modeInfoOpen ? " open" : ""}><summary>About these battles</summary><div class="body small">
+        <p>${esc(cur.label || "This mode")}: ${num(cur.ok_battles || 0)} usable battles from the players the collector sampled, not from every player.${cur.train_window ? ` Training battles ${span(cur.train_window)}; test battles ${span(cur.test_window)}.` : ""}</p>
+        <p>Every mode${groups.length ? ` and ${esc(wl)}` : ""} has its own model, trained only on its own battles${fr ? `: the oldest ${Math.round(100 * fr.train_frac)}% train it, the next ${Math.round(100 * fr.valid_frac)}% tune its settings and the newest ${Math.round(100 * (1 - fr.train_frac - fr.valid_frac))}% test it` : ""}.</p>
+        ${groups.length ? `<p>${usable} of ${groups.length} ${esc(wl)}s have enough battles to build from; the others stay in the list but can't be picked.</p>
+        <div class="groupbar"><label class="lab" for="groupsort">Sort the ${esc(wl)} list</label>
+          <select id="groupsort" class="sel"><option value="order"${sort === "order" ? " selected" : ""}>Game order</option><option value="battles"${sort === "battles" ? " selected" : ""}>Most battles</option></select></div>` : ""}
+      </div></details>`;
     el.onclick = (ev) => { const b = ev.target.closest("[data-slug]"); if (b && b.dataset.slug !== slug) onPick(b.dataset.slug); };
-    const gs = $("#groupsel", el), so = $("#groupsort", el);
+    const gs = $("#groupsel", el), so = $("#groupsort", el), info = $("#modeinfo", el);
+    if (info) info.addEventListener("toggle", () => { modeInfoOpen = info.open; });
     if (gs) gs.onchange = () => { if (gs.value !== slug) onPick(gs.value); };
-    if (so) so.onchange = () => { store("crdeck.groupSort", so.value); modeBar(INDEX, slug, onPick); };
+    if (so) so.onchange = () => { store("crdeck.groupSort", so.value); modeBar(INDEX, slug, onPick); const g = $("#groupsort", el); if (g) g.focus(); };
   }
   // Load failures carry a kind so the page can say what actually went wrong:
   // "missing" (the file isn't in this copy of the site), "network" (no answer), "bad_data" (unreadable file).
@@ -193,6 +212,27 @@
     const tw = E.m.meta.test_window || [];
     return `${num(x.score.opponent_decks)} opponent decks sampled from ${label} battles${tw.length === 2 ? ` (${when(tw[0]).split(",")[0]} to ${when(tw[1]).split(",")[0]})` : ""}, at equal player rating`;
   }
+  // One-sentence descriptions of the classifier's styles, written for newcomers (editorial, not model output).
+  const STYLE_DEF = {
+    Beatdown: "builds one big push behind a heavy tank such as Golem, Giant or Lava Hound.",
+    Cycle: "plays cheap cards quickly so its win condition comes back around often.",
+    Control: "defends efficiently and wins with small, steady damage and counter-pushes.",
+    Siege: "places a building such as X-Bow or Mortar that hits towers from its own side.",
+    Bait: "carries several cards one spell would answer, so the opponent runs out of answers.",
+    "Bridge Spam": "drops fast, aggressive troops at the bridge to punish an opponent who just spent elixir.",
+    Graveyard: "is built around the Graveyard spell, which spawns skeletons on a tower.",
+    Hybrid: "mixes two of these plans (a trained label of its own).",
+  };
+  function styleDef(label) {
+    if (label === CRDeck.UNCERTAIN) return "Mixed style: no style reached the classifier's threshold, so no single plan is named.";
+    return STYLE_DEF[label] ? `A ${label} deck ${STYLE_DEF[label]}` : "";
+  }
+  // The ranking score split into its three terms, all in score points (100 × the score), so they add up to the total.
+  function rankParts(E, x) {
+    const o = x.objective;
+    return { win: PTS * o.meta_win_prob, synergy: PTS * E.weight * o.mean_pair_synergy, together: PTS * E.coWeight * o.mean_log_lift,
+             total: PTS * o.objective, pairs: o.scored_pairs };
+  }
   // Style label with its classifier probability kept apart from performance
   function styleNote(a) {
     if (a.probability === null) return "";
@@ -220,6 +260,32 @@
     document.body.addEventListener("pointerleave", () => { tip.hidden = true; });
     document.body.addEventListener("focusin", (ev) => { const el = ev.target.closest && ev.target.closest("[data-tip]"); if (!el) return; const r = el.getBoundingClientRect(); show(el, r.left + r.width / 2, r.top); });
     document.body.addEventListener("focusout", () => { tip.hidden = true; });
+    // Escape dismisses the tooltip without moving focus (WCAG 1.4.13)
+    document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") tip.hidden = true; });
+  }
+  // scrolling that respects the reader's reduced-motion setting
+  function scrollTo(el) {
+    if (!el) return;
+    const reduce = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ behavior: reduce ? "auto" : "smooth" });
+  }
+  // Wide tables scroll inside their own box. A box that really scrolls gets a name and a tab stop so it can be
+  // scrolled from the keyboard; boxes that fit stay plain (no extra tab stops).
+  function labelScrollers() {
+    document.querySelectorAll(".tblwrap, .gtable").forEach((w) => {
+      if (w.hasAttribute("tabindex") || !(w.scrollWidth > w.clientWidth + 1)) return;
+      const cap = w.querySelector("caption"), host = w.closest("section, details, .panel, .chartbox, .logsec");
+      const t = cap || (host && host.querySelector("h2, h3, summary, b"));
+      w.setAttribute("role", "region"); w.setAttribute("tabindex", "0");
+      w.setAttribute("aria-label", `${t ? t.textContent.replace(/\s+/g, " ").trim().slice(0, 80) : "Table"} (scrolls sideways)`);
+    });
+  }
+  function watchScrollers() {
+    let t = 0;
+    const later = () => { clearTimeout(t); t = setTimeout(labelScrollers, 200); };
+    if (typeof MutationObserver === "function") new MutationObserver(later).observe(document.body, { childList: true, subtree: true });
+    document.addEventListener("toggle", later, true);
+    window.addEventListener("resize", later);
   }
 
   // ------------------------------------------------------------ chart helpers
@@ -279,10 +345,10 @@
            <circle cx="${X(it.weight)}" cy="${y}" r="4.5" fill="${col}" stroke="var(--surface)" stroke-width="2"/>`
         : `<text x="${X(0) + 6}" y="${y + 4}">not enough games</text>`;
       g += `<rect class="hit" x="0" y="${y - rowH / 2}" width="${W}" height="${rowH}" ${tipAttr(it.name, it.known
-        ? [`weight ${signed(it.weight, 4)}`, `90% range ${(it.weight - ci).toFixed(4)} to ${(it.weight + ci).toFixed(4)}`, `${num(it.games)} games to learn from`]
+        ? [`weight ${signed(it.weight, 4)} log-odds`, `90% model range ${(it.weight - ci).toFixed(4)} to ${(it.weight + ci).toFixed(4)}`, `${num(it.games)} games to learn from`]
         : ["no learned weight: too few games to learn from"])}/>`;
     });
-    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="group" aria-label="How much each card helps, as learned from battles">${g}</svg>`;
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="group" aria-label="Card weights in log-odds with their 90% model ranges, learned from battles">${g}</svg>`;
   }
 
   // the regression line (model win rate by deck strength) over real held-out results
@@ -306,7 +372,7 @@
       g += `<line x1="${X(b.u)}" y1="${Y(b.lo)}" x2="${X(b.u)}" y2="${Y(b.hi)}" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
         <circle cx="${X(b.u)}" cy="${Y(b.win)}" r="4" fill="var(--ink)" stroke="var(--surface)" stroke-width="2"/>
         <rect class="hit" x="${X(b.u) - 9}" y="${T}" width="18" height="${H - T - B}" ${tipAttr("Real decks in the test battles", [
-          `won ${pct(b.win)} (90% range ${pct(b.lo)} to ${pct(b.hi)})`, `the line predicts ${pct(b.model)}`,
+          `won ${pct(b.win)} (90% Wilson range ${pct(b.lo)} to ${pct(b.hi)})`, `the line predicts ${pct(b.model)}`,
           `${num(b.battles)} appearances of ${num(b.decks)} decks`])}/>`;
     });
     g += `<path d="${curve.map((c, k) => `${k ? "L" : "M"}${X(c[0]).toFixed(1)},${Y(c[1]).toFixed(1)}`).join("")}" fill="none" stroke="var(--elixir)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
@@ -385,7 +451,7 @@
   }
   async function start(page, render, opts = {}) {
     document.documentElement.lang = "en";
-    initTip();
+    initTip(); watchScrollers();
     const target = opts.failTarget || "main";
     try {
       await loadIndex();
@@ -425,7 +491,7 @@
     await go(slug, true);
   }
 
-  root.UI = { $, esc, pct, signed, fmtPts, shorten, num, when, toDate, entTok, parseEnts, token, readHash, setHash, store,
-    drop, typeName, FORM_WORD, archName, tile, SLOT_KEY, verdict, support, supportText, estimateBasis, styleNote, LoadError, tipAttr, niceStep, ticks, tickLabel, barPath,
-    meter, coefChart, lineChart, partsChart, fmtCell, recordsTable, kv, md, start, failed };
+  root.UI = { $, esc, pct, signed, fmtPts, shorten, num, when, toDate, entTok, parseEnts, token, readHash, setHash, store, cardHref,
+    drop, typeName, FORM_WORD, archName, tile, SLOT_KEY, verdict, support, supportText, estimateBasis, STYLE_DEF, styleDef, rankParts, styleNote, LoadError, tipAttr,
+    scrollTo, labelScrollers, niceStep, ticks, tickLabel, barPath, meter, coefChart, lineChart, partsChart, fmtCell, recordsTable, kv, md, start, failed };
 })(typeof self !== "undefined" ? self : this);

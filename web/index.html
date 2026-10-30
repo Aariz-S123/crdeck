@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>crdeck Deck Builder</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Pick up to three Clash Royale cards and get three legal decks built from real top-player battles, with the reasons behind every number.">
+<meta name="description" content="Pick up to three Clash Royale cards and see legal eight-card decks from recorded battles: real observed decks by default, generated ones on request, each with its evidence, warnings and reasons.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z' fill='%23a8247f'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,14 +31,11 @@
 .rm { border: 0; background: transparent; color: var(--muted); width: 36px; height: 36px; border-radius: 8px; font-size: 20px; line-height: 1; }
 .rm:hover { background: var(--sunken); color: var(--ink); }
 .filters { display: grid; gap: var(--space-2); }
-.search { width: 100%; min-height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--sunken); color: var(--ink); font: inherit; }
 .types { display: flex; flex-wrap: wrap; gap: 4px; }
+.pickact { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.pickact:empty { display: none; }
 .cardlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); gap: 6px; max-height: 50vh; overflow-y: auto; padding: 2px; margin: -2px; }
 @media (max-width: 920px) { .cardlist { max-height: 46vh; } }
-.pick { display: flex; align-items: center; gap: var(--space-2); text-align: left; min-height: 48px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); min-width: 0; }
-.pick:hover { border-color: var(--elixir); }
-.pick[aria-pressed="true"] { border-color: var(--elixir); background: var(--elixir-soft); }
-.pick .pn { display: block; font-size: 0.875rem; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pick.locked { opacity: 0.5; cursor: not-allowed; border-style: dashed; }
 .pick.locked:hover { border-color: var(--line); }
 .lockhead { grid-column: 1 / -1; margin: 6px 0 0; font-size: 0.8125rem; font-weight: 600; color: var(--muted); }
@@ -76,6 +73,11 @@
 .style-line { font-size: 0.9375rem; }
 .copyfall { display: grid; gap: 4px; font-size: 0.875rem; }
 .copyfall input { width: 100%; min-height: 44px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--sunken); color: var(--ink); font: inherit; }
+.rankwhy .body p { max-width: 75ch; }
+.compare { grid-column: 1 / -1; padding: var(--space-3) var(--space-4); }
+.compare table.nums td, .compare table.nums th { text-align: left; vertical-align: top; }
+.compare table.nums td { min-width: 150px; }
+.resnote { max-width: 75ch; }
 </style>
 </head>
 <body>
@@ -96,12 +98,15 @@
         <h2 class="stephead" id="pick-h"><span class="n">1</span> Pick your cards</h2>
         <div class="seeds" id="seeds"></div>
         <p class="muted small" id="seed-hint">Optional. With no cards picked, it shows the highest-scoring options under this model.</p>
+        <div class="pickact" id="pickact"></div>
         <p class="notice" id="seed-note" role="status" hidden></p>
         <a class="btn viewres" href="#res-h">See the suggested decks ↓</a>
         <div class="filters">
           <label class="sr" for="q">Search cards</label>
           <input class="search" id="q" type="search" placeholder="Search cards" autocomplete="off">
           <div class="types" role="group" aria-label="Card type" id="types"></div>
+          <p class="muted small" id="typedef"></p>
+          <p class="muted small" id="formdef"></p>
         </div>
         <div class="cardlist" id="cardlist" aria-label="Cards to pick"></div>
       </section>
@@ -118,6 +123,7 @@
           <div class="panel deck" aria-hidden="true"><div class="skel" style="height:22px;width:50%"></div><div class="skel" style="height:170px"></div><div class="skel" style="height:60px"></div></div>
           <div class="panel deck" aria-hidden="true"><div class="skel" style="height:22px;width:55%"></div><div class="skel" style="height:170px"></div><div class="skel" style="height:60px"></div></div>
         </div>
+        <p class="muted small resnote" id="resnote">How to read the numbers: the estimates come from a model that learns from recorded battle results; it doesn't play the game. Picking the top of many estimates makes the top ones look a little better than they are, and the 90% ranges don't include that. A deck's warnings and its exact-deck record matter more than a small gap between two estimates.</p>
       </section>
     </div>
   </main>
@@ -135,6 +141,13 @@
   "use strict";
   const { $, esc, pct, num } = UI;
   const TYPES = [["all", "All"], ["troop", "Troops"], ["spell", "Spells"], ["building", "Buildings"]];
+  // short definitions shown under the type filter (visible text, not a hover)
+  const TYPE_DEF = {
+    all: "All card types. Troops move and fight, spells take effect where you cast them, buildings stay where you place them.",
+    troop: "Troops are units that move and fight on their own after you place them. Champions are troops too.",
+    spell: "Spells are cast on a spot of the arena and take effect there, often as area damage.",
+    building: "Buildings are placed on your own side and stay there: they defend, produce troops or attack towers from range.",
+  };
   const FORM_ORDER = { base: 0, evo: 1, hero: 2 };
   // source: "observed" (real decks from the mode's pool, the default) or "generated" (the beam search, experimental)
   let ctx = null, E = null, seeds = null, decks = [], loaded = false, source = null, obs = null;
@@ -157,7 +170,7 @@
     if (loaded) saveLink(); // a mode, league or arena switch goes into the link too
     loaded = true;
     $("#slotkey").innerHTML = UI.SLOT_KEY;
-    renderHelp(); renderSource(); renderTypes(); renderSeeds(); renderCards(); build();
+    renderHelp(); renderSource(); renderTypes(); renderFormDef(); renderSeeds(); renderCards(); build();
     if (lockedNow.length) showNote(`Left out because ${lockedNow.length === 1 ? "it isn't" : "they aren't"} unlocked in ${E.m.availability.arena}: ${lockedNow.map((s) => E.whyNot(s)).join("; ")}.`);
     else if (dropped) showNote(`${dropped} card${dropped === 1 ? "" : "s"} in the link ${dropped === 1 ? "isn't" : "aren't"} a card form in this game, so ${dropped === 1 ? "it was" : "they were"} left out.`);
   }, { failTarget: "#decks", onLoading: () => { $("#status").textContent = "Loading this mode…"; } });
@@ -205,6 +218,15 @@
   // ------------------------------------------------------------ picker
   function renderTypes() {
     $("#types").innerHTML = TYPES.map(([k, l]) => `<button class="chip" data-type="${k}" aria-pressed="${view.type === k}">${l}</button>`).join("");
+    $("#typedef").textContent = TYPE_DEF[view.type];
+  }
+  // what Base, EVO and HERO mean here, with the special slots read from this mode's rules and unlocks
+  function renderFormDef() {
+    const r = E.m.rules, av = E.m.availability, word = { evo: "Evolution", hero: "Hero", wild: "Wild" }, kind = { evo: "an Evolution", hero: "a Hero", champion: "a Champion" };
+    const slots = r.special_slots.filter((s) => !av || av.slots.includes(s.name));
+    $("#formdef").textContent = slots.length
+      ? `Base is a card's normal form. EVO (Evolution) and HERO mark stronger forms of some cards, listed as their own entries; each needs a special slot: ${slots.map((s) => `the ${word[s.name]} slot takes ${s.accepts.map((k) => kind[k]).join(" or ")}`).join("; ")}.`
+      : `Only base forms here: Evolutions and Heroes aren't unlocked in ${av ? av.arena : "this mode"}.`;
   }
   $("#types").onclick = (ev) => { const b = ev.target.closest("[data-type]"); if (!b) return; view.type = b.dataset.type; renderTypes(); renderCards(); };
   $("#q").addEventListener("input", (ev) => { view.q = ev.target.value; renderCards(); });
@@ -224,10 +246,13 @@
         ${UI.drop(f.c)}<span style="min-width:0"><span class="pn">${esc(f.c.name)}${f.form !== "base" ? ` <span class="fbadge ${f.form}">${f.form === "evo" ? "EVO" : "HERO"}</span>` : ""}</span>
         <span class="pt">${locked ? esc(E.whyNot({ id: f.card_id, form: f.form }).replace(/^.*? unlocks? at /, "Unlocks at ")) : `${UI.typeName(f.c)} · ${f.games ? num(f.games) + " games" : "not played here"}${early(f)}`}</span></span>
       </button>`;
-    $("#cardlist").innerHTML = !list.length ? `<p class="muted small">No card matches “${esc(view.q)}”. Check the spelling or clear the search.</p>`
-      : open.map((f) => btn(f, false)).join("") + (shut.length ? `<p class="lockhead">Not unlocked in ${esc(av.arena)} yet (${shut.length})</p>` + shut.map((f) => btn(f, true)).join("") : "");
+    const anyEarly = av && open.some((f) => String(f.card_id) in av.seen_early);
+    $("#cardlist").innerHTML = !list.length ? `<p class="muted small">No card matches “${esc(view.q)}”. Check the spelling or clear the search. <button class="btn small" type="button" data-clearq>Clear the search</button></p>`
+      : (anyEarly ? `<p class="lockhead">“early” marks cards the wiki unlocks in a later arena that decks in ${esc(av.arena)} already use.</p>` : "")
+        + open.map((f) => btn(f, false)).join("") + (shut.length ? `<p class="lockhead">Not unlocked in ${esc(av.arena)} yet (${shut.length})</p>` + shut.map((f) => btn(f, true)).join("") : "");
   }
   $("#cardlist").onclick = (ev) => {
+    if (ev.target.closest("[data-clearq]")) { view.q = ""; $("#q").value = ""; renderCards(); $("#q").focus(); return; }
     const b = ev.target.closest("[data-key]"); if (!b) return;
     if (b.dataset.why) { showNote(`${b.dataset.why}, so it can't be picked in ${E.m.availability.arena}.`); return; }
     const e = CRDeck.parseKey(b.dataset.key), i = seeds.findIndex((s) => s.id === e.id);
@@ -255,12 +280,33 @@
     $("#seed-hint").textContent = seeds.length
       ? `${3 - seeds.length ? `${3 - seeds.length} slot${3 - seeds.length === 1 ? "" : "s"} free.` : "All 3 slots used."} Press × to remove a card, or switch its form.`
       : "Optional. With no cards picked, it shows the highest-scoring options under this model.";
+    // Clear picks once something is picked; with nothing picked, an example pick to see how picking works
+    $("#pickact").innerHTML = seeds.length ? `<button class="btn small" type="button" data-clear>Clear picks</button>`
+      : `<button class="btn small" type="button" data-example>Try an example</button>`;
   }
   $("#seeds").onclick = (ev) => {
     const rm = ev.target.closest("[data-rm]");
     if (rm) { seeds.splice(Number(rm.dataset.rm), 1); changed(); return; }
     const f = ev.target.closest("[data-form]");
     if (f) { seeds[Number(f.dataset.i)].form = f.dataset.form; changed(); }
+  };
+  // The example is a real card of this mode: its most-played card form that the builder can use
+  // (most training games, ties by card key), so the example always has data behind it.
+  function exampleCard() {
+    let best = null;
+    for (const e of E.candidates) {
+      const g = E.games(e), k = CRDeck.keyOf(e);
+      if (!best || g > best.g || (g === best.g && k < best.k)) best = { e, g, k };
+    }
+    return best;
+  }
+  $("#pickact").onclick = (ev) => {
+    if (ev.target.closest("[data-clear]")) { seeds = []; changed(); showNote("Picks cleared."); return; }
+    if (ev.target.closest("[data-example]")) {
+      const ex = exampleCard(); if (!ex) return;
+      seeds = [{ id: ex.e.id, form: ex.e.form }]; changed();
+      showNote(`Example pick: ${E.describe(ex.e)}, the most-played card form in this mode's training battles (${num(ex.g)} games). It's only an example: remove it or pick your own cards.`);
+    }
   };
 
   // ------------------------------------------------------------ build
@@ -330,8 +376,34 @@
       <span>You can remove a pick, or look at decks the model generates instead.</span>${gen}</div>`;
   }
 
+  // Side-by-side view of the options: shared and different cards, elixir, warnings, support and estimates.
+  // It never names a winner: the estimates share one model, and overlapping ranges are not a clear difference.
+  function compareHtml(xs) {
+    if (xs.length < 2) return "";
+    const keySets = xs.map(({ x }) => new Set(x.entries.map(CRDeck.keyOf)));
+    const shared = [...keySets[0]].filter((k) => keySets.every((s) => s.has(k)));
+    const nm = (k) => esc(E.describe(CRDeck.parseKey(k)));
+    const ranges = xs.map(({ x }) => x.score.interval);
+    const overlapAll = ranges.every((a, i) => ranges.every((b, j) => i === j || (a[0] <= b[1] && b[0] <= a[1])));
+    const row = (head, cells) => `<tr><th scope="row">${head}</th>${cells.map((c) => `<td>${c}</td>`).join("")}</tr>`;
+    return `<details class="panel more compare" id="compare"><summary>Compare the ${xs.length} options side by side</summary><div class="body">
+      <div class="tblwrap"><table class="nums"><caption class="sr">The options compared</caption>
+        <thead><tr><th scope="col"><span class="sr">Measure</span></th>${xs.map((_, i) => `<th scope="col">Option ${i + 1}</th>`).join("")}</tr></thead><tbody>
+        ${row("Source", xs.map(({ dk }) => (dk.source === "observed" ? `Observed deck (${num(dk.played)} training uses)` : "Generated · experimental")))}
+        ${row("Predicted style", xs.map(({ x }) => esc(x.archetype.label === CRDeck.NO_LABELS ? "n/a" : UI.archName(x.archetype))))}
+        <tr><th scope="row">In every option</th><td colspan="${xs.length}">${shared.length ? shared.map(nm).join(", ") : "no card is in all of them"}</td></tr>
+        ${row("Its other cards", keySets.map((s) => [...s].filter((k) => !shared.includes(k)).map(nm).join(", ")))}
+        ${row("Average elixir", xs.map(({ x }) => (x.avg_elixir === null ? "n/a" : x.avg_elixir.toFixed(1))))}
+        ${row("Warnings", xs.map(({ x }) => (x.warnings.length ? x.warnings.map((g) => esc(g.root_cause)).join("; ") : "none")))}
+        ${row("Exact-deck test record", xs.map(({ s }) => (s.games ? `won ${num(s.wins)} of ${num(s.games)}` : "no records (not zero wins)")))}
+        ${row("Estimated wins, 90% model range", xs.map(({ x }) => `${pct(x.score.meta_win_prob)} (${pct(x.score.interval[0])} to ${pct(x.score.interval[1])})`))}
+      </tbody></table></div>
+      <p class="muted small measure">No option is called the best. ${overlapAll ? "All the 90% model ranges overlap, so the estimates don't separate these decks clearly." : "Some 90% model ranges don't overlap, but every estimate comes from the same model, and picking the top of many estimates flatters all of them."} Warnings and the exact-deck records are often the more useful differences.</p>
+    </div></details>`;
+  }
+
   function renderDecks() {
-    const seedIds = new Set(seeds.map((s) => s.id));
+    const seedIds = new Set(seeds.map((s) => s.id)), rows = [];
     $("#decks").innerHTML = observedNote() + decks.map((dk, i) => {
       const entries = dk.entries;
       const x = E.explain(entries, E.objectiveDict(E.evaluate(entries)));
@@ -341,14 +413,21 @@
         ? `<span class="tag real">Observed deck</span><span class="muted small">${num(dk.played)} appearances in this mode's training battles (training and validation windows). One appearance is one side of one battle, so this counts uses, not players.</span>`
         : `<span class="tag gen">Generated by the model · experimental</span><span class="muted small">A new combination from the search; see below whether anyone played it.</span>`;
       const sup = UI.supportText(E, x, label);
+      rows.push({ dk, x, s: sup.s });
       // warnings first and in full: they are rules of thumb about the cards, shown before any estimate
       const health = x.warnings.length
         ? x.warnings.map((g) => `<div class="notice"><b>Watch out:</b> ${esc(g.root_cause)}</div>`).join("")
         : `<div class="okline">✓ No deck-check warnings: it has a win condition, air defense and spells, at a workable elixir cost. <span class="src rule">rule of thumb</span></div>`;
-      const note = UI.styleNote(a);
+      const note = UI.styleNote(a), sd = a.label === CRDeck.NO_LABELS ? "" : UI.styleDef(a.label);
+      // why it ranks where it does: the score's three terms in score points, and the strongest measured pair
+      const rp = UI.rankParts(E, x), bp = x.synergy_top[0], sp = (val) => `${val >= 0 ? "+" : "−"}${Math.abs(val).toFixed(2)}`;
+      const why = `<details class="more rankwhy"><summary>Why it ranks here</summary><div class="body small">
+          <p>Options are ordered by the builder's score, in score points: estimated wins ${rp.win.toFixed(2)}, pair synergy ${sp(rp.synergy)}, cards played together ${sp(rp.together)}, total ${rp.total.toFixed(2)}. It is a ranking number, not a probability.</p>
+          <p>${bp ? `Strongest card pair: ${esc(bp.pair)}, which won ${pct(bp.shrunk_wr)} of ${num(bp.games)} games together, ${bp.synergy > 0 ? "more" : "less"} than each card on its own predicts. That is a pattern in the battles, not proof that the pair causes wins.` : "No card pair here was played together often enough for a synergy score."}</p></div></details>`;
       return `<article class="panel deck" aria-labelledby="dk${i}">
         <div class="deck-top"><span class="k">Option ${i + 1}</span><div class="prov">${prov}</div>
           <h3 id="dk${i}">${a.label === CRDeck.NO_LABELS ? "Suggested deck" : `Predicted style: ${esc(UI.archName(a))}`}</h3>
+          ${sd ? `<p class="small style-def">${esc(sd)} <span class="src rule">plain-language description, not model output</span></p>` : ""}
           ${note ? `<details class="more"><summary>What “predicted style” means</summary><div class="body small">${esc(note)}</div></details>` : ""}</div>
         <div class="grid8">${x.entries.map((e) => UI.tile(E, e, x.legality.slots, seedIds, null)).join("")}</div>
         <div class="health">${health}</div>
@@ -362,13 +441,14 @@
           <div class="meter">${UI.meter(x.score)}</div>
           <div class="range cap"><span class="pill ${v[0]}">${v[1]}</span> 90% model range ${pct(x.score.interval[0])} to ${pct(x.score.interval[1])}, against ${esc(UI.estimateBasis(E, x, label))}.</div>
         </div>
+        ${why}
         <div class="actions">
           <a class="btn primary" href="${href}">Explain this deck →</a>
           <button class="btn" data-copy="${i}">Copy card list</button>
         </div>
         <div class="copyfall" data-fall="${i}" hidden></div>
       </article>`;
-    }).join("");
+    }).join("") + compareHtml(rows);
   }
   $("#decks").onclick = async (ev) => {
     if (ev.target.closest("[data-gen]")) { source = "generated"; renderSource(); saveLink(); build(); return; }

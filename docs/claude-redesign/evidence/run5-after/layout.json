@@ -1,0 +1,314 @@
+{
+ "builder-desktop-light": {
+  "viewport": 1425,
+  "page_width": 1425,
+  "page_height": 3241,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "builder-mobile-light": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 5990,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table.nums",
+   "thead",
+   "tr",
+   "th",
+   "th"
+  ],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "builder-mobile-dark": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 5990,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table.nums",
+   "thead",
+   "tr",
+   "th",
+   "th"
+  ],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "reason-desktop-light": {
+  "viewport": 1425,
+  "page_width": 1425,
+  "page_height": 1810,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "reason-mobile-light": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 2964,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "reason-mobile-dark": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 2964,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "counters-desktop-light": {
+  "viewport": 1425,
+  "page_width": 1425,
+  "page_height": 3552,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "counters-mobile-light": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 8101,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table.nums",
+   "thead",
+   "tr",
+   "th",
+   "tbody"
+  ],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "counters-mobile-dark": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 8101,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table.nums",
+   "thead",
+   "tr",
+   "th",
+   "tbody"
+  ],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "cards-desktop-light": {
+  "viewport": 1425,
+  "page_width": 1425,
+  "page_height": 12481,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "cards-mobile-light": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 17599,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table#gtable.cards",
+   "thead",
+   "tr",
+   "th",
+   "th.n"
+  ],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "cards-mobile-dark": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 17599,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table#gtable.cards",
+   "thead",
+   "tr",
+   "th",
+   "th.n"
+  ],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "meta-desktop-light": {
+  "viewport": 1425,
+  "page_width": 1425,
+  "page_height": 4065,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "meta-mobile-light": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 7081,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table.nums",
+   "thead",
+   "tr",
+   "th",
+   "th"
+  ],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "meta-mobile-dark": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 7081,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table.nums",
+   "thead",
+   "tr",
+   "th",
+   "th"
+  ],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "seasons-desktop-light": {
+  "viewport": 1425,
+  "page_width": 1425,
+  "page_height": 3955,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "seasons-mobile-light": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 9920,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "seasons-mobile-dark": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 9920,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "model-desktop-light": {
+  "viewport": 1425,
+  "page_width": 1425,
+  "page_height": 11131,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "model-mobile-light": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 18671,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table#report.results",
+   "thead",
+   "tr",
+   "th",
+   "th"
+  ],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "model-mobile-dark": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 18671,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table#report.results",
+   "thead",
+   "tr",
+   "th",
+   "th"
+  ],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ }
+}

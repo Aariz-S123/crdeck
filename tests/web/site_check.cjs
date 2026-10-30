@@ -90,6 +90,9 @@ function sanity(label, p) {
       await until(() => p.d.querySelector("#short-h") || p.d.querySelector(".empty"));
       if (!p.d.querySelector("#short-h")) bad(`${m.slug}: reason page empty: ${p.d.querySelector(".empty").textContent.trim().slice(0, 150)}`);
       else {
+        // redesign Run 5: layers are filled when first opened; open them so their charts are checked too
+        p.d.querySelectorAll("details.layer").forEach((x) => { x.open = true; });
+        await until(() => p.d.querySelectorAll("svg.chart").length >= 2, 30000);
         if (p.d.querySelectorAll("svg.chart").length < 2) bad(`${m.slug}: reason charts missing`);
         const ap = p.d.querySelector("[data-apply]");
         if (ap) { ap.click(); await wait(200); if (!p.d.querySelector("#undo")) bad(`${m.slug}: swap did not apply`); }

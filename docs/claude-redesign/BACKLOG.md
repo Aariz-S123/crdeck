@@ -4,6 +4,13 @@ These items came out of the redesign review. Runs 1–4 label the current behavi
 how anything is evaluated or trained. Each item below needs its own design, specified before any new
 numbers are looked at.
 
+**Run 5 (2026-10-29, at the user's request "implement all of them").** Done: items 1, 2 and 4 below, as
+the forward check (design fixed first: `EVAL-DESIGN.md`; code `crdeck.counters.check_version`,
+`scripts/counter_eval.py`; results `web/counter_eval.json`, shown on the Counters page), and every product
+item except card imagery. Still open: item 3 (it needs retraining), two-way clustering, and card imagery
+(no image source is in the repository or approved; the runs' rule is "no image dependency"). Details and
+checks: `PROMPT-PROGRESS.md`, Run 5.
+
 ## Counter evaluation (research)
 
 1. **Prospective (strictly forward) evaluation of counter recommendations.** Today `counters.opponent_sets()`

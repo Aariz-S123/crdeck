@@ -64,6 +64,8 @@ for (const [name, url] of Object.entries(PAGES)) for (const view of VIEWS) {
     if (!busy) break;
   }
   await wait(400);
+  // OPEN_DETAILS=1: open every disclosure (lazy layers, "Show as a table", comparison) before measuring
+  if (process.env.OPEN_DETAILS) { await evaluate(`document.querySelectorAll("details").forEach((x) => { x.open = true; })`); await wait(3000); }
   const m = await evaluate(`(() => { const d = document.documentElement; const wide = [...document.querySelectorAll("body *")].filter((e) => { const r = e.getBoundingClientRect(); return r.width && r.right > d.clientWidth + 1; }).slice(0, 5).map((e) => e.tagName.toLowerCase() + (e.id ? "#" + e.id : "") + (e.className && typeof e.className === "string" ? "." + e.className.split(" ")[0] : ""));
     return { viewport: d.clientWidth, page_width: d.scrollWidth, page_height: d.scrollHeight, overflow_px: d.scrollWidth - d.clientWidth, wider_than_viewport: wide,
       dark: matchMedia("(prefers-color-scheme: dark)").matches, viewport_meta: !!document.querySelector('meta[name="viewport"]'), doctype: !!document.doctype, lang: d.lang }; })()`);
