@@ -41,7 +41,7 @@
 .types { display: flex; flex-wrap: wrap; gap: 4px; }
 .pickact { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .pickact:empty { display: none; }
-.cardlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); gap: 6px; max-height: 50vh; overflow-y: auto; padding: 2px; margin: -2px; }
+.cardlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); align-content: start; gap: 6px; max-height: 50vh; overflow-y: auto; padding: 2px; margin: -2px; }
 @media (max-width: 920px) { .cardlist { max-height: 46vh; } }
 .pick.locked { opacity: 0.5; cursor: not-allowed; border-style: dashed; }
 .pick.locked:hover { border-color: var(--line); }
