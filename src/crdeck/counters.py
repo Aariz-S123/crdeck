@@ -29,7 +29,13 @@ flag) that raises both W(A | O) and the score without adding a deck warning.
 Held-out check (`backtest`): in the test window, which the exported models never saw, the records of the
 `backtest.top` best-ranked counter decks against each style, compared with as many decks the deck
 builder ranks strongest overall and with all pool decks; once with every game and once counting only
-games by players who never appear in the training battles.
+games by players who never appear in the training battles. It is retrospective: the opponent decks
+standing for each style, and the general score's opponent sample, come from the test window itself.
+
+Forward check (`check_version`, docs/claude-redesign/EVAL-DESIGN.md, design fixed before any result):
+the same check with those two inputs taken from the validation window instead, so every input is known
+before the test window, and with ranges from a paired bootstrap over players (all groups from the same
+draw, so shared decks, battles and players stay shared), plus a style-standardized rate.
 """
 
 from __future__ import annotations
@@ -280,7 +286,8 @@ def _wilson(w: int, n: int, z: float = Z90) -> list[float]:
 
 def _summary(groups: dict) -> dict:
     """Rates with 90% Wilson ranges, and the counter group's difference from the others with a 90% range
-    (normal approximation, groups treated as independent; they share decks, which only makes it wider)."""
+    (normal approximation that treats the groups as independent). The groups share decks, battles and
+    players, so this difference range is not dependence-aware; `check_version` gives paired bootstrap ranges."""
     out = {}
     for g, (n, w) in groups.items():
         out[g] = {"games": n, "wins": w, "rate": w / n if n else None, "ci90": _wilson(w, n) if n else None}
@@ -362,3 +369,177 @@ def observed_decks(pool: list, objectives: dict, seeds: list[str], n_results: in
         if len(chosen) == n_results:
             break
     return chosen
+
+
+# ---------------------------------------------------------------- forward check (docs/claude-redesign/EVAL-DESIGN.md)
+GROUPS = ("counter", "field", "all")
+FEW = 30    # fewest games of every group against a style for it to enter the style-standardized rate
+
+
+def style_sets(ctx, battles: pd.DataFrame, per_set: int) -> dict:
+    """The most-played decks of each predicted style in any window's battles ({style: [[deck, appearances]]}),
+    built like opponent_sets()["styles"], which always uses the test window."""
+    freq = side_rows(battles)["deck_key"].value_counts()
+    styles: dict[str, list] = {}
+    if ctx.archetype.fitted:
+        for d, n in freq.head(3000).items():
+            lab = ctx.archetype.predict(parse_deck_key(d)).label
+            styles.setdefault(lab, [])
+            if len(styles[lab]) < per_set:
+                styles[lab].append([d, int(n)])
+    return styles
+
+
+def window_scorer(ctx, battles: pd.DataFrame):
+    """A shallow copy of ctx whose general score samples its opponent decks from `battles` instead of the test
+    window, with the exported scorer's size, seed and procedure. The models are shared, not refitted."""
+    import copy
+    from .strength import MetaScorer
+    ds = ctx.cfg["deck_score"]
+    opp = pd.concat([battles["deck_a"], battles["deck_b"]], ignore_index=True)
+    out = copy.copy(ctx)
+    out.scorer = MetaScorer(ctx.strength, opp, ds["n_opponent_decks"], ds["n_bootstrap"], ds["interval"], ctx.cfg["seed"])
+    return out
+
+
+def check_lists(ctx, model: MatchupModel, searcher, pool: list, styles: dict, top: int, evals: dict) -> tuple[dict, list]:
+    """The decks of the compared groups, chosen exactly as in backtest(): {style: the `top` counter decks against
+    that style's opponent decks} for every usable style, and the `top` decks with the highest general score."""
+    usable = {st: o for st, o in styles.items() if st not in (UNCERTAIN, NO_LABELS) and o}
+    field = [d for d, _ in sorted(pool, key=lambda t: (-tie(evals[t[0]].objective), t[0]))[:top]]
+    counter = {st: [r["key"] for r in _Scorer(ctx, model, searcher, opps).rank(pool, evals)[:top]] for st, opps in sorted(usable.items())}
+    return counter, field
+
+
+def test_games(ctx, pool: list) -> pd.DataFrame:
+    """Every test-window game of a pool deck (one side of one battle, counted as in deck_records): battle_key,
+    side, deck, the opponent's predicted style, won (0/1), and the player's and the opponent's tags (None
+    without the player table)."""
+    keys, styles, rows = {d for d, _ in pool}, {}, []
+    te = ctx.split.test
+    for bk, a, b, aw in zip(te["battle_key"], te["deck_a"], te["deck_b"], te["a_won"].astype(bool)):
+        for side, me, op, won in (("A", a, b, aw), ("B", b, a, not aw)):
+            if me not in keys:
+                continue
+            if op not in styles:
+                styles[op] = ctx.archetype.predict(parse_deck_key(op)).label
+            rows.append((bk, side, me, styles[op], int(won)))
+    g = pd.DataFrame(rows, columns=["battle_key", "side", "deck", "style", "won"])
+    f = ctx.paths.interim / "decks_in_battle.parquet"
+    if not f.exists():
+        return g.assign(player=None, opponent=None)
+    dib = pd.read_parquet(f, columns=["battle_key", "side", "player_tag"]).drop_duplicates(["battle_key", "side"])
+    me = dib.rename(columns={"player_tag": "player"})
+    op = dib.assign(side=dib["side"].map({"A": "B", "B": "A"})).rename(columns={"player_tag": "opponent"})
+    return g.merge(me, on=["battle_key", "side"], how="left").merge(op, on=["battle_key", "side"], how="left")
+
+
+def memberships(games: pd.DataFrame, counter: dict, field: list) -> np.ndarray:
+    """(games, 3) 0/1: whether each game counts for the counter, field and all group. Only games against a style
+    with a counter list count at all; a game can count for several groups (shared decks are kept)."""
+    cs, fs = {st: set(v) for st, v in counter.items()}, set(field)
+    m = np.zeros((len(games), 3), dtype=np.int8)
+    for i, (d, st) in enumerate(zip(games["deck"], games["style"])):
+        if st in cs:
+            m[i] = (d in cs[st], d in fs, 1)
+    return m
+
+
+def _rates(N: np.ndarray, W: np.ndarray, inc: list[int]) -> tuple[np.ndarray, np.ndarray]:
+    """Pooled rate per group (wins / games over all styles) and the equal-weight mean of per-style rates over
+    the styles `inc` (NaN where a group has no game). N, W: (groups, styles)."""
+    with np.errstate(divide="ignore", invalid="ignore"):
+        pooled = W.sum(1) / N.sum(1)
+        std = (W[:, inc] / N[:, inc]).mean(1) if inc else np.full(len(N), np.nan)
+    return pooled, std
+
+
+def paired_bootstrap(games: pd.DataFrame, member: np.ndarray, cluster, n_boot: int = 2000, seed: int = 42,
+                     styles_inc: list[str] | None = None) -> dict:
+    """Pooled win rate of each group, the differences counter − field and counter − all, and the same for the
+    style-standardized rate, with 90% ranges (5th and 95th percentiles) from resampling whole clusters with
+    replacement. Every group is recomputed from the same draw, so shared decks, battles and players stay
+    shared. A game without a cluster id is its own cluster. styles_inc: the styles of the standardized rate
+    (None: every style where each group has at least FEW games, decided once on the full sample)."""
+    keep = member.any(1)
+    g, m = games[keep].reset_index(drop=True), member[keep].astype(float)
+    cl = pd.Series(list(cluster), dtype=object)[keep].reset_index(drop=True)
+    cl = cl.where(cl.notna(), pd.Series([f"row{i}" for i in range(len(cl))], dtype=object))
+    ci, _ = pd.factorize(cl, sort=True)
+    snames = sorted(set(g["style"]))
+    si = g["style"].map({s: k for k, s in enumerate(snames)}).to_numpy(dtype=np.int64)
+    C, S = int(ci.max()) + 1 if len(ci) else 0, len(snames)
+    n, w = np.zeros((C, 3, S)), np.zeros((C, 3, S))
+    won = g["won"].to_numpy(float)
+    for k in range(3):
+        np.add.at(n, (ci, k, si), m[:, k])
+        np.add.at(w, (ci, k, si), m[:, k] * won)
+    N, W = n.sum(0), w.sum(0)
+    if styles_inc is None:
+        styles_inc = [s for k, s in enumerate(snames) if all(N[j, k] >= FEW for j in range(3))]
+    inc = [snames.index(s) for s in styles_inc if s in snames]
+    pooled, std = _rates(N, W, inc)
+    rng, n2, w2 = np.random.default_rng(seed), n.reshape(C, 3 * S), w.reshape(C, 3 * S)
+    rep_p, rep_s = np.full((n_boot, 3), np.nan), np.full((n_boot, 3), np.nan)
+    for b in range(n_boot if C else 0):
+        k = np.bincount(rng.integers(0, C, C), minlength=C).astype(float)
+        rep_p[b], rep_s[b] = _rates((k @ n2).reshape(3, S), (k @ w2).reshape(3, S), inc)
+
+    def rng90(x):
+        x = x[~np.isnan(x)]
+        return [float(np.percentile(x, 5)), float(np.percentile(x, 95))] if len(x) else None
+
+    def diff(point, reps, j):
+        d = point[0] - point[j]
+        r = rng90(reps[:, 0] - reps[:, j])
+        return None if np.isnan(d) or r is None else [float(d)] + r
+
+    num = lambda x: None if np.isnan(x) else float(x)  # noqa: E731
+    return {
+        "games": {gr: int(N[j].sum()) for j, gr in enumerate(GROUPS)}, "wins": {gr: int(W[j].sum()) for j, gr in enumerate(GROUPS)},
+        "rate": {gr: num(pooled[j]) for j, gr in enumerate(GROUPS)}, "rate_ci90": {gr: rng90(rep_p[:, j]) for j, gr in enumerate(GROUPS)},
+        "vs_field": diff(pooled, rep_p, 1), "vs_all": diff(pooled, rep_p, 2),
+        "standardized": {"styles": [snames[k] for k in inc], "rate": {gr: num(std[j]) for j, gr in enumerate(GROUPS)},
+                         "vs_field": diff(std, rep_s, 1), "vs_all": diff(std, rep_s, 2),
+                         "undefined_replicates": int(np.isnan(rep_s[:, 0] - rep_s[:, 1]).sum())},
+        "clusters": C, "replicates": n_boot, "seed": seed,
+    }
+
+
+def check_verdict(res: dict, min_games: int) -> str:
+    """The existing check's verdict words, from paired-bootstrap ranges."""
+    if res["games"]["counter"] < min_games:
+        return "too_few"
+    if res["vs_field"] and res["vs_field"][1] > 0:
+        return "beats_strongest"
+    if res["vs_all"] and res["vs_all"][1] > 0:
+        return "beats_average"
+    return "not_shown"
+
+
+def check_version(ctx, model: MatchupModel, searcher, pool: list, styles: dict, games: pd.DataFrame,
+                  new_sides: set | None, top: int, min_games: int, n_boot: int = 2000, seed: int = 42,
+                  evals: dict | None = None) -> dict:
+    """One version of the check: the groups chosen from these inputs (searcher: whose general score ranks the
+    field; styles: the opponent decks per style), then for every player and for players never seen in the
+    training battles, the pooled and style-standardized results with player-clustered ranges (primary) and
+    opponent-clustered ranges (sensitivity). Headline and verdict follow backtest()."""
+    evals = evals if evals is not None else pool_evaluations(searcher, pool)
+    counter, field = check_lists(ctx, model, searcher, pool, styles, top, evals)
+    member = memberships(games, counter, field)
+    out = {"styles": sorted(counter), "field": field, "counter": counter, "populations": {}}
+    unseen = None if new_sides is None else np.array([(b, s) in new_sides for b, s in zip(games["battle_key"], games["side"])], dtype=bool)
+    for pop, mask in (("all_players", np.ones(len(games), dtype=bool)), ("new_players", unseen)):
+        if mask is None:
+            out["populations"][pop] = None
+            continue
+        g, mb = games[mask].reset_index(drop=True), member[mask]
+        res = paired_bootstrap(g, mb, g["player"], n_boot, seed)
+        opp = paired_bootstrap(g, mb, g["opponent"], n_boot, seed, res["standardized"]["styles"])
+        res["opponent_clusters"] = {"vs_field": opp["vs_field"], "vs_all": opp["vs_all"],
+                                    "standardized": {k: opp["standardized"][k] for k in ("vs_field", "vs_all")}, "clusters": opp["clusters"]}
+        out["populations"][pop] = res
+    new = out["populations"]["new_players"]
+    out["headline"] = "new_players" if new is not None and new["games"]["counter"] >= min_games else "all_players"
+    out["verdict"] = check_verdict(out["populations"][out["headline"]], min_games)
+    return out
