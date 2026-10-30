@@ -1,0 +1,47 @@
+Ranked (Path of Legends): 475 searches (203 refused), 4412 swaps, 0 problems
+Trophy Road ladder: 475 searches (203 refused), 4413 swaps, 0 problems
+All modes: 475 searches (203 refused), 4412 swaps, 0 problems
+Ranked (Path of Legends): Master I: 475 searches (203 refused), 4413 swaps, 0 problems
+Ranked (Path of Legends): Master II: 469 searches (202 refused), 4383 swaps, 0 problems
+Ranked (Path of Legends): Master III: 474 searches (203 refused), 4402 swaps, 0 problems
+Ranked (Path of Legends): Champion: 474 searches (203 refused), 4402 swaps, 0 problems
+Ranked (Path of Legends): Grand Champion: 474 searches (203 refused), 4410 swaps, 0 problems
+Ranked (Path of Legends): Royal Champion: 475 searches (203 refused), 4412 swaps, 0 problems
+Ranked (Path of Legends): Ultimate Champion: 475 searches (203 refused), 4412 swaps, 0 problems
+Trophy Road ladder: Goblin Stadium: 444 searches (374 refused), 608 swaps, 0 problems
+Trophy Road ladder: Bone Pit: 470 searches (372 refused), 862 swaps, 0 problems
+Trophy Road ladder: Barbarian Bowl: 472 searches (340 refused), 1542 swaps, 0 problems
+Trophy Road ladder: Spell Valley: 473 searches (332 refused), 1713 swaps, 0 problems
+Trophy Road ladder: Builder's Workshop: 473 searches (302 refused), 2343 swaps, 0 problems
+Trophy Road ladder: P.E.K.K.A's Playhouse: 473 searches (287 refused), 2658 swaps, 0 problems
+Trophy Road ladder: Royal Arena: 473 searches (276 refused), 2889 swaps, 0 problems
+Trophy Road ladder: Frozen Peak: 473 searches (266 refused), 3099 swaps, 0 problems
+Trophy Road ladder: Jungle Arena: 472 searches (255 refused), 3327 swaps, 0 problems
+Trophy Road ladder: Hog Mountain: 474 searches (247 refused), 3495 swaps, 0 problems
+Trophy Road ladder: Electro Valley: 474 searches (242 refused), 3600 swaps, 0 problems
+Trophy Road ladder: Spooky Town: 474 searches (233 refused), 3789 swaps, 0 problems
+Trophy Road ladder: Rascal's Hideout: 475 searches (230 refused), 3855 swaps, 0 problems
+Trophy Road ladder: Serenity Peak: 474 searches (222 refused), 4020 swaps, 0 problems
+Trophy Road ladder: Miner's Mine: 475 searches (213 refused), 4212 swaps, 0 problems
+Trophy Road ladder: Executioner's Kitchen: 475 searches (209 refused), 4296 swaps, 0 problems
+Trophy Road ladder: Royal Crypt: 475 searches (204 refused), 4392 swaps, 0 problems
+Trophy Road ladder: Silent Sanctuary: 475 searches (203 refused), 4413 swaps, 0 problems
+Trophy Road ladder: Dragon Spa: 475 searches (203 refused), 4413 swaps, 0 problems
+Trophy Road ladder: Boot Camp: 475 searches (203 refused), 4413 swaps, 0 problems
+Trophy Road ladder: Clash Fest: 475 searches (203 refused), 4413 swaps, 0 problems
+Trophy Road ladder: PANCAKES!: 475 searches (203 refused), 4413 swaps, 0 problems
+Trophy Road ladder: Valkalla: 475 searches (203 refused), 4413 swaps, 0 problems
+Trophy Road ladder: Legendary Arena: 475 searches (203 refused), 4413 swaps, 0 problems
+Trophy Road ladder: Lumberlove Cabin: 475 searches (203 refused), 4413 swaps, 0 problems
+Trophy Road ladder: Royal Road: 475 searches (203 refused), 4413 swaps, 0 problems
+Trophy Road ladder: Musketeer Street: 475 searches (203 refused), 4413 swaps, 0 problems
+Trophy Road ladder: Summit of Heroes: 475 searches (203 refused), 4413 swaps, 0 problems
+Trophy Road ladder: Magic Academy: 475 searches (203 refused), 4413 swaps, 0 problems
+Trophy Road ladder: Ultimate Clash Pit: 475 searches (203 refused), 4413 swaps, 0 problems
+Trophy Road ladder: Little Prince's Tavern: 475 searches (203 refused), 4413 swaps, 0 problems
+Trophy Road ladder: Spirit Square: 475 searches (203 refused), 4412 swaps, 0 problems
+Trophy Road ladder: Seasonal Arena I: 475 searches (203 refused), 4413 swaps, 0 problems
+Trophy Road ladder: Seasonal Arena II: 475 searches (203 refused), 4413 swaps, 0 problems
+
+20835 searches (10084 correctly refused), 169791 swaps checked, 5334.8 s
+no problems found
