@@ -12,14 +12,14 @@
 <link rel="stylesheet" href="app.css">
 <style>
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
-.back { font-weight: 600; text-decoration: none; display: inline-flex; min-height: 40px; align-items: center; }
+.back { font-weight: 600; text-decoration: none; display: inline-flex; min-height: 44px; align-items: center; }
 .top { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: var(--space-5); align-items: start; }
 @media (max-width: 880px) { .top { grid-template-columns: minmax(0, 1fr); } }
 .deckbox { padding: var(--space-4); display: grid; gap: var(--space-3); }
 .short { padding: var(--space-4) var(--space-5); display: grid; gap: var(--space-3); }
 .short ul { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-3); }
 .short li { display: grid; gap: 2px; }
-.short .big { font-family: var(--display); font-size: 2.25rem; font-weight: 700; line-height: 1; }
+.short .big { font-family: var(--display); font-size: 1.625rem; font-weight: 700; line-height: 1; }
 .short .line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px var(--space-2); }
 .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(330px, 100%), 1fr)); gap: var(--space-4); align-items: start; }
 .chartbox { padding: var(--space-4); display: grid; gap: var(--space-3); min-width: 0; grid-template-columns: minmax(0, 1fr); }
@@ -294,7 +294,7 @@ details.layer > .body { display: grid; gap: var(--space-6); margin-top: var(--sp
           <h3>The cards in 3D</h3>
           <p>Drag to turn it (arrow keys work too; Reset view puts it back). The picture squashes ${em.dim} dimensions into 3 and keeps ${pct(kept, 0)} of the spread, so it loses information and closeness here is only a rough guide. Every distance in the tables is measured in all ${em.dim} dimensions, and those distances are what the suggestions use. The tables hold the same information without the picture.</p>
           <div class="mapctl"><button class="btn small" id="mapreset">Reset view</button>
-            <label class="small muted" for="mapcolor">Color</label><select id="mapcolor" class="sel" style="min-height:32px"><option value="style">by deck style</option><option value="plain">deck only</option></select></div>
+            <label class="small muted" for="mapcolor">Color</label><select id="mapcolor" class="sel"><option value="style">by deck style</option><option value="plain">deck only</option></select></div>
           <div class="map3d" id="map3d" tabindex="0" aria-label="3D card map. Drag or use arrow keys to rotate."></div>
           <div class="key" id="mapkey"></div>
         </div>
