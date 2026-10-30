@@ -1,0 +1,278 @@
+{
+ "builder8-tablet-light": {
+  "viewport": 768,
+  "page_width": 768,
+  "page_height": 4039,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "builder8-zoom200-light": {
+  "viewport": 705,
+  "page_width": 705,
+  "page_height": 3817,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "builder8-desktop-dark": {
+  "viewport": 1425,
+  "page_width": 1425,
+  "page_height": 2644,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "builder8-mobile-dark": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 5209,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "builder7gen-tablet-light": {
+  "viewport": 768,
+  "page_width": 768,
+  "page_height": 4663,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "builder7gen-zoom200-light": {
+  "viewport": 705,
+  "page_width": 705,
+  "page_height": 4513,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "builder7gen-desktop-dark": {
+  "viewport": 1425,
+  "page_width": 1425,
+  "page_height": 3298,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "builder7gen-mobile-dark": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 5585,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "reason8-tablet-light": {
+  "viewport": 768,
+  "page_width": 768,
+  "page_height": 5868,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table.nums",
+   "thead",
+   "tr",
+   "th",
+   "th"
+  ],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "reason8-zoom200-light": {
+  "viewport": 705,
+  "page_width": 705,
+  "page_height": 7028,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "reason8-desktop-dark": {
+  "viewport": 1425,
+  "page_width": 1425,
+  "page_height": 5200,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "reason8-mobile-dark": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 8277,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table.nums",
+   "thead",
+   "tr",
+   "th",
+   "th"
+  ],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "reason8free-tablet-light": {
+  "viewport": 768,
+  "page_width": 768,
+  "page_height": 12732,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table.nums",
+   "thead",
+   "tr",
+   "th",
+   "th"
+  ],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "reason8free-zoom200-light": {
+  "viewport": 705,
+  "page_width": 705,
+  "page_height": 14279,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "reason8free-desktop-dark": {
+  "viewport": 1425,
+  "page_width": 1425,
+  "page_height": 11588,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "reason8free-mobile-dark": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 17934,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table.nums",
+   "thead",
+   "tr",
+   "th",
+   "th"
+  ],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "model-tablet-light": {
+  "viewport": 768,
+  "page_width": 768,
+  "page_height": 22957,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "model-zoom200-light": {
+  "viewport": 705,
+  "page_width": 705,
+  "page_height": 24352,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table#report.results",
+   "thead",
+   "tr",
+   "th",
+   "tbody"
+  ],
+  "dark": false,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "model-desktop-dark": {
+  "viewport": 1425,
+  "page_width": 1425,
+  "page_height": 19711,
+  "overflow_px": 0,
+  "wider_than_viewport": [],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ },
+ "model-mobile-dark": {
+  "viewport": 390,
+  "page_width": 390,
+  "page_height": 37131,
+  "overflow_px": 0,
+  "wider_than_viewport": [
+   "table#report.results",
+   "thead",
+   "tr",
+   "th",
+   "th"
+  ],
+  "dark": true,
+  "viewport_meta": true,
+  "doctype": true,
+  "lang": "en",
+  "script_errors": []
+ }
+}

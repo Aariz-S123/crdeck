@@ -81,17 +81,22 @@ function clean(name, d, errors) {
   expect(out.index.picks === 184, "index: 184 card forms in picker");
   expect([...d.querySelectorAll("#cardlist .pick")].filter((b) => /^Knight(\s|$)/.test(b.querySelector(".pn").textContent.trim())).length === 3, "index: Knight listed 3 times");
   expect(out.index.links.length === 3 && out.index.links.every((h) => /^reason\.html#ranked~\d+[beh](-\d+[beh]){7}~$/.test(h)), "index: deck links carry the deck");
-  // pick a 2nd and 3rd card, then a 4th (refused)
+  // pick a 2nd and 3rd card, fill the deck to 8 (the user raised the limit from 3 to a full deck, 2026-10-29),
+  // then a 9th (refused)
   const clickPick = (name) => [...d.querySelectorAll("#cardlist .pick")].find((b) => b.querySelector(".pn").textContent.trim() === name).click();
   expect(/no cards picked/.test(out.index.hint), "index: starts with no picks");
-  clickPick("Hog Rider"); clickPick("Fireball"); clickPick("The Log"); await wait(50); clickPick("Zap");
-  out.index.fourth = d.querySelector("#seed-note").textContent;
-  expect(/already picked 3/.test(out.index.fourth), "index: 4th pick refused with a message");
+  clickPick("Hog Rider"); clickPick("Fireball"); clickPick("The Log");
   await until(() => !/Building/.test(d.querySelector("#status").textContent) && d.querySelectorAll(".deck h3").length === 3);
   out.index.hash3 = p.w.location.hash;
   expect(/~26000021b-\d+b-\d+b$/.test(out.index.hash3), "index: picks saved in the link");
+  ["Zap", "Musketeer", "Ice Spirit", "Skeletons", "Cannon"].forEach(clickPick); await wait(50); clickPick("Valkyrie");
+  out.index.ninth = d.querySelector("#seed-note").textContent;
+  expect(/already picked 8/.test(out.index.ninth), "index: 9th pick refused with a message");
+  await until(() => !/Building/.test(d.querySelector("#status").textContent) && d.querySelectorAll(".deck h3").length === 1);
+  out.index.hash8 = p.w.location.hash;
+  expect(/~26000021b(-\d+b){7}$/.test(out.index.hash8), "index: all 8 picks saved in the link");
   // remove all picks
-  for (let k = 0; k < 3; k++) { d.querySelector("[data-rm]").click(); await wait(20); }
+  while (d.querySelector("[data-rm]")) { d.querySelector("[data-rm]").click(); await wait(20); }
   await until(() => !/Building/.test(d.querySelector("#status").textContent) && d.querySelectorAll(".deck h3").length === 3);
   out.index.hashEmpty = p.w.location.hash;
   expect(out.index.hashEmpty === "#ranked~~", "index: empty picks saved");

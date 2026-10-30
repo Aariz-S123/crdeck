@@ -1,15 +1,18 @@
 // Golden check: web/engine.js must agree with the Python package on web/golden.json.
-//   node scripts/check_web_engine.mjs
+//   node scripts/check_web_engine.mjs              (the exported golden files, web/golden/)
+//   node scripts/check_web_engine.mjs <dir>        (other golden files, e.g. from scripts/more_picks_golden.py;
+//                                                   sections a file lacks, and modes without a file, are skipped)
 // Exits 1 on any disagreement in legality, slots, searches, scores, explanations or swaps.
 import { createRequire } from "node:module";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 const require = createRequire(import.meta.url);
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const { Engine, parseKey, keyOf, SeedError } = require(join(root, "web", "engine.js"));
 const index = JSON.parse(readFileSync(join(root, "web", "modes.json"), "utf8"));
+const goldenDir = process.argv[2] ? resolve(process.argv[2]) : null;
 
 let failures = 0, checks = 0;
 const fail = (msg) => { failures++; if (failures <= 25) console.log("FAIL", msg); };
@@ -19,12 +22,14 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 // every exported mode has its own model and golden file
 for (const entry of index.modes.filter((m) => m.status === "exported")) {
 console.log(`\n=== ${entry.label} (${entry.slug}) ===`);
+const goldenFile = join(goldenDir || join(root, "web", "golden"), `${entry.slug}.json`);
+if (goldenDir && !existsSync(goldenFile)) { console.log("no golden file here, skipped"); continue; }
 const model = JSON.parse(readFileSync(join(root, "web", entry.file), "utf8"));
-const golden = JSON.parse(readFileSync(join(root, "web", "golden", `${entry.slug}.json`), "utf8"));
+const golden = JSON.parse(readFileSync(goldenFile, "utf8"));
 const eng = new Engine(model);
 
 // 1. legality on random decks
-for (const g of golden.legality) {
+for (const g of golden.legality || []) {
   const deck = g.deck.map(parseKey);
   const r = eng.checkDeck(deck);
   checks++;
@@ -33,7 +38,7 @@ for (const g of golden.legality) {
   const n = g.deck.length, rp = eng.checkPartial(deck.slice(0, Math.max(1, n - 3)));
   if (rp.legal !== g.partial_legal) fail(`partial ${g.deck.join("|")}: js ${rp.legal} vs py ${g.partial_legal}`);
 }
-console.log(`legality: ${golden.legality.length} random decks checked`);
+console.log(`legality: ${(golden.legality || []).length} random decks checked`);
 
 // 2. searches, swaps
 for (const s of golden.searches) {

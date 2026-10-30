@@ -44,8 +44,10 @@ const PROBE = `(() => { const e = document.activeElement; if (!e || e === docume
   const ring = (s.outlineStyle !== "none" && parseFloat(s.outlineWidth) > 0) || (s.boxShadow && s.boxShadow !== "none") ||
     (svg && s.stroke && s.stroke !== "none" && parseFloat(s.strokeWidth) > 0);
   const label = (e.getAttribute("aria-label") || e.textContent || e.value || e.tagName).replace(/\\s+/g, " ").trim().slice(0, 40);
+  // an element is known by its place in the document, not on screen: inside a scrolling list (the builder's
+  // cards) every focused button scrolls into the same spot, which a position-based key mistook for a wrap
   return { tag: e.tagName.toLowerCase(), id: e.id || null, label, ring, visible: r.width > 0 && r.height > 0,
-    path: e.tagName + (e.id ? "#" + e.id : "") + "@" + Math.round(r.left + scrollX) + "," + Math.round(r.top + scrollY) }; })()`;
+    path: e.tagName + (e.id ? "#" + e.id : "") + "@" + Array.prototype.indexOf.call(document.getElementsByTagName("*"), e) }; })()`;
 const report = {};
 for (const [name, url] of Object.entries(PAGES)) {
   errors.length = 0;

@@ -29,7 +29,8 @@
   // A page's state travels in a plain #anchor token: <mode>~<deck>~<picked cards>[~<source>[~<extra>]],
   // each card written as its id plus b (base), e (Evolution) or h (Hero), joined by "-".
   // The optional source is o (observed decks) or g (generated decks); older links simply leave it out.
-  // The optional extra part is page-specific text (the counter page's deck style).
+  // The optional extra part is page-specific text (the counter page's deck style; "free" on the deck page when
+  // swaps may replace the picked cards).
   const FORM_LETTER = { base: "b", evo: "e", hero: "h" }, LETTER_FORM = { b: "base", e: "evo", h: "hero" };
   const entTok = (e) => `${e.id}${FORM_LETTER[e.form]}`;
   function parseEnts(s) {
@@ -37,8 +38,9 @@
     return s.split("-").map((t) => { const m = /^(\d+)([beh])$/.exec(t); return m ? { id: Number(m[1]), form: LETTER_FORM[m[2]] } : null; }).filter(Boolean);
   }
   const SRC_LETTER = { observed: "o", generated: "g" }, LETTER_SRC = { o: "observed", g: "generated" };
-  function token(slug, deck, seeds, source) {
+  function token(slug, deck, seeds, source, extra) {
     const d = deck && deck.length ? deck.map(entTok).join("-") : "", s = seeds && seeds.length ? seeds.map(entTok).join("-") : "";
+    if (extra) return `${slug}~${d}~${s}~${SRC_LETTER[source] || ""}~${encodeURIComponent(extra)}`;
     if (source && SRC_LETTER[source]) return `${slug}~${d}~${s}~${SRC_LETTER[source]}`;
     return s || d ? `${slug}~${d}~${s}` : slug;
   }
@@ -244,8 +246,10 @@
   }
 
   // ------------------------------------------------------------ tooltip (hover and keyboard focus)
-  function tipAttr(title, lines) {
-    return `data-tip="${esc(JSON.stringify({ title, lines }))}" tabindex="0" aria-label="${esc(`${title}: ${lines.join("; ")}`)}"`;
+  // focusable = false keeps a mark out of the Tab order (hover only), for marks too many to step through one by
+  // one: the loss surface's cells would otherwise be about 400 Tab stops
+  function tipAttr(title, lines, focusable = true) {
+    return `data-tip="${esc(JSON.stringify({ title, lines }))}"${focusable ? ' tabindex="0"' : ""} aria-label="${esc(`${title}: ${lines.join("; ")}`)}"`;
   }
   function initTip() {
     const tip = document.createElement("div"); tip.id = "tip"; tip.hidden = true; tip.setAttribute("role", "tooltip"); document.body.appendChild(tip);

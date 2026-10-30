@@ -6,7 +6,7 @@ Revision 1, 18 October 2026. Solo project, Jupyter-first. This is planning guida
 
 The tool is a personal deck-building assistant. It learns card synergies, archetypes and deck strength from real top-player battles, and it always explains its recommendations.
 
-**Product promise:** Given 0–3 cards you want to play, the tool suggests legal 8-card decks, names the archetype, estimates strength from real battle data, and suggests swaps. It shows the evidence behind each suggestion.
+**Product promise:** Given 0–8 cards you want to play, the tool suggests legal 8-card decks, names the archetype, estimates strength from real battle data, and suggests swaps. It shows the evidence behind each suggestion. With all 8 picked, the one legal deck is that deck itself, so the tool scores it as it is. (The limit was 0–3 until the user raised it to a full deck on 2026-10-29.)
 
 ### Key distinctions
 
@@ -252,6 +252,7 @@ Report results as "held-out top-player battles from [dates]." These numbers meas
 | Card ID not in table | `UNKNOWN_CARD`, excluded, reported in counts |
 | Rare pair under 200 games | `INSUFFICIENT_SAMPLE`, no score shown |
 | Seed with 3 cards | Every output is legal and contains all 3 seeds |
+| Seed with 8 cards (a legal deck) | That deck is the only output; a 9th card is refused |
 | Seed that can't be legal (e.g. 3 champions) | Clear error, not an empty result |
 | Deck with no air defense | Recommended if scored well, but carries a warning |
 | Re-running a notebook | Same outputs, given same data and seeds |

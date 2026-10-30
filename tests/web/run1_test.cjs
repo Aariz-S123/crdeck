@@ -90,7 +90,8 @@ const decksShown = (d) => d.querySelectorAll(".deck h3").length;
   expect(d.querySelector("#newbie") && /Exactly 8 different cards/.test(text(d.querySelector("#newbie-body"))), "R1.6 newcomer help missing or not from rules");
   expect(/Game mode/.test(text(d.querySelector("#modebar"))) && !/Learn from/.test(text(d.querySelector("#modebar"))), "R1.5 mode selector still labelled 'Learn from'");
 
-  // R1.2 one, three, fourth pick, form change, conflicting forms, clear, locked card
+  // R1.2 one pick, up to a full deck of 8 (the user raised the limit from 3 on 2026-10-29), a ninth pick,
+  // form change, conflicting forms, clear, locked card
   const pickBtn = (name, form = "base") => [...d.querySelectorAll("#cardlist .pick")].find((b) => {
     const n = b.querySelector(".pn").textContent.trim();
     return form === "base" ? n === name : n.startsWith(name) && n.includes(form === "evo" ? "EVO" : "HERO");
@@ -99,16 +100,17 @@ const decksShown = (d) => d.querySelectorAll(".deck h3").length;
   await until(() => settled(d) && decksShown(d) === 3);
   out.onePick = text(d.querySelector("#status"));
   expect(/Hog Rider/.test(out.onePick), "R1.2 one pick not reflected");
-  pickBtn("Fireball").click(); pickBtn("The Log").click(); await wait(20);
-  pickBtn("Zap").click();
-  out.fourth = text(d.querySelector("#seed-note"));
-  expect(/already picked 3/.test(out.fourth) && d.querySelectorAll(".seed.filled").length === 3, "R1.2 fourth pick not refused with an explanation");
+  ["Fireball", "The Log", "Zap", "Musketeer", "Ice Spirit", "Skeletons", "Cannon"].forEach((n) => pickBtn(n).click()); await wait(20);
+  expect(d.querySelectorAll(".seed.filled").length === 8, "R1.2 picks 2 to 8 not all accepted");
+  pickBtn("Valkyrie").click();
+  out.ninth = text(d.querySelector("#seed-note"));
+  expect(/already picked 8/.test(out.ninth) && d.querySelectorAll(".seed.filled").length === 8, "R1.2 ninth pick not refused with an explanation");
   d.querySelector("[data-rm]").click(); await wait(20);
   pickBtn("Knight").click(); await wait(20);
   pickBtn("Knight", "evo").click();
   out.formChange = text(d.querySelector("#seed-note"));
   expect(/one form only/.test(out.formChange), "R1.2 changing a picked card's form not explained");
-  for (let k = 0; k < 3; k++) { d.querySelector("[data-rm]").click(); await wait(10); }
+  while (d.querySelector("[data-rm]")) { d.querySelector("[data-rm]").click(); await wait(10); }
   expect(d.querySelectorAll(".seed.filled").length === 0, "R1.2 clear did not empty the picks");
   // three Evolutions: two slots take Evolutions (Evolution, Wild), so a third can't be placed
   ["Knight", "Archers", "Bats"].forEach((n) => pickBtn(n, "evo").click());

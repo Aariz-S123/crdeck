@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>crdeck Deck Builder</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Pick up to three Clash Royale cards and see legal eight-card decks from recorded battles: real observed decks by default, generated ones on request, each with its evidence, warnings and reasons.">
+<meta name="description" content="Pick some Clash Royale cards, or a whole deck, and see legal eight-card decks from recorded battles: real observed decks by default, generated ones on request, each with its evidence, warnings and reasons.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z' fill='%23a8247f'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,10 +16,17 @@
 @media (max-width: 920px) { .desk { grid-template-columns: minmax(0, 1fr); } }
 .picker { padding: var(--space-4); display: grid; gap: var(--space-3); position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
 @media (max-width: 920px) { .picker { position: static; } }
+/* On wide screens the picker stays in view, so it must never be taller than the window: the card list takes the
+   height that is left (at least 200px), and only when even that doesn't fit does the panel itself scroll. */
+@media (min-width: 921px) {
+  .picker { display: flex; flex-direction: column; max-height: calc(100vh - 24px - env(safe-area-inset-top, 0px)); overflow-y: auto; }
+  .picker > * { flex: none; }
+  .picker > .cardlist { flex: 1 1 auto; min-height: 200px; max-height: none; }
+}
 .stephead { display: flex; align-items: baseline; gap: var(--space-2); }
 .stephead .n { font-family: var(--display); font-weight: 700; color: var(--elixir); }
-.seeds { display: grid; gap: 6px; }
-.seed { display: flex; align-items: center; gap: var(--space-2); min-height: 48px; padding: 6px 6px 6px 10px; border-radius: 8px; border: 1px dashed var(--line); background: var(--sunken); }
+.seeds { display: grid; gap: 4px; }
+.seed { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; padding: 2px 2px 2px 10px; border-radius: 8px; border: 1px dashed var(--line); background: var(--sunken); }
 .seed.filled { border-style: solid; background: var(--surface); }
 .seed .nm { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .seed .emp { color: var(--muted); font-size: 0.875rem; }
@@ -87,7 +94,7 @@
   <main id="main" class="wrap">
     <div class="pagehead">
       <h1>Build a Clash Royale deck</h1>
-      <p class="lede">A Clash Royale deck contains eight cards. Choose up to three you want to keep, and crdeck suggests the rest using patterns from recorded battles. Each suggestion shows what supports it, what to watch out for, and links to the full reasoning.</p>
+      <p class="lede">A Clash Royale deck contains eight cards. Choose the ones you want to keep, up to all eight, and crdeck suggests the rest using patterns from recorded battles. Pick all eight to check a deck you already play. Each suggestion shows what supports it, what to watch out for, and links to the full reasoning.</p>
       <details class="more newbie" id="newbie"><summary>New to Clash Royale? Six terms in one minute</summary><div class="body" id="newbie-body"></div></details>
       <div class="modebar" id="modebar"></div>
       <div class="facts" id="facts"><span class="skel" style="width:320px"></span></div>
@@ -152,6 +159,7 @@
   // source: "observed" (real decks from the mode's pool, the default) or "generated" (the beam search, experimental)
   let ctx = null, E = null, seeds = null, decks = [], loaded = false, source = null, obs = null;
   const view = { type: "all", q: "" };
+  const RESNOTE = $("#resnote").textContent;
   let timer = 0;
 
   UI.start("index.html", (c) => {
@@ -183,6 +191,10 @@
   // ------------------------------------------------------------ deck source
   function renderSource() {
     const pool = E.counterPool().length;
+    if (isFull()) {
+      $("#srcbar").innerHTML = `<p class="muted small srchelp">All ${maxPicks()} cards are picked, so nothing is added and there are no options to choose between: below is your deck, scored the same way as the suggestions. Remove a pick to see suggested decks again.</p>`;
+      return;
+    }
     $("#srcbar").innerHTML = `<span class="lab" id="srclab">Show</span>
       <div class="modes" role="group" aria-labelledby="srclab">
         <button class="chip" data-src="observed" aria-pressed="${source === "observed"}">Observed decks</button>
@@ -259,36 +271,45 @@
     let note = "";
     if (i >= 0 && seeds[i].form === e.form) seeds.splice(i, 1);
     else if (i >= 0) { note = `A deck can hold ${E.card(e.id).name} in one form only, so your pick is now ${E.describe(e)}.`; seeds[i].form = e.form; }
-    else if (seeds.length < 3) seeds.push(e);
-    else { showNote("You already picked 3 cards. Remove one to pick another."); return; }
+    else if (seeds.length < maxPicks()) seeds.push(e);
+    else { showNote(`You already picked ${maxPicks()} cards, a full deck. Remove one to pick another.`); return; }
     changed(); if (note) showNote(note);
+    refocus(`#cardlist [data-key="${b.dataset.key}"]`);
   };
-  function changed() { showNote(""); renderSeeds(); renderCards(); saveLink(); schedule(); }
+  // Picking redraws the lists, so keyboard focus goes back to the matching control instead of being lost.
+  function refocus(sel) { const el = sel && $(sel); if (el) el.focus({ preventScroll: true }); }
+  function changed() { showNote(""); renderSeeds(); renderCards(); renderSource(); saveLink(); schedule(); }
   function showNote(msg) { const el = $("#seed-note"); el.textContent = msg; el.hidden = !msg; }
 
+  // A pick is a card the deck must keep: up to a full deck. Picking all of them means checking that one deck.
+  const maxPicks = () => E.m.rules.deck_size;
+  const isFull = () => seeds.length === maxPicks();
   function renderSeeds() {
-    const rows = [];
-    for (let i = 0; i < 3; i++) {
-      const s = seeds[i];
-      if (!s) { rows.push(`<div class="seed"><span class="emp">Empty slot</span></div>`); continue; }
+    const rows = seeds.map((s, i) => {
       const c = E.card(s.id), forms = E.allowedForms(c).filter((f) => E.isAvailable({ id: s.id, form: f }));
       const fb = forms.length > 1 ? `<span class="forms" role="group" aria-label="Form of ${esc(c.name)}">${forms.map((f) =>
         `<button class="f-${f}" data-i="${i}" data-form="${f}" aria-pressed="${s.form === f}">${f === "base" ? "Base" : f === "evo" ? "Evo" : "Hero"}</button>`).join("")}</span>` : "";
-      rows.push(`<div class="seed filled">${UI.drop(c)}<span class="nm">${esc(c.name)}</span>${fb}<button class="rm" data-rm="${i}" aria-label="Remove ${esc(c.name)}">×</button></div>`);
-    }
+      return `<div class="seed filled">${UI.drop(c)}<span class="nm">${esc(c.name)}</span>${fb}<button class="rm" data-rm="${i}" aria-label="Remove ${esc(c.name)}">×</button></div>`;
+    });
+    // the free slots are one line, not a row each: eight empty rows would push the card list off the screen
+    const free = maxPicks() - seeds.length;
+    if (free > 0) rows.push(`<div class="seed"><span class="emp">${seeds.length ? `${free} of ${maxPicks()} slots free` : `No cards picked. You can pick up to ${maxPicks()}.`}</span></div>`);
     $("#seeds").innerHTML = rows.join("");
-    $("#seed-hint").textContent = seeds.length
-      ? `${3 - seeds.length ? `${3 - seeds.length} slot${3 - seeds.length === 1 ? "" : "s"} free.` : "All 3 slots used."} Press × to remove a card, or switch its form.`
-      : "Optional. With no cards picked, it shows the highest-scoring options under this model.";
+    $("#seed-hint").textContent = !seeds.length ? "Optional. With no cards picked, it shows the highest-scoring options under this model."
+      : `${isFull() ? `All ${maxPicks()} slots used: that is a full deck, so it is scored as it is. ` : ""}Press × to remove a card, or switch its form.`;
     // Clear picks once something is picked; with nothing picked, an example pick to see how picking works
     $("#pickact").innerHTML = seeds.length ? `<button class="btn small" type="button" data-clear>Clear picks</button>`
       : `<button class="btn small" type="button" data-example>Try an example</button>`;
   }
   $("#seeds").onclick = (ev) => {
     const rm = ev.target.closest("[data-rm]");
-    if (rm) { seeds.splice(Number(rm.dataset.rm), 1); changed(); return; }
+    if (rm) {
+      const i = Number(rm.dataset.rm); seeds.splice(i, 1); changed();
+      refocus(seeds.length ? `#seeds [data-rm="${Math.min(i, seeds.length - 1)}"]` : "#q");
+      return;
+    }
     const f = ev.target.closest("[data-form]");
-    if (f) { seeds[Number(f.dataset.i)].form = f.dataset.form; changed(); }
+    if (f) { const i = f.dataset.i, form = f.dataset.form; seeds[Number(i)].form = form; changed(); refocus(`#seeds [data-i="${i}"][data-form="${form}"]`); }
   };
   // The example is a real card of this mode: its most-played card form that the builder can use
   // (most training games, ties by card key), so the example always has data behind it.
@@ -301,10 +322,10 @@
     return best;
   }
   $("#pickact").onclick = (ev) => {
-    if (ev.target.closest("[data-clear]")) { seeds = []; changed(); showNote("Picks cleared."); return; }
+    if (ev.target.closest("[data-clear]")) { seeds = []; changed(); showNote("Picks cleared."); refocus("#pickact [data-example]"); return; }
     if (ev.target.closest("[data-example]")) {
       const ex = exampleCard(); if (!ex) return;
-      seeds = [{ id: ex.e.id, form: ex.e.form }]; changed();
+      seeds = [{ id: ex.e.id, form: ex.e.form }]; changed(); refocus("#pickact [data-clear]");
       showNote(`Example pick: ${E.describe(ex.e)}, the most-played card form in this mode's training battles (${num(ex.g)} games). It's only an example: remove it or pick your own cards.`);
     }
   };
@@ -321,11 +342,19 @@
       if (mine !== buildNo || eng !== E) return;
       try {
         const names = picks.map((s) => eng.describe(s)).join(", ");
-        if (source === "generated") {
+        if (picks.length === eng.m.rules.deck_size) {
+          // a full deck: nothing to add, so either source shows the picked deck itself (the search returns a full
+          // set of picks as its own single result, with the same refusals), plus whether it is an observed deck
+          obs = null;
+          const own = eng.complete(picks)[0], inPool = CRObserved.observedDecks(eng, picks).decks[0];
+          decks = [{ entries: own.entries, source: "mine", played: inPool ? inPool.played : 0 }];
+          renderDecks();
+          $("#status").textContent = `Your ${picks.length} picks, scored as one deck.`;
+        } else if (source === "generated") {
           obs = null;
           decks = eng.complete(picks).map((d) => ({ entries: d.entries, source: "generated" }));
           renderDecks();
-          $("#status").textContent = `${decks.length} generated options${names ? " with " + names : ""}.`;
+          $("#status").textContent = `${decks.length} generated option${decks.length === 1 ? "" : "s"}${names ? " with " + names : ""}.`;
         } else {
           // the picks must be able to share a legal deck before the pool is searched (same refusal as the search)
           const chk = eng.checkPartial(picks);
@@ -336,7 +365,7 @@
           $("#status").textContent = `${decks.length} observed deck${decks.length === 1 ? "" : "s"}${names ? " with " + names : ""}.`;
         }
       } catch (e) {
-        $("#status").textContent = "";
+        $("#status").textContent = ""; $("#resnote").textContent = RESNOTE;
         if (!(e instanceof CRDeck.SeedError)) {
           decks = [];
           $("#decks").innerHTML = `<div class="panel empty" role="alert"><b>The builder hit an error with these picks.</b><span>Your picks are kept. Try removing one, or pick another mode above.</span>
@@ -376,6 +405,14 @@
       <span>You can remove a pick, or look at decks the model generates instead.</span>${gen}</div>`;
   }
 
+  // Why the search shows a single option with nearly all cards picked: options must differ by the search's minimum
+  // number of cards, and completions of the same picks can only differ in the free slots.
+  function generatedNote() {
+    const sc = E.cfg.search, minDiff = Number(sc.min_diff_cards), free = maxPicks() - seeds.length;
+    if (source !== "generated" || isFull() || decks.length !== 1 || free >= minDiff) return "";
+    return `<div class="panel obsnote" role="status"><b>Only one generated option.</b><span>Options must differ from each other by at least ${num(minDiff)} cards. With ${free} free slot${free === 1 ? "" : "s"}, any two completions of your picks differ by at most ${free}, so only the highest-scoring one is shown.</span></div>`;
+  }
+
   // Side-by-side view of the options: shared and different cards, elixir, warnings, support and estimates.
   // It never names a winner: the estimates share one model, and overlapping ranges are not a clear difference.
   function compareHtml(xs) {
@@ -404,12 +441,14 @@
 
   function renderDecks() {
     const seedIds = new Set(seeds.map((s) => s.id)), rows = [];
-    $("#decks").innerHTML = observedNote() + decks.map((dk, i) => {
+    $("#decks").innerHTML = observedNote() + generatedNote() + decks.map((dk, i) => {
       const entries = dk.entries;
       const x = E.explain(entries, E.objectiveDict(E.evaluate(entries)));
       const v = UI.verdict(x.score), a = x.archetype, label = ctx.entry.label;
-      const href = `reason.html#${UI.token(slug(), x.entries, seeds, srcTok())}`;
-      const prov = dk.source === "observed"
+      const href = `reason.html#${UI.token(slug(), x.entries, seeds, srcTok())}`, mine = dk.source === "mine";
+      const prov = mine
+        ? `<span class="muted small">The ${entries.length} cards you picked, scored the same way as the suggestions.${dk.played ? ` It is also one of this mode's observed decks: ${num(dk.played)} appearances in the training battles.` : ""}</span>`
+        : dk.source === "observed"
         ? `<span class="tag real">Observed deck</span><span class="muted small">${num(dk.played)} appearances in this mode's training battles (training and validation windows). One appearance is one side of one battle, so this counts uses, not players.</span>`
         : `<span class="tag gen">Generated by the model · experimental</span><span class="muted small">A new combination from the search; see below whether anyone played it.</span>`;
       const sup = UI.supportText(E, x, label);
@@ -421,15 +460,16 @@
       const note = UI.styleNote(a), sd = a.label === CRDeck.NO_LABELS ? "" : UI.styleDef(a.label);
       // why it ranks where it does: the score's three terms in score points, and the strongest measured pair
       const rp = UI.rankParts(E, x), bp = x.synergy_top[0], sp = (val) => `${val >= 0 ? "+" : "−"}${Math.abs(val).toFixed(2)}`;
-      const why = `<details class="more rankwhy"><summary>Why it ranks here</summary><div class="body small">
-          <p>Options are ordered by the builder's score, in score points: estimated wins ${rp.win.toFixed(2)}, pair synergy ${sp(rp.synergy)}, cards played together ${sp(rp.together)}, total ${rp.total.toFixed(2)}. It is a ranking number, not a probability.</p>
+      const parts = `estimated wins ${rp.win.toFixed(2)}, pair synergy ${sp(rp.synergy)}, cards played together ${sp(rp.together)}, total ${rp.total.toFixed(2)}`;
+      const why = `<details class="more rankwhy"><summary>${mine ? "How its score is made" : "Why it ranks here"}</summary><div class="body small">
+          <p>${mine ? `The builder's score for this deck, in score points: ${parts}. Suggested decks are ordered by this score.` : `Options are ordered by the builder's score, in score points: ${parts}.`} It is a ranking number, not a probability.</p>
           <p>${bp ? `Strongest card pair: ${esc(bp.pair)}, which won ${pct(bp.shrunk_wr)} of ${num(bp.games)} games together, ${bp.synergy > 0 ? "more" : "less"} than each card on its own predicts. That is a pattern in the battles, not proof that the pair causes wins.` : "No card pair here was played together often enough for a synergy score."}</p></div></details>`;
       return `<article class="panel deck" aria-labelledby="dk${i}">
-        <div class="deck-top"><span class="k">Option ${i + 1}</span><div class="prov">${prov}</div>
+        <div class="deck-top"><span class="k">${mine ? "Your deck" : `Option ${i + 1}`}</span><div class="prov">${prov}</div>
           <h3 id="dk${i}">${a.label === CRDeck.NO_LABELS ? "Suggested deck" : `Predicted style: ${esc(UI.archName(a))}`}</h3>
           ${sd ? `<p class="small style-def">${esc(sd)} <span class="src rule">plain-language description, not model output</span></p>` : ""}
           ${note ? `<details class="more"><summary>What “predicted style” means</summary><div class="body small">${esc(note)}</div></details>` : ""}</div>
-        <div class="grid8">${x.entries.map((e) => UI.tile(E, e, x.legality.slots, seedIds, null)).join("")}</div>
+        <div class="grid8">${x.entries.map((e) => UI.tile(E, e, x.legality.slots, mine ? null : seedIds, null)).join("")}</div>
         <div class="health">${health}</div>
         <div class="evidence">
           <div class="line"><b>${esc(sup.rec)}</b><span class="src measured">measured</span></div>
@@ -449,6 +489,10 @@
         <div class="copyfall" data-fall="${i}" hidden></div>
       </article>`;
     }).join("") + compareHtml(rows);
+    // a deck the reader picked whole was not chosen as the top of many estimates, so that caution doesn't apply
+    $("#resnote").textContent = decks.length === 1 && decks[0].source === "mine"
+      ? "How to read the numbers: the estimate comes from a model that learns from recorded battle results; it doesn't play the game. The 90% range covers the model's own uncertainty. Your deck wasn't chosen as the top of many estimates, so it doesn't carry the optimism that suggested decks do. Its warnings and its exact-deck record matter as much as the estimate."
+      : RESNOTE;
   }
   $("#decks").onclick = async (ev) => {
     if (ev.target.closest("[data-gen]")) { source = "generated"; renderSource(); saveLink(); build(); return; }

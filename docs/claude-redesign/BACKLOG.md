@@ -7,9 +7,12 @@ numbers are looked at.
 **Run 5 (2026-10-29, at the user's request "implement all of them").** Done: items 1, 2 and 4 below, as
 the forward check (design fixed first: `EVAL-DESIGN.md`; code `crdeck.counters.check_version`,
 `scripts/counter_eval.py`; results `web/counter_eval.json`, shown on the Counters page), and every product
-item except card imagery. Still open: item 3 (it needs retraining), two-way clustering, and card imagery
-(no image source is in the repository or approved; the runs' rule is "no image dependency"). Details and
+item except card imagery. Still open: item 3 (it needs retraining) and two-way clustering. Details and
 checks: `PROMPT-PROGRESS.md`, Run 5.
+
+**User decisions after Run 5 (2026-10-29).** Card imagery: no official art, so the item below is closed and
+cards keep their text names. Builder picks: up to a full deck of 8 (it was 0–3, as every version of the spec
+said); done, see `PROMPT-PROGRESS.md`, "After Run 5".
 
 ## Counter evaluation (research)
 
@@ -37,7 +40,8 @@ checks: `PROMPT-PROGRESS.md`, Run 5.
 - Comparison view for the three builder options (shared/different cards, elixir, warnings, support,
   estimates) without declaring a winner from point-estimate differences.
 - Navigation regrouping into Build / Counters / Explore trends / How it works, keeping old routes.
-- Card imagery from a legitimate source, with text names kept as the identifier.
+- Card imagery from a legitimate source, with text names kept as the identifier. (Closed 2026-10-29: the
+  user wants no official art.)
 - Counter selection stored in the link (style or cards) without breaking old links.
 - "Try an example" pick on the builder.
 - Lazy rendering of the card map and charts inside closed layers.

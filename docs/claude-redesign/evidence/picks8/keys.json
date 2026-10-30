@@ -1,0 +1,112 @@
+{
+ "builder8": {
+  "stops": 222,
+  "wrapped": true,
+  "trapped": false,
+  "no_focus_ring": [],
+  "no_focus_ring_count": 0,
+  "hidden_focus": [],
+  "shift_tab_ok": true,
+  "tooltip_hidden_after_escape": true,
+  "script_errors": []
+ },
+ "builder0": {
+  "stops": 217,
+  "wrapped": true,
+  "trapped": false,
+  "no_focus_ring": [],
+  "no_focus_ring_count": 0,
+  "hidden_focus": [],
+  "shift_tab_ok": true,
+  "tooltip_hidden_after_escape": true,
+  "script_errors": []
+ },
+ "reason8": {
+  "stops": 17,
+  "wrapped": true,
+  "trapped": false,
+  "no_focus_ring": [],
+  "no_focus_ring_count": 0,
+  "hidden_focus": [],
+  "shift_tab_ok": true,
+  "tooltip_hidden_after_escape": true,
+  "script_errors": []
+ },
+ "reason8free": {
+  "stops": 18,
+  "wrapped": true,
+  "trapped": false,
+  "no_focus_ring": [],
+  "no_focus_ring_count": 0,
+  "hidden_focus": [],
+  "shift_tab_ok": true,
+  "tooltip_hidden_after_escape": true,
+  "script_errors": []
+ },
+ "reason3": {
+  "stops": 17,
+  "wrapped": true,
+  "trapped": false,
+  "no_focus_ring": [],
+  "no_focus_ring_count": 0,
+  "hidden_focus": [],
+  "shift_tab_ok": true,
+  "tooltip_hidden_after_escape": true,
+  "script_errors": []
+ },
+ "counters": {
+  "stops": 46,
+  "wrapped": true,
+  "trapped": false,
+  "no_focus_ring": [],
+  "no_focus_ring_count": 0,
+  "hidden_focus": [],
+  "shift_tab_ok": true,
+  "tooltip_hidden_after_escape": true,
+  "script_errors": []
+ },
+ "cards": {
+  "stops": 204,
+  "wrapped": true,
+  "trapped": false,
+  "no_focus_ring": [],
+  "no_focus_ring_count": 0,
+  "hidden_focus": [],
+  "shift_tab_ok": true,
+  "tooltip_hidden_after_escape": true,
+  "script_errors": []
+ },
+ "meta": {
+  "stops": 77,
+  "wrapped": true,
+  "trapped": false,
+  "no_focus_ring": [],
+  "no_focus_ring_count": 0,
+  "hidden_focus": [],
+  "shift_tab_ok": true,
+  "tooltip_hidden_after_escape": true,
+  "script_errors": []
+ },
+ "seasons": {
+  "stops": 130,
+  "wrapped": true,
+  "trapped": false,
+  "no_focus_ring": [],
+  "no_focus_ring_count": 0,
+  "hidden_focus": [],
+  "shift_tab_ok": true,
+  "tooltip_hidden_after_escape": true,
+  "script_errors": []
+ },
+ "model": {
+  "stops": 58,
+  "wrapped": true,
+  "trapped": false,
+  "no_focus_ring": [],
+  "no_focus_ring_count": 0,
+  "hidden_focus": [],
+  "shift_tab_ok": true,
+  "tooltip_hidden_after_escape": true,
+  "script_errors": []
+ }
+}

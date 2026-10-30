@@ -64,6 +64,7 @@ table.near td.good, table.nums td.good { color: var(--ok); font-weight: 700; } t
 .bestswap { display: grid; gap: 6px; padding: 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--sunken); }
 .bestswap .ba { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 12px; font-size: 0.9375rem; }
 .bestswap .ba dt { color: var(--muted); } .bestswap .ba dd { margin: 0; }
+.picklock { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
 details.layer { border-top: 1px solid var(--line); padding-top: var(--space-3); }
 details.layer > summary { cursor: pointer; min-height: 44px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--space-2); list-style: none; }
 details.layer > summary .h { font-family: var(--display); font-weight: 700; font-size: var(--step-1); }
@@ -108,15 +109,19 @@ details.layer > .body { display: grid; gap: var(--space-6); margin-top: var(--sp
     UNKNOWN_CARD: "A card is missing from the card table.",
   };
   // source: the builder's deck source from the link (only "generated" is written; observed is the default)
-  let ctx = null, E = null, CAL = null, deck = null, seeds = [], original = [], past = [], swaps = [], source = null;
+  // free: the reader chose to let swaps replace their picked cards too (off by default; kept in the link)
+  let ctx = null, E = null, CAL = null, deck = null, seeds = [], original = [], past = [], swaps = [], source = null, free = false;
 
   UI.start("", (c) => {
     ctx = c; E = c.E; CAL = E.calibration(8);
-    if (c.hash.deck !== null && deck === null) { deck = c.hash.deck; seeds = c.hash.seeds || []; original = deck.map(CRDeck.keyOf); source = c.hash.source; }
+    if (c.hash.deck !== null && deck === null) { deck = c.hash.deck; seeds = c.hash.seeds || []; original = deck.map(CRDeck.keyOf); source = c.hash.source; free = c.hash.extra === "free"; }
     render();
   }, { failTarget: "#body" });
 
   const slug = () => ctx.entry.slug;
+  // the cards no swap may take out: the picks, unless the reader allowed it
+  const locks = () => (free ? [] : seeds);
+  const pickedHere = () => seeds.filter((s) => deck.some((e) => e.id === s.id && e.form === s.form)).length;
   function render() {
     $("#back").href = `index.html#${source ? UI.token(slug(), null, seeds, source) : seeds.length ? UI.token(slug(), null, seeds) : slug() + "~~"}`;
     if (!deck || !deck.length) return emptyState("This page needs a deck. Build one on the first page and press “Why this deck”.");
@@ -126,8 +131,8 @@ details.layer > .body { display: grid; gap: var(--space-6); margin-top: var(--sp
     if (locked.length) return emptyState(`This deck can't be played in ${E.m.availability.arena}: ${locked.map((e) => E.whyNot(e)).join("; ")}. Switch to the mode you built it in.`);
     const chk = E.checkDeck(deck);
     if (!chk.legal) return emptyState(`This link holds a deck that breaks the deck rules: ${[...new Set(chk.details)].join("; ")}. Build a new one on the first page.`);
-    UI.setHash(UI.token(slug(), deck, seeds, source));
-    swaps = E.swaps(deck, { locked: seeds });
+    UI.setHash(UI.token(slug(), deck, seeds, source, free ? "free" : null));
+    swaps = E.swaps(deck, { locked: locks() });
     draw();
   }
   function emptyState(msg) {
@@ -140,7 +145,8 @@ details.layer > .body { display: grid; gap: var(--space-6); margin-top: var(--sp
   let cur = null;
   function draw() {
     const x = E.explain(deck, E.objectiveDict(E.evaluate(deck)));
-    const seedIds = new Set(seeds.map((s) => s.id)), v = UI.verdict(x.score);
+    // "Your pick" marks only say something when some cards aren't picks
+    const seedIds = pickedHere() === deck.length ? null : new Set(seeds.map((s) => s.id)), v = UI.verdict(x.score);
     const ws = x.entries.map((e) => Object.assign(E.coefInfo(e), { role: "in", entry: e })).sort((p, q) => q.weight - p.weight);
     const known = ws.filter((w) => w.known), cardSum = ws.reduce((t, w) => t + w.weight, 0), pairSum = E.utility(x.entries) - cardSum;
     const best = known[0], worst = known[known.length - 1];
@@ -200,7 +206,7 @@ details.layer > .body { display: grid; gap: var(--space-6); margin-top: var(--sp
       ? "No single-card swap among the candidate cards raises this deck's score. That is a local check, not proof that no better deck exists. These swaps cost the least."
       : "Swaps that raise the deck's score come first. Pressing Swap changes the deck on this page and recomputes everything.";
     return `<section class="section" aria-labelledby="swap-h">
-        <header><h2 id="swap-h">Try a swap</h2><p>${swapIntro} Score changes are in score points (100 × the ranking score); win changes are in percentage points of estimated wins. Your picked cards are never swapped out.</p></header>
+        <header><h2 id="swap-h">Try a swap</h2><p>${swapIntro} Score changes are in score points (100 × the ranking score); win changes are in percentage points of estimated wins.${free ? " You allowed swaps to replace your picked cards." : seeds.length ? " Your picked cards are never swapped out." : ""}</p></header>
         ${renderSwaps()}
       </section>`;
   }
@@ -278,9 +284,9 @@ details.layer > .body { display: grid; gap: var(--space-6); margin-top: var(--sp
     const sec = $("#mapsec"), em = E.m.embedding;
     if (!sec) return;
     if (!em) { sec.innerHTML = `<header><h2 id="map-h">Card map</h2><p>This mode has too few battles to learn card vectors.</p></header>`; return; }
-    const sugg = E.embeddingSwaps(deck, seeds), lockedIds = new Set(seeds.map((e) => e.id));
+    const sugg = E.embeddingSwaps(deck, locks()), lockedIds = new Set(locks().map((e) => e.id));
     const movable = deck.filter((e) => !lockedIds.has(e.id) && E.embVec(e));
-    if (!map.sel || !deck.some((e) => CRDeck.keyOf(e) === map.sel)) map.sel = sugg.length ? CRDeck.keyOf(sugg[0].replace_entry) : (movable[0] ? CRDeck.keyOf(movable[0]) : null);
+    if (!map.sel || !movable.some((e) => CRDeck.keyOf(e) === map.sel)) map.sel = sugg.length ? CRDeck.keyOf(sugg[0].replace_entry) : (movable[0] ? CRDeck.keyOf(movable[0]) : null);
     const ev = em.evaluation, kept = em.pca_explained.reduce((a, b) => a + b, 0);
     const earned = ev.difference_ci90 && ev.difference_ci90[0] > 0;
     const verdict = earned
@@ -412,8 +418,10 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
       : `<p class="small" style="color:var(--ok);font-weight:600">✓ No deck-check warnings. <span class="src rule">rule of thumb</span></p>`;
     let best = -1;
     swaps.forEach((sw, j) => { if (best < 0 || sw.delta_objective > swaps[best].delta_objective) best = j; });
+    // picks are kept out of every swap unless the reader lets swaps replace them (a full deck of picks has no swap otherwise)
+    const kept = pickedHere(), allPicked = !free && kept === deck.length;
     let swapHtml;
-    if (!swaps.length) swapHtml = `<p class="muted">Every card here is one you picked, so there is nothing to swap.</p>`;
+    if (!swaps.length) swapHtml = allPicked ? "" : `<p class="muted">No single-card swap is possible with this mode's candidate cards.</p>`;
     else if (swaps[best].delta_objective <= 0) swapHtml = `<p>No single-card swap among the candidate cards raises this deck's score. That is a local check, not proof that no better deck exists.</p>`;
     else {
       const sw = swaps[best], nd = CRDeck.parseDeckKey(sw.new_deck_key), nx = E.explain(nd);
@@ -429,8 +437,12 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
           <dt>Evidence</dt><dd>${esc(sup.rec)} ${esc(sup.seen)}</dd>
         </dl>
         <div class="actions"><button class="btn primary" data-apply="${best}">Apply this swap</button></div>
-        <p class="muted small">The highest-scoring single change under the deck builder's score. Your picked cards are never swapped out. Card-map swaps (Math and model details) and counter tech swaps use different rules and can suggest other cards.</p></div>`;
+        <p class="muted small">The highest-scoring single change under the deck builder's score. Card-map swaps (Math and model details) and counter tech swaps use different rules and can suggest other cards.</p></div>`;
     }
+    const pickHtml = free
+      ? `<p class="muted small picklock">Swaps may replace your picked cards too. Nothing changes until you press a swap button. <button class="btn small" type="button" data-free="0">Keep my picks</button></p>`
+      : allPicked ? `<p class="picklock">Every card here is one you picked, and swaps never replace a pick, so there is nothing to swap. <button class="btn small" type="button" data-free="1">Let swaps replace my picks</button></p>`
+      : kept ? `<p class="muted small picklock">${kept === 1 ? "Your picked card stays" : `Your ${kept} picked cards stay`} in the deck: swaps never replace ${kept === 1 ? "it" : "them"}. <button class="btn small" type="button" data-free="1">Let swaps replace my picks</button></p>` : "";
     const a = x.archetype, sd = a.label === CRDeck.NO_LABELS ? "" : UI.styleDef(a.label);
     return `<section class="panel overview" aria-labelledby="ov-h">
       <h2 id="ov-h" style="font-size:1.25rem">At a glance</h2>
@@ -441,7 +453,7 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
           <p class="muted small" style="margin-top:6px">Roles come from the project's hand-made card labels, not from the model. <span class="src rule">labels</span></p></div>
         <div class="ovwarn">${warnHtml}</div>
       </div>
-      <div><h3 style="font-size:1.0625rem;margin-bottom:6px">Best next step</h3>${swapHtml}
+      <div><h3 style="font-size:1.0625rem;margin-bottom:6px">Best next step</h3>${swapHtml}${pickHtml}
         ${past.length ? `<div class="actions" style="margin-top:8px"><button class="btn" data-undo="1">Undo last swap</button></div>` : ""}</div>
     </section>`;
   }
@@ -462,7 +474,9 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
   }
 
   function renderSwaps() {
-    if (!swaps.length) return `<div class="panel empty">Every card in this deck is one you picked, so there is nothing to swap.</div>`;
+    if (!swaps.length) return !free && pickedHere() === deck.length
+      ? `<div class="panel empty">Every card in this deck is one you picked, so there is nothing to swap. <button class="btn small" type="button" data-free="1">Let swaps replace my picks</button></div>`
+      : `<div class="panel empty">No single-card swap is possible with this mode's candidate cards.</div>`;
     const groups = new Map();
     swaps.forEach((s, j) => { if (!groups.has(s.replace)) groups.set(s.replace, []); groups.get(s.replace).push([s, j]); });
     const ordered = [...groups.entries()].sort((a, b) => b[1][0][0].delta_objective - a[1][0][0].delta_objective);
@@ -514,6 +528,11 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
       $("#sub").textContent = `Swapped ${s.replace} for ${s.with}. Every number on this page is recomputed for the new deck.`;
       UI.scrollTo($("#main"));
       $("#announce").textContent = `Swapped ${s.replace} for ${s.with}.`;
+      focusOverview();
+    } else if (t.dataset.free) {
+      free = t.dataset.free === "1"; render();
+      const msg = free ? "Swaps may now replace your picked cards too." : "Your picked cards are kept out of swaps again.";
+      $("#sub").textContent = `${msg} Every suggested swap is recomputed.`; $("#announce").textContent = msg;
       focusOverview();
     } else if ((t.id === "undo" || t.dataset.undo) && past.length) { deck = past.pop(); render(); $("#sub").textContent = "Undid the last swap. Every number is recomputed."; $("#announce").textContent = "Undid the last swap."; focusOverview(); }
     else if (t.id === "copy") {

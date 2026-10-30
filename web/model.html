@@ -274,7 +274,8 @@ average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single m
     const axes = lab(-0.45, -1.15, `a: ${UI.shorten(A, 20)}`) + lab(-1.15, 1.2, `b: ${UI.shorten(B, 20)}`);
     for (const q of quads) {
       const d = q.pts.map((p, k) => `${k ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join("") + "Z";
-      const tip = (q.i % 2 === 0 && q.j % 2 === 0) ? ` ${UI.tipAttr("Training loss", [`a ${signed(sl.a[q.i], 4)}, b ${signed(sl.b[q.j], 4)}`, `J ${q.mean.toFixed(6)}`])}` : "";
+      // hover only: the descent steps and the fitted point below are the keyboard's stops on this picture
+      const tip = (q.i % 2 === 0 && q.j % 2 === 0) ? ` ${UI.tipAttr("Training loss", [`a ${signed(sl.a[q.i], 4)}, b ${signed(sl.b[q.j], 4)}`, `J ${q.mean.toFixed(6)}`], false)}` : "";
       g += `<path d="${d}" fill="${q.fill}" stroke="${q.fill}" stroke-width="0.6"${tip}/>`;
     }
     // thin grid lines every 4 cells, drawn over the surface

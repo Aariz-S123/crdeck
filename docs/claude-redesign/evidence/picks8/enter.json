@@ -1,0 +1,66 @@
+{
+ "first": "26000072:base",
+ "enter1": {
+  "pressedOn": "26000072:base",
+  "focusAfter": "26000072:base",
+  "ring": true,
+  "picks": 1,
+  "note": ""
+ },
+ "enter2": {
+  "pressedOn": "26000001:evo",
+  "focusAfter": "26000001:evo",
+  "ring": true,
+  "picks": 2,
+  "note": ""
+ },
+ "enter3": {
+  "pressedOn": "26000015:base",
+  "focusAfter": "26000015:base",
+  "ring": true,
+  "picks": 3,
+  "note": ""
+ },
+ "enter4": {
+  "pressedOn": "26000006:base",
+  "focusAfter": "26000006:base",
+  "ring": true,
+  "picks": 4,
+  "note": ""
+ },
+ "enter5": {
+  "pressedOn": "26000046:base",
+  "focusAfter": "26000046:base",
+  "ring": true,
+  "picks": 5,
+  "note": ""
+ },
+ "enter6": {
+  "pressedOn": "28000015:hero",
+  "focusAfter": "28000015:hero",
+  "ring": true,
+  "picks": 6,
+  "note": ""
+ },
+ "enter7": {
+  "pressedOn": "26000008:base",
+  "focusAfter": "26000008:base",
+  "ring": true,
+  "picks": 7,
+  "note": ""
+ },
+ "enter8": {
+  "pressedOn": "26000049:base",
+  "focusAfter": "26000049:base",
+  "ring": true,
+  "picks": 8,
+  "note": ""
+ },
+ "enter9": {
+  "pressedOn": "26000068:base",
+  "focusAfter": "26000068:base",
+  "ring": true,
+  "picks": 8,
+  "note": "You already picked 8 cards, a full deck. Remove one to pick another."
+ }
+}

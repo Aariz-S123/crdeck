@@ -1,0 +1,1894 @@
+
+=== Ranked (Path of Legends) (ranked) ===
+legality: 0 random decks checked
+search 26000000:base,26000010:evo,26000031:base,26000095:base: 3 decks and 12 swaps match
+search 26000000:base,26000010:evo,26000031:base,26000095:base,26000102:base: 3 decks and 9 swaps match
+search 26000000:base,26000010:evo,26000031:base,26000095:base,26000102:base,27000004:base: 2 decks and 6 swaps match
+search 26000000:base,26000010:evo,26000031:base,26000095:base,26000102:base,27000004:base,27000013:evo: 1 decks and 3 swaps match
+search 26000000:base,26000010:evo,26000031:base,26000095:base,26000102:base,27000004:base,27000013:evo,28000017:base: 1 decks and 0 swaps match
+search 26000010:evo,26000031:base,26000095:base,27000008:base: 3 decks and 12 swaps match
+search 26000010:evo,26000031:base,26000095:base,27000008:base,27000013:evo: 3 decks and 9 swaps match
+search 26000010:evo,26000031:base,26000095:base,27000008:base,27000013:evo,28000003:base: 3 decks and 6 swaps match
+search 26000010:evo,26000031:base,26000095:base,27000008:base,27000013:evo,28000003:base,28000017:base: 1 decks and 3 swaps match
+search 26000010:evo,26000031:base,26000095:base,27000008:base,27000013:evo,28000003:base,28000017:base,26000000:base: 1 decks and 0 swaps match
+search 26000031:base,26000095:base,26000102:base,27000008:base: 3 decks and 12 swaps match
+search 26000031:base,26000095:base,26000102:base,27000008:base,27000013:evo: 3 decks and 9 swaps match
+search 26000031:base,26000095:base,26000102:base,27000008:base,27000013:evo,28000017:base: 3 decks and 6 swaps match
+search 26000031:base,26000095:base,26000102:base,27000008:base,27000013:evo,28000017:base,26000000:base: 1 decks and 3 swaps match
+search 26000031:base,26000095:base,26000102:base,27000008:base,27000013:evo,28000017:base,26000000:base,26000013:evo: 1 decks and 0 swaps match
+search 26000030:base,26000038:base,27000000:evo,28000000:base: 3 decks and 12 swaps match
+search 26000030:base,26000038:base,27000000:evo,28000000:base,28000011:base: 3 decks and 9 swaps match
+search 26000030:base,26000038:base,27000000:evo,28000000:base,28000011:base,26000010:evo: 3 decks and 6 swaps match
+search 26000030:base,26000038:base,27000000:evo,28000000:base,28000011:base,26000010:evo,26000014:hero: 1 decks and 3 swaps match
+search 26000030:base,26000038:base,27000000:evo,28000000:base,28000011:base,26000010:evo,26000014:hero,26000021:base: 1 decks and 0 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base: 3 decks and 12 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base: 3 decks and 9 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base: 2 decks and 6 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base,26000059:evo: 1 decks and 3 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base,26000059:evo,26000072:base: 1 decks and 0 swaps match
+search 26000058:base,27000000:base,28000004:evo,26000011:hero: 3 decks and 12 swaps match
+search 26000058:base,27000000:base,28000004:evo,26000011:hero,26000012:evo: 3 decks and 9 swaps match
+search 26000058:base,27000000:base,28000004:evo,26000011:hero,26000012:evo,26000026:base: 3 decks and 6 swaps match
+search 26000058:base,27000000:base,28000004:evo,26000011:hero,26000012:evo,26000026:base,26000030:base: 1 decks and 3 swaps match
+search 26000058:base,27000000:base,28000004:evo,26000011:hero,26000012:evo,26000026:base,26000030:base,26000040:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 81138 test deck appearances (6770 decks)
+  u -0.060  real 47.1%  model 47.3%  n 10160
+  u -0.004  real 48.7%  model 48.7%  n 10143
+  u 0.023  real 49.2%  model 49.3%  n 10125
+  u 0.047  real 49.9%  model 49.9%  n 10325
+  u 0.064  real 50.5%  model 50.4%  n 10447
+  u 0.083  real 51.1%  model 50.9%  n 9665
+  u 0.107  real 51.0%  model 51.4%  n 10134
+  u 0.146  real 52.6%  model 52.4%  n 10139
+
+=== Trophy Road ladder (trophy_road) ===
+legality: 0 random decks checked
+search 26000028:base,26000050:evo,26000083:base,26000093:base: 3 decks and 12 swaps match
+search 26000028:base,26000050:evo,26000083:base,26000093:base,26000101:base: 3 decks and 9 swaps match
+search 26000028:base,26000050:evo,26000083:base,26000093:base,26000101:base,28000008:evo: 3 decks and 6 swaps match
+search 26000028:base,26000050:evo,26000083:base,26000093:base,26000101:base,28000008:evo,28000015:base: 1 decks and 3 swaps match
+search 26000028:base,26000050:evo,26000083:base,26000093:base,26000101:base,28000008:evo,28000015:base,28000016:base: 1 decks and 0 swaps match
+search 26000028:base,26000043:evo,26000048:base,26000050:base: 3 decks and 12 swaps match
+search 26000028:base,26000043:evo,26000048:base,26000050:base,27000007:base: 3 decks and 9 swaps match
+search 26000028:base,26000043:evo,26000048:base,26000050:base,27000007:base,28000008:evo: 3 decks and 6 swaps match
+search 26000028:base,26000043:evo,26000048:base,26000050:base,27000007:base,28000008:evo,28000016:base: 1 decks and 3 swaps match
+search 26000028:base,26000043:evo,26000048:base,26000050:base,27000007:base,28000008:evo,28000016:base,26000003:hero: 1 decks and 0 swaps match
+search 26000074:base,26000083:base,26000101:base,26000107:base: 3 decks and 12 swaps match
+search 26000074:base,26000083:base,26000101:base,26000107:base,28000008:evo: 3 decks and 9 swaps match
+search 26000074:base,26000083:base,26000101:base,26000107:base,28000008:evo,28000016:base: 3 decks and 6 swaps match
+search 26000074:base,26000083:base,26000101:base,26000107:base,28000008:evo,28000016:base,26000028:base: 1 decks and 3 swaps match
+search 26000074:base,26000083:base,26000101:base,26000107:base,28000008:evo,28000016:base,26000028:base,26000050:evo: 1 decks and 0 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base: 3 decks and 12 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base: 3 decks and 9 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base: 3 decks and 6 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base: 1 decks and 3 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base,26000059:evo: 1 decks and 0 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base: 3 decks and 12 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero: 3 decks and 9 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo: 3 decks and 6 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base: 1 decks and 3 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base,26000084:base: 1 decks and 0 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000002:hero: 3 decks and 12 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000002:hero,26000005:base: 3 decks and 9 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000002:hero,26000005:base,26000053:base: 3 decks and 6 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000002:hero,26000005:base,26000053:base,26000054:base: 1 decks and 3 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000002:hero,26000005:base,26000053:base,26000054:base,26000056:evo: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 41338 test deck appearances (19982 decks)
+  u -0.401  real 38.0%  model 33.6%  n 5168
+  u -0.008  real 45.7%  model 42.5%  n 5168
+  u 0.166  real 49.1%  model 46.7%  n 5166
+  u 0.298  real 51.3%  model 49.8%  n 5167
+  u 0.410  real 53.5%  model 52.5%  n 5168
+  u 0.517  real 50.4%  model 55.1%  n 5167
+  u 0.630  real 54.5%  model 57.8%  n 5167
+  u 0.858  real 57.5%  model 63.1%  n 5167
+
+=== All modes (all) ===
+legality: 0 random decks checked
+search 26000012:base,26000048:base,26000067:base,26000069:base: 3 decks and 12 swaps match
+search 26000012:base,26000048:base,26000067:base,26000069:base,26000096:base: 3 decks and 9 swaps match
+search 26000012:base,26000048:base,26000067:base,26000069:base,26000096:base,28000001:base: 2 decks and 6 swaps match
+search 26000012:base,26000048:base,26000067:base,26000069:base,26000096:base,28000001:base,28000023:base: 1 decks and 3 swaps match
+search 26000012:base,26000048:base,26000067:base,26000069:base,26000096:base,28000001:base,28000023:base,28000024:base: 1 decks and 0 swaps match
+search 26000040:base,26000041:base,26000053:base,26000056:evo: 3 decks and 12 swaps match
+search 26000040:base,26000041:base,26000053:base,26000056:evo,26000097:base: 3 decks and 9 swaps match
+search 26000040:base,26000041:base,26000053:base,26000056:evo,26000097:base,28000003:base: 2 decks and 6 swaps match
+search 26000040:base,26000041:base,26000053:base,26000056:evo,26000097:base,28000003:base,28000011:base: 1 decks and 3 swaps match
+search 26000040:base,26000041:base,26000053:base,26000056:evo,26000097:base,28000003:base,28000011:base,26000002:hero: 1 decks and 0 swaps match
+search 26000037:evo,26000048:base,26000067:base,26000069:base: 3 decks and 12 swaps match
+search 26000037:evo,26000048:base,26000067:base,26000069:base,26000096:base: 3 decks and 9 swaps match
+search 26000037:evo,26000048:base,26000067:base,26000069:base,26000096:base,28000024:base: 2 decks and 6 swaps match
+search 26000037:evo,26000048:base,26000067:base,26000069:base,26000096:base,28000024:base,26000007:base: 1 decks and 3 swaps match
+search 26000037:evo,26000048:base,26000067:base,26000069:base,26000096:base,28000024:base,26000007:base,26000012:base: 1 decks and 0 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base: 3 decks and 12 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base: 3 decks and 9 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base: 2 decks and 6 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base: 1 decks and 3 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base,26000059:evo: 1 decks and 0 swaps match
+search 26000038:base,27000000:evo,28000000:base,28000011:base: 3 decks and 12 swaps match
+search 26000038:base,27000000:evo,28000000:base,28000011:base,26000010:evo: 3 decks and 9 swaps match
+search 26000038:base,27000000:evo,28000000:base,28000011:base,26000010:evo,26000014:hero: 3 decks and 6 swaps match
+search 26000038:base,27000000:evo,28000000:base,28000011:base,26000010:evo,26000014:hero,26000021:base: 1 decks and 3 swaps match
+search 26000038:base,27000000:evo,28000000:base,28000011:base,26000010:evo,26000014:hero,26000021:base,26000030:base: 1 decks and 0 swaps match
+search 26000058:base,27000000:base,28000004:evo,26000011:hero: 3 decks and 12 swaps match
+search 26000058:base,27000000:base,28000004:evo,26000011:hero,26000012:evo: 3 decks and 9 swaps match
+search 26000058:base,27000000:base,28000004:evo,26000011:hero,26000012:evo,26000026:base: 3 decks and 6 swaps match
+search 26000058:base,27000000:base,28000004:evo,26000011:hero,26000012:evo,26000026:base,26000030:base: 1 decks and 3 swaps match
+search 26000058:base,27000000:base,28000004:evo,26000011:hero,26000012:evo,26000026:base,26000030:base,26000040:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 122474 test deck appearances (11685 decks)
+  u -0.023  real 50.2%  model 48.7%  n 15310
+  u 0.003  real 49.7%  model 49.4%  n 15309
+  u 0.015  real 49.3%  model 49.7%  n 15399
+  u 0.024  real 50.4%  model 49.9%  n 15327
+  u 0.033  real 50.3%  model 50.1%  n 15298
+  u 0.042  real 50.5%  model 50.4%  n 15281
+  u 0.054  real 50.8%  model 50.7%  n 15245
+  u 0.078  real 48.7%  model 51.3%  n 15305
+
+=== Ranked (Path of Legends): Master I (ranked__master_i) ===
+legality: 0 random decks checked
+search 26000033:base,26000037:base,26000046:base,26000049:evo: 3 decks and 12 swaps match
+search 26000033:base,26000037:base,26000046:base,26000049:evo,26000055:base: 3 decks and 9 swaps match
+search 26000033:base,26000037:base,26000046:base,26000049:evo,26000055:base,26000056:evo: 3 decks and 6 swaps match
+search 26000033:base,26000037:base,26000046:base,26000049:evo,26000055:base,26000056:evo,28000001:base: 1 decks and 3 swaps match
+search 26000033:base,26000037:base,26000046:base,26000049:evo,26000055:base,26000056:evo,28000001:base,28000015:hero: 1 decks and 0 swaps match
+search 26000033:base,26000037:base,26000049:evo,26000055:base: 3 decks and 12 swaps match
+search 26000033:base,26000037:base,26000049:evo,26000055:base,26000056:evo: 3 decks and 9 swaps match
+search 26000033:base,26000037:base,26000049:evo,26000055:base,26000056:evo,26000058:base: 3 decks and 6 swaps match
+search 26000033:base,26000037:base,26000049:evo,26000055:base,26000056:evo,26000058:base,28000001:base: 1 decks and 3 swaps match
+search 26000033:base,26000037:base,26000049:evo,26000055:base,26000056:evo,26000058:base,28000001:base,26000019:base: 1 decks and 0 swaps match
+search 26000037:base,26000049:evo,26000055:base,27000002:evo: 3 decks and 12 swaps match
+search 26000037:base,26000049:evo,26000055:base,27000002:evo,28000001:base: 3 decks and 9 swaps match
+search 26000037:base,26000049:evo,26000055:base,27000002:evo,28000001:base,28000015:hero: 3 decks and 6 swaps match
+search 26000037:base,26000049:evo,26000055:base,27000002:evo,28000001:base,28000015:hero,26000005:base: 1 decks and 3 swaps match
+search 26000037:base,26000049:evo,26000055:base,27000002:evo,28000001:base,28000015:hero,26000005:base,26000033:base: 1 decks and 0 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:evo: 3 decks and 12 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:evo,28000011:base: 3 decks and 9 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:evo,28000011:base,26000011:evo: 3 decks and 6 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:evo,28000011:base,26000011:evo,26000026:base: 1 decks and 3 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:evo,28000011:base,26000011:evo,26000026:base,26000030:base: 1 decks and 0 swaps match
+search 26000055:evo,26000106:base,27000003:base,28000007:base: 3 decks and 12 swaps match
+search 26000055:evo,26000106:base,27000003:base,28000007:base,26000000:hero: 3 decks and 9 swaps match
+search 26000055:evo,26000106:base,27000003:base,28000007:base,26000000:hero,26000007:evo: 3 decks and 6 swaps match
+search 26000055:evo,26000106:base,27000003:base,28000007:base,26000000:hero,26000007:evo,26000018:base: 1 decks and 3 swaps match
+search 26000055:evo,26000106:base,27000003:base,28000007:base,26000000:hero,26000007:evo,26000018:base,26000021:base: 1 decks and 0 swaps match
+search 28000001:base,28000003:base,28000004:base,26000000:hero: 3 decks and 12 swaps match
+search 28000001:base,28000003:base,28000004:base,26000000:hero,26000011:evo: 3 decks and 9 swaps match
+search 28000001:base,28000003:base,28000004:base,26000000:hero,26000011:evo,26000026:evo: 3 decks and 6 swaps match
+search 28000001:base,28000003:base,28000004:base,26000000:hero,26000011:evo,26000026:evo,26000041:base: 1 decks and 3 swaps match
+search 28000001:base,28000003:base,28000004:base,26000000:hero,26000011:evo,26000026:evo,26000041:base,27000006:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 936 test deck appearances (581 decks)
+  u -0.363  real 47.0%  model 41.9%  n 117
+  u -0.219  real 33.1%  model 45.4%  n 118
+  u -0.128  real 52.6%  model 47.7%  n 116
+  u -0.067  real 45.3%  model 49.2%  n 117
+  u -0.006  real 51.3%  model 50.7%  n 117
+  u 0.070  real 54.7%  model 52.6%  n 117
+  u 0.150  real 60.5%  model 54.6%  n 119
+  u 0.291  real 55.7%  model 58.0%  n 115
+
+=== Ranked (Path of Legends): Master II (ranked__master_ii) ===
+legality: 0 random decks checked
+search 26000006:hero,26000025:base,26000052:base,26000065:base: 3 decks and 12 swaps match
+search 26000006:hero,26000025:base,26000052:base,26000065:base,27000010:evo: 3 decks and 9 swaps match
+search 26000006:hero,26000025:base,26000052:base,26000065:base,27000010:evo,28000002:base: 3 decks and 6 swaps match
+search 26000006:hero,26000025:base,26000052:base,26000065:base,27000010:evo,28000002:base,28000005:base: 1 decks and 3 swaps match
+search 26000006:hero,26000025:base,26000052:base,26000065:base,27000010:evo,28000002:base,28000005:base,28000007:base: 1 decks and 0 swaps match
+search 26000006:hero,26000025:base,26000034:hero,26000052:base: 3 decks and 12 swaps match
+search 26000006:hero,26000025:base,26000034:hero,26000052:base,27000010:evo: 3 decks and 9 swaps match
+search 26000006:hero,26000025:base,26000034:hero,26000052:base,27000010:evo,28000002:base: 3 decks and 6 swaps match
+search 26000006:hero,26000025:base,26000034:hero,26000052:base,27000010:evo,28000002:base,28000005:base: 1 decks and 3 swaps match
+search 26000006:hero,26000025:base,26000034:hero,26000052:base,27000010:evo,28000002:base,28000005:base,26000005:base: 1 decks and 0 swaps match
+search 26000052:base,26000065:base,26000083:base,27000010:evo: 3 decks and 12 swaps match
+search 26000052:base,26000065:base,26000083:base,27000010:evo,28000002:base: 3 decks and 9 swaps match
+search 26000052:base,26000065:base,26000083:base,27000010:evo,28000002:base,28000007:base: 3 decks and 6 swaps match
+search 26000052:base,26000065:base,26000083:base,27000010:evo,28000002:base,28000007:base,26000006:hero: 1 decks and 3 swaps match
+search 26000052:base,26000065:base,26000083:base,27000010:evo,28000002:base,28000007:base,26000006:hero,26000046:base: 1 decks and 0 swaps match
+search 26000049:base,26000059:evo,26000062:hero,26000064:evo: 3 decks and 12 swaps match
+search 26000049:base,26000059:evo,26000062:hero,26000064:evo,26000101:base: 3 decks and 9 swaps match
+search 26000049:base,26000059:evo,26000062:hero,26000064:evo,26000101:base,26000001:base: 3 decks and 6 swaps match
+search 26000049:base,26000059:evo,26000062:hero,26000064:evo,26000101:base,26000001:base,26000012:base: 1 decks and 3 swaps match
+search 26000049:base,26000059:evo,26000062:hero,26000064:evo,26000101:base,26000001:base,26000012:base,26000013:base: 1 decks and 0 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base: 3 decks and 12 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base: 3 decks and 9 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base: 3 decks and 6 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base,26000059:evo: 1 decks and 3 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base,26000059:evo,26000072:base: 1 decks and 0 swaps match
+search 26000055:evo,28000000:base,28000006:base,26000004:evo: 3 decks and 12 swaps match
+search 26000055:evo,28000000:base,28000006:base,26000004:evo,26000017:base: 3 decks and 9 swaps match
+search 26000055:evo,28000000:base,28000006:base,26000004:evo,26000017:base,26000018:hero: 3 decks and 6 swaps match
+search 26000055:evo,28000000:base,28000006:base,26000004:evo,26000017:base,26000018:hero,26000022:base: 1 decks and 3 swaps match
+search 26000055:evo,28000000:base,28000006:base,26000004:evo,26000017:base,26000018:hero,26000022:base,26000043:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 524 test deck appearances (312 decks)
+  u -0.455  real 42.4%  model 40.3%  n 66
+  u -0.292  real 44.4%  model 44.2%  n 72
+  u -0.184  real 54.8%  model 46.8%  n 62
+  u -0.100  real 56.5%  model 48.9%  n 62
+  u -0.015  real 60.0%  model 51.0%  n 70
+  u 0.067  real 45.9%  model 53.0%  n 61
+  u 0.163  real 37.9%  model 55.3%  n 66
+  u 0.407  real 58.5%  model 61.2%  n 65
+
+=== Ranked (Path of Legends): Master III (ranked__master_iii) ===
+legality: 0 random decks checked
+search 26000000:evo,26000002:hero,26000026:base,26000030:base: 3 decks and 12 swaps match
+search 26000000:evo,26000002:hero,26000026:base,26000030:base,26000041:base: 3 decks and 9 swaps match
+search 26000000:evo,26000002:hero,26000026:base,26000030:base,26000041:base,28000003:base: 3 decks and 6 swaps match
+search 26000000:evo,26000002:hero,26000026:base,26000030:base,26000041:base,28000003:base,28000004:evo: 1 decks and 3 swaps match
+search 26000000:evo,26000002:hero,26000026:base,26000030:base,26000041:base,28000003:base,28000004:evo,28000011:base: 1 decks and 0 swaps match
+search 26000002:hero,26000014:evo,26000026:base,26000030:base: 3 decks and 12 swaps match
+search 26000002:hero,26000014:evo,26000026:base,26000030:base,26000041:base: 3 decks and 9 swaps match
+search 26000002:hero,26000014:evo,26000026:base,26000030:base,26000041:base,27000000:base: 2 decks and 6 swaps match
+search 26000002:hero,26000014:evo,26000026:base,26000030:base,26000041:base,27000000:base,28000011:base: 1 decks and 3 swaps match
+search 26000002:hero,26000014:evo,26000026:base,26000030:base,26000041:base,27000000:base,28000011:base,26000000:evo: 1 decks and 0 swaps match
+search 26000021:base,26000026:base,26000030:base,26000041:base: 3 decks and 12 swaps match
+search 26000021:base,26000026:base,26000030:base,26000041:base,28000003:base: 3 decks and 9 swaps match
+search 26000021:base,26000026:base,26000030:base,26000041:base,28000003:base,28000011:base: 2 decks and 6 swaps match
+search 26000021:base,26000026:base,26000030:base,26000041:base,28000003:base,28000011:base,26000002:hero: 1 decks and 3 swaps match
+search 26000021:base,26000026:base,26000030:base,26000041:base,28000003:base,28000011:base,26000002:hero,26000011:evo: 1 decks and 0 swaps match
+search 26000049:evo,26000064:evo,26000103:base,27000006:base: 3 decks and 12 swaps match
+search 26000049:evo,26000064:evo,26000103:base,27000006:base,28000001:base: 3 decks and 9 swaps match
+search 26000049:evo,26000064:evo,26000103:base,27000006:base,28000001:base,26000011:base: 3 decks and 6 swaps match
+search 26000049:evo,26000064:evo,26000103:base,27000006:base,28000001:base,26000011:base,26000021:base: 1 decks and 3 swaps match
+search 26000049:evo,26000064:evo,26000103:base,27000006:base,28000001:base,26000011:base,26000021:base,26000033:base: 1 decks and 0 swaps match
+search 26000055:evo,26000069:base,28000001:base,28000004:evo: 3 decks and 12 swaps match
+search 26000055:evo,26000069:base,28000001:base,28000004:evo,26000025:base: 3 decks and 9 swaps match
+search 26000055:evo,26000069:base,28000001:base,28000004:evo,26000025:base,26000026:base: 3 decks and 6 swaps match
+search 26000055:evo,26000069:base,28000001:base,28000004:evo,26000025:base,26000026:base,26000040:base: 1 decks and 3 swaps match
+search 26000055:evo,26000069:base,28000001:base,28000004:evo,26000025:base,26000026:base,26000040:base,26000049:base: 1 decks and 0 swaps match
+search 27000003:base,28000004:base,28000011:base,26000007:base: 3 decks and 12 swaps match
+search 27000003:base,28000004:base,28000011:base,26000007:base,26000012:evo: 3 decks and 9 swaps match
+search 27000003:base,28000004:base,28000011:base,26000007:base,26000012:evo,26000042:base: 3 decks and 6 swaps match
+search 27000003:base,28000004:base,28000011:base,26000007:base,26000012:evo,26000042:base,26000049:base: 1 decks and 3 swaps match
+search 27000003:base,28000004:base,28000011:base,26000007:base,26000012:evo,26000042:base,26000049:base,26000056:evo: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 288 test deck appearances (166 decks)
+  u -0.098  real 47.4%  model 47.6%  n 38
+  u -0.055  real 38.2%  model 48.6%  n 34
+  u -0.027  real 49.0%  model 49.4%  n 49
+  u -0.008  real 51.9%  model 49.8%  n 27
+  u 0.008  real 68.8%  model 50.2%  n 32
+  u 0.027  real 43.9%  model 50.7%  n 41
+  u 0.054  real 64.5%  model 51.4%  n 31
+  u 0.108  real 41.7%  model 52.7%  n 36
+
+=== Ranked (Path of Legends): Champion (ranked__champion) ===
+legality: 0 random decks checked
+search 26000004:evo,26000042:base,26000046:base,26000050:evo: 3 decks and 12 swaps match
+search 26000004:evo,26000042:base,26000046:base,26000050:evo,26000051:base: 3 decks and 9 swaps match
+search 26000004:evo,26000042:base,26000046:base,26000050:evo,26000051:base,26000052:base: 3 decks and 6 swaps match
+search 26000004:evo,26000042:base,26000046:base,26000050:evo,26000051:base,26000052:base,26000083:base: 1 decks and 3 swaps match
+search 26000004:evo,26000042:base,26000046:base,26000050:evo,26000051:base,26000052:base,26000083:base,26000106:base: 1 decks and 0 swaps match
+search 26000042:base,26000046:base,26000051:base,26000062:hero: 3 decks and 12 swaps match
+search 26000042:base,26000046:base,26000051:base,26000062:hero,26000083:base: 3 decks and 9 swaps match
+search 26000042:base,26000046:base,26000051:base,26000062:hero,26000083:base,26000106:base: 3 decks and 6 swaps match
+search 26000042:base,26000046:base,26000051:base,26000062:hero,26000083:base,26000106:base,28000008:evo: 1 decks and 3 swaps match
+search 26000042:base,26000046:base,26000051:base,26000062:hero,26000083:base,26000106:base,28000008:evo,26000004:evo: 1 decks and 0 swaps match
+search 26000021:base,26000042:base,26000046:base,26000051:base: 3 decks and 12 swaps match
+search 26000021:base,26000042:base,26000046:base,26000051:base,26000106:base: 3 decks and 9 swaps match
+search 26000021:base,26000042:base,26000046:base,26000051:base,26000106:base,28000008:evo: 3 decks and 6 swaps match
+search 26000021:base,26000042:base,26000046:base,26000051:base,26000106:base,28000008:evo,26000004:evo: 1 decks and 3 swaps match
+search 26000021:base,26000042:base,26000046:base,26000051:base,26000106:base,28000008:evo,26000004:evo,26000017:hero: 1 decks and 0 swaps match
+search 26000042:base,26000055:evo,26000064:evo,27000009:base: 3 decks and 12 swaps match
+search 26000042:base,26000055:evo,26000064:evo,27000009:base,28000017:base: 3 decks and 9 swaps match
+search 26000042:base,26000055:evo,26000064:evo,27000009:base,28000017:base,26000000:base: 2 decks and 6 swaps match
+search 26000042:base,26000055:evo,26000064:evo,27000009:base,28000017:base,26000000:base,26000018:hero: 1 decks and 3 swaps match
+search 26000042:base,26000055:evo,26000064:evo,27000009:base,28000017:base,26000000:base,26000018:hero,26000021:base: 1 decks and 0 swaps match
+search 26000047:evo,27000006:base,28000001:base,28000004:evo: 3 decks and 12 swaps match
+search 26000047:evo,27000006:base,28000001:base,28000004:evo,26000000:hero: 3 decks and 9 swaps match
+search 26000047:evo,27000006:base,28000001:base,28000004:evo,26000000:hero,26000023:base: 3 decks and 6 swaps match
+search 26000047:evo,27000006:base,28000001:base,28000004:evo,26000000:hero,26000023:base,26000040:base: 1 decks and 3 swaps match
+search 26000047:evo,27000006:base,28000001:base,28000004:evo,26000000:hero,26000023:base,26000040:base,26000041:base: 1 decks and 0 swaps match
+search 28000000:base,28000001:base,28000015:hero,26000047:evo: 3 decks and 12 swaps match
+search 28000000:base,28000001:base,28000015:hero,26000047:evo,26000052:base: 3 decks and 9 swaps match
+search 28000000:base,28000001:base,28000015:hero,26000047:evo,26000052:base,26000057:base: 3 decks and 6 swaps match
+search 28000000:base,28000001:base,28000015:hero,26000047:evo,26000052:base,26000057:base,26000059:evo: 1 decks and 3 swaps match
+search 28000000:base,28000001:base,28000015:hero,26000047:evo,26000052:base,26000057:base,26000059:evo,27000012:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 292 test deck appearances (176 decks)
+  u -0.205  real 45.9%  model 45.0%  n 37
+  u -0.119  real 52.8%  model 47.2%  n 36
+  u -0.078  real 48.6%  model 48.2%  n 37
+  u -0.022  real 38.9%  model 49.6%  n 36
+  u 0.014  real 51.4%  model 50.5%  n 37
+  u 0.059  real 41.7%  model 51.6%  n 36
+  u 0.125  real 58.1%  model 53.3%  n 43
+  u 0.196  real 63.3%  model 55.0%  n 30
+
+=== Ranked (Path of Legends): Grand Champion (ranked__grand_champion) ===
+legality: 0 random decks checked
+search 26000006:hero,26000010:evo,26000014:evo,26000032:base: 3 decks and 12 swaps match
+search 26000006:hero,26000010:evo,26000014:evo,26000032:base,26000038:base: 3 decks and 9 swaps match
+search 26000006:hero,26000010:evo,26000014:evo,26000032:base,26000038:base,27000004:base: 3 decks and 6 swaps match
+search 26000006:hero,26000010:evo,26000014:evo,26000032:base,26000038:base,27000004:base,28000003:base: 1 decks and 3 swaps match
+search 26000006:hero,26000010:evo,26000014:evo,26000032:base,26000038:base,27000004:base,28000003:base,28000017:base: 1 decks and 0 swaps match
+search 26000026:evo,26000027:hero,26000053:base,26000058:base: 3 decks and 12 swaps match
+search 26000026:evo,26000027:hero,26000053:base,26000058:base,28000003:base: 3 decks and 9 swaps match
+search 26000026:evo,26000027:hero,26000053:base,26000058:base,28000003:base,28000004:evo: 3 decks and 6 swaps match
+search 26000026:evo,26000027:hero,26000053:base,26000058:base,28000003:base,28000004:evo,28000017:base: 1 decks and 3 swaps match
+search 26000026:evo,26000027:hero,26000053:base,26000058:base,28000003:base,28000004:evo,28000017:base,26000016:base: 1 decks and 0 swaps match
+search 26000032:base,26000034:hero,26000038:base,26000048:base: 3 decks and 12 swaps match
+search 26000032:base,26000034:hero,26000038:base,26000048:base,27000004:base: 3 decks and 9 swaps match
+search 26000032:base,26000034:hero,26000038:base,26000048:base,27000004:base,28000017:base: 3 decks and 6 swaps match
+search 26000032:base,26000034:hero,26000038:base,26000048:base,27000004:base,28000017:base,26000010:evo: 1 decks and 3 swaps match
+search 26000032:base,26000034:hero,26000038:base,26000048:base,27000004:base,28000017:base,26000010:evo,26000014:evo: 1 decks and 0 swaps match
+search 26000083:base,26000099:base,27000002:evo,28000000:base: 3 decks and 12 swaps match
+search 26000083:base,26000099:base,27000002:evo,28000000:base,28000015:base: 3 decks and 9 swaps match
+search 26000083:base,26000099:base,27000002:evo,28000000:base,28000015:base,26000022:evo: 3 decks and 6 swaps match
+search 26000083:base,26000099:base,27000002:evo,28000000:base,28000015:base,26000022:evo,26000041:base: 1 decks and 3 swaps match
+search 26000083:base,26000099:base,27000002:evo,28000000:base,28000015:base,26000022:evo,26000041:base,26000054:base: 1 decks and 0 swaps match
+search 26000038:base,27000000:evo,28000000:base,28000011:base: 3 decks and 12 swaps match
+search 26000038:base,27000000:evo,28000000:base,28000011:base,26000010:evo: 3 decks and 9 swaps match
+search 26000038:base,27000000:evo,28000000:base,28000011:base,26000010:evo,26000014:hero: 3 decks and 6 swaps match
+search 26000038:base,27000000:evo,28000000:base,28000011:base,26000010:evo,26000014:hero,26000021:base: 1 decks and 3 swaps match
+search 26000038:base,27000000:evo,28000000:base,28000011:base,26000010:evo,26000014:hero,26000021:base,26000030:base: 1 decks and 0 swaps match
+search 27000012:evo,28000001:base,28000015:hero,26000047:evo: 3 decks and 12 swaps match
+search 27000012:evo,28000001:base,28000015:hero,26000047:evo,26000052:base: 3 decks and 9 swaps match
+search 27000012:evo,28000001:base,28000015:hero,26000047:evo,26000052:base,26000057:base: 3 decks and 6 swaps match
+search 27000012:evo,28000001:base,28000015:hero,26000047:evo,26000052:base,26000057:base,26000059:base: 1 decks and 3 swaps match
+search 27000012:evo,28000001:base,28000015:hero,26000047:evo,26000052:base,26000057:base,26000059:base,26000084:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 664 test deck appearances (356 decks)
+  u -0.478  real 51.8%  model 38.1%  n 83
+  u -0.289  real 47.0%  model 42.5%  n 83
+  u -0.148  real 42.0%  model 45.9%  n 88
+  u -0.042  real 39.7%  model 48.5%  n 78
+  u 0.095  real 47.8%  model 51.8%  n 92
+  u 0.190  real 45.9%  model 54.1%  n 74
+  u 0.316  real 60.2%  model 57.2%  n 83
+  u 0.541  real 65.1%  model 62.4%  n 83
+
+=== Ranked (Path of Legends): Royal Champion (ranked__royal_champion) ===
+legality: 0 random decks checked
+search 26000000:base,26000015:evo,26000034:hero,26000037:base: 3 decks and 12 swaps match
+search 26000000:base,26000015:evo,26000034:hero,26000037:base,26000042:hero: 3 decks and 9 swaps match
+search 26000000:base,26000015:evo,26000034:hero,26000037:base,26000042:hero,27000001:base: 3 decks and 6 swaps match
+search 26000000:base,26000015:evo,26000034:hero,26000037:base,26000042:hero,27000001:base,28000010:base: 1 decks and 3 swaps match
+search 26000000:base,26000015:evo,26000034:hero,26000037:base,26000042:hero,27000001:base,28000010:base,28000012:base: 1 decks and 0 swaps match
+search 26000015:evo,26000016:base,26000034:hero,26000037:base: 3 decks and 12 swaps match
+search 26000015:evo,26000016:base,26000034:hero,26000037:base,26000042:hero: 3 decks and 9 swaps match
+search 26000015:evo,26000016:base,26000034:hero,26000037:base,26000042:hero,26000055:base: 3 decks and 6 swaps match
+search 26000015:evo,26000016:base,26000034:hero,26000037:base,26000042:hero,26000055:base,27000001:base: 1 decks and 3 swaps match
+search 26000015:evo,26000016:base,26000034:hero,26000037:base,26000042:hero,26000055:base,27000001:base,26000000:base: 1 decks and 0 swaps match
+search 26000014:base,26000032:base,26000038:hero,26000049:evo: 3 decks and 12 swaps match
+search 26000014:base,26000032:base,26000038:hero,26000049:evo,27000004:base: 3 decks and 9 swaps match
+search 26000014:base,26000032:base,26000038:hero,26000049:evo,27000004:base,28000017:base: 3 decks and 6 swaps match
+search 26000014:base,26000032:base,26000038:hero,26000049:evo,27000004:base,28000017:base,26000006:base: 1 decks and 3 swaps match
+search 26000014:base,26000032:base,26000038:hero,26000049:evo,27000004:base,28000017:base,26000006:base,26000010:evo: 1 decks and 0 swaps match
+search 26000030:base,26000040:base,26000058:base,27000000:base: 3 decks and 12 swaps match
+search 26000030:base,26000040:base,26000058:base,27000000:base,28000004:evo: 3 decks and 9 swaps match
+search 26000030:base,26000040:base,26000058:base,27000000:base,28000004:evo,26000011:hero: 3 decks and 6 swaps match
+search 26000030:base,26000040:base,26000058:base,27000000:base,28000004:evo,26000011:hero,26000012:evo: 1 decks and 3 swaps match
+search 26000030:base,26000040:base,26000058:base,27000000:base,28000004:evo,26000011:hero,26000012:evo,26000026:base: 1 decks and 0 swaps match
+search 26000099:base,27000002:evo,28000000:base,28000015:base: 3 decks and 12 swaps match
+search 26000099:base,27000002:evo,28000000:base,28000015:base,26000022:evo: 3 decks and 9 swaps match
+search 26000099:base,27000002:evo,28000000:base,28000015:base,26000022:evo,26000041:base: 3 decks and 6 swaps match
+search 26000099:base,27000002:evo,28000000:base,28000015:base,26000022:evo,26000041:base,26000054:base: 1 decks and 3 swaps match
+search 26000099:base,27000002:evo,28000000:base,28000015:base,26000022:evo,26000041:base,26000054:base,26000083:base: 1 decks and 0 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000005:base: 3 decks and 12 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000005:base,26000023:hero: 3 decks and 9 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000005:base,26000023:hero,26000053:base: 3 decks and 6 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000005:base,26000023:hero,26000053:base,26000054:base: 1 decks and 3 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000005:base,26000023:hero,26000053:base,26000054:base,26000056:evo: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 2948 test deck appearances (1255 decks)
+  u -0.346  real 30.6%  model 38.6%  n 369
+  u -0.120  real 48.4%  model 44.0%  n 384
+  u -0.011  real 49.0%  model 46.6%  n 353
+  u 0.084  real 52.1%  model 49.0%  n 376
+  u 0.187  real 48.1%  model 51.5%  n 391
+  u 0.285  real 51.5%  model 53.9%  n 338
+  u 0.403  real 56.1%  model 56.7%  n 369
+  u 0.547  real 64.4%  model 60.2%  n 368
+
+=== Ranked (Path of Legends): Ultimate Champion (ranked__ultimate_champion) ===
+legality: 0 random decks checked
+search 26000000:base,26000013:evo,26000031:base,26000095:base: 3 decks and 12 swaps match
+search 26000000:base,26000013:evo,26000031:base,26000095:base,26000102:base: 3 decks and 9 swaps match
+search 26000000:base,26000013:evo,26000031:base,26000095:base,26000102:base,27000008:base: 3 decks and 6 swaps match
+search 26000000:base,26000013:evo,26000031:base,26000095:base,26000102:base,27000008:base,27000013:evo: 1 decks and 3 swaps match
+search 26000000:base,26000013:evo,26000031:base,26000095:base,26000102:base,27000008:base,27000013:evo,28000018:base: 1 decks and 0 swaps match
+search 26000031:base,26000095:base,26000102:base,27000004:base: 3 decks and 12 swaps match
+search 26000031:base,26000095:base,26000102:base,27000004:base,27000013:evo: 3 decks and 9 swaps match
+search 26000031:base,26000095:base,26000102:base,27000004:base,27000013:evo,28000017:base: 3 decks and 6 swaps match
+search 26000031:base,26000095:base,26000102:base,27000004:base,27000013:evo,28000017:base,28000018:base: 1 decks and 3 swaps match
+search 26000031:base,26000095:base,26000102:base,27000004:base,27000013:evo,28000017:base,28000018:base,26000013:evo: 1 decks and 0 swaps match
+search 26000102:base,27000008:base,27000013:evo,28000003:base: 3 decks and 12 swaps match
+search 26000102:base,27000008:base,27000013:evo,28000003:base,28000017:base: 3 decks and 9 swaps match
+search 26000102:base,27000008:base,27000013:evo,28000003:base,28000017:base,28000018:base: 3 decks and 6 swaps match
+search 26000102:base,27000008:base,27000013:evo,28000003:base,28000017:base,28000018:base,26000013:evo: 1 decks and 3 swaps match
+search 26000102:base,27000008:base,27000013:evo,28000003:base,28000017:base,28000018:base,26000013:evo,26000031:base: 1 decks and 0 swaps match
+search 26000030:base,26000038:base,27000000:evo,28000000:base: 3 decks and 12 swaps match
+search 26000030:base,26000038:base,27000000:evo,28000000:base,28000011:base: 3 decks and 9 swaps match
+search 26000030:base,26000038:base,27000000:evo,28000000:base,28000011:base,26000010:evo: 3 decks and 6 swaps match
+search 26000030:base,26000038:base,27000000:evo,28000000:base,28000011:base,26000010:evo,26000014:hero: 1 decks and 3 swaps match
+search 26000030:base,26000038:base,27000000:evo,28000000:base,28000011:base,26000010:evo,26000014:hero,26000021:base: 1 decks and 0 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base: 3 decks and 12 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base: 3 decks and 9 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base: 2 decks and 6 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base,26000059:evo: 1 decks and 3 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base,26000059:evo,26000072:base: 1 decks and 0 swaps match
+search 26000058:base,27000000:base,28000004:evo,26000011:hero: 3 decks and 12 swaps match
+search 26000058:base,27000000:base,28000004:evo,26000011:hero,26000012:evo: 3 decks and 9 swaps match
+search 26000058:base,27000000:base,28000004:evo,26000011:hero,26000012:evo,26000026:base: 3 decks and 6 swaps match
+search 26000058:base,27000000:base,28000004:evo,26000011:hero,26000012:evo,26000026:base,26000030:base: 1 decks and 3 swaps match
+search 26000058:base,27000000:base,28000004:evo,26000011:hero,26000012:evo,26000026:base,26000030:base,26000040:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 75492 test deck appearances (6226 decks)
+  u -0.089  real 47.2%  model 46.9%  n 9580
+  u -0.024  real 47.4%  model 48.6%  n 9316
+  u 0.003  real 49.6%  model 49.2%  n 9484
+  u 0.027  real 50.0%  model 49.8%  n 9372
+  u 0.045  real 51.3%  model 50.3%  n 9433
+  u 0.067  real 50.9%  model 50.8%  n 9434
+  u 0.089  real 50.2%  model 51.4%  n 9459
+  u 0.140  real 53.5%  model 52.6%  n 9414
+
+=== Trophy Road ladder: Goblin Stadium (trophy_road__goblin_stadium) ===
+legality: 0 random decks checked
+search 26000000:base,26000002:base,26000014:base,26000018:base: 3 decks and 12 swaps match
+search 26000000:base,26000002:base,26000014:base,26000018:base,26000019:base: 3 decks and 9 swaps match
+search 26000000:base,26000002:base,26000014:base,26000018:base,26000019:base,27000001:base: 3 decks and 6 swaps match
+search 26000000:base,26000002:base,26000014:base,26000018:base,26000019:base,27000001:base,27000012:base: 1 decks and 3 swaps match
+search 26000000:base,26000002:base,26000014:base,26000018:base,26000019:base,27000001:base,27000012:base,28000001:base: 1 decks and 0 swaps match
+search 26000001:base,26000003:base,26000014:base,26000018:base: 3 decks and 12 swaps match
+search 26000001:base,26000003:base,26000014:base,26000018:base,26000019:base: 3 decks and 9 swaps match
+search 26000001:base,26000003:base,26000014:base,26000018:base,26000019:base,27000001:base: 3 decks and 6 swaps match
+search 26000001:base,26000003:base,26000014:base,26000018:base,26000019:base,27000001:base,28000001:base: 1 decks and 3 swaps match
+search 26000001:base,26000003:base,26000014:base,26000018:base,26000019:base,27000001:base,28000001:base,26000000:base: 1 decks and 0 swaps match
+search 26000002:base,26000018:base,26000019:base,27000001:base: 3 decks and 12 swaps match
+search 26000002:base,26000018:base,26000019:base,27000001:base,28000000:base: 3 decks and 9 swaps match
+search 26000002:base,26000018:base,26000019:base,27000001:base,28000000:base,28000001:base: 3 decks and 6 swaps match
+search 26000002:base,26000018:base,26000019:base,27000001:base,28000000:base,28000001:base,26000000:base: 1 decks and 3 swaps match
+search 26000002:base,26000018:base,26000019:base,27000001:base,28000000:base,28000001:base,26000000:base,26000001:base: 1 decks and 0 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base: 3 decks and 12 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base: 3 decks and 9 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base: 3 decks and 6 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base,26000001:base: 1 decks and 3 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base,26000001:base,26000003:base: 1 decks and 0 swaps match
+search 26000018:base,26000019:base,27000001:base,27000012:base: 3 decks and 12 swaps match
+search 26000018:base,26000019:base,27000001:base,27000012:base,26000001:base: 3 decks and 9 swaps match
+search 26000018:base,26000019:base,27000001:base,27000012:base,26000001:base,26000002:base: 3 decks and 6 swaps match
+search 26000018:base,26000019:base,27000001:base,27000012:base,26000001:base,26000002:base,26000005:base: 1 decks and 3 swaps match
+search 26000018:base,26000019:base,27000001:base,27000012:base,26000001:base,26000002:base,26000005:base,26000014:base: 1 decks and 0 swaps match
+search 27000001:base,28000000:base,28000001:base,26000000:base: 3 decks and 12 swaps match
+search 27000001:base,28000000:base,28000001:base,26000000:base,26000001:base: 3 decks and 9 swaps match
+search 27000001:base,28000000:base,28000001:base,26000000:base,26000001:base,26000002:base: 3 decks and 6 swaps match
+search 27000001:base,28000000:base,28000001:base,26000000:base,26000001:base,26000002:base,26000005:base: 1 decks and 3 swaps match
+search 27000001:base,28000000:base,28000001:base,26000000:base,26000001:base,26000002:base,26000005:base,26000019:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 74 test deck appearances (16 decks)
+  u -3.585  real 16.7%  model 14.5%  n 12
+  u -1.561  real 28.1%  model 43.3%  n 32
+  u -1.448  real 100.0%  model 45.4%  n 1
+  u -0.724  real 25.0%  model 58.7%  n 4
+  u -0.642  real 100.0%  model 60.1%  n 1
+  u -0.441  real 100.0%  model 63.6%  n 7
+  u 0.047  real 100.0%  model 71.6%  n 8
+  u 1.243  real 88.9%  model 86.4%  n 9
+
+=== Trophy Road ladder: Bone Pit (trophy_road__bone_pit) ===
+legality: 0 random decks checked
+search 26000000:base,26000001:base,26000003:base,26000011:base: 3 decks and 12 swaps match
+search 26000000:base,26000001:base,26000003:base,26000011:base,26000014:base: 3 decks and 9 swaps match
+search 26000000:base,26000001:base,26000003:base,26000011:base,26000014:base,26000018:base: 3 decks and 6 swaps match
+search 26000000:base,26000001:base,26000003:base,26000011:base,26000014:base,26000018:base,26000019:base: 1 decks and 3 swaps match
+search 26000000:base,26000001:base,26000003:base,26000011:base,26000014:base,26000018:base,26000019:base,28000000:base: 1 decks and 0 swaps match
+search 26000001:base,26000011:base,26000018:base,26000019:base: 3 decks and 12 swaps match
+search 26000001:base,26000011:base,26000018:base,26000019:base,27000012:base: 3 decks and 9 swaps match
+search 26000001:base,26000011:base,26000018:base,26000019:base,27000012:base,28000000:base: 3 decks and 6 swaps match
+search 26000001:base,26000011:base,26000018:base,26000019:base,27000012:base,28000000:base,28000001:base: 1 decks and 3 swaps match
+search 26000001:base,26000011:base,26000018:base,26000019:base,27000012:base,28000000:base,28000001:base,26000000:base: 1 decks and 0 swaps match
+search 26000003:base,26000005:base,26000011:base,26000018:base: 3 decks and 12 swaps match
+search 26000003:base,26000005:base,26000011:base,26000018:base,26000019:base: 3 decks and 9 swaps match
+search 26000003:base,26000005:base,26000011:base,26000018:base,26000019:base,28000001:base: 3 decks and 6 swaps match
+search 26000003:base,26000005:base,26000011:base,26000018:base,26000019:base,28000001:base,26000000:base: 1 decks and 3 swaps match
+search 26000003:base,26000005:base,26000011:base,26000018:base,26000019:base,28000001:base,26000000:base,26000001:base: 1 decks and 0 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base: 3 decks and 12 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base: 3 decks and 9 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base: 3 decks and 6 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base,26000001:base: 1 decks and 3 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base,26000001:base,26000003:base: 1 decks and 0 swaps match
+search 27000009:base,27000012:base,28000000:base,28000001:base: 3 decks and 12 swaps match
+search 27000009:base,27000012:base,28000000:base,28000001:base,26000002:base: 3 decks and 9 swaps match
+search 27000009:base,27000012:base,28000000:base,28000001:base,26000002:base,26000003:base: 3 decks and 6 swaps match
+search 27000009:base,27000012:base,28000000:base,28000001:base,26000002:base,26000003:base,26000019:base: 1 decks and 3 swaps match
+search 27000009:base,27000012:base,28000000:base,28000001:base,26000002:base,26000003:base,26000019:base,27000001:base: 1 decks and 0 swaps match
+search 26000019:base,27000001:base,27000012:base,26000002:base: 3 decks and 12 swaps match
+search 26000019:base,27000001:base,27000012:base,26000002:base,26000003:base: 3 decks and 9 swaps match
+search 26000019:base,27000001:base,27000012:base,26000002:base,26000003:base,26000010:base: 3 decks and 6 swaps match
+search 26000019:base,27000001:base,27000012:base,26000002:base,26000003:base,26000010:base,26000013:base: 1 decks and 3 swaps match
+search 26000019:base,27000001:base,27000012:base,26000002:base,26000003:base,26000010:base,26000013:base,26000018:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 154 test deck appearances (51 decks)
+  u -0.553  real 20.0%  model 26.3%  n 20
+  u 0.068  real 33.3%  model 38.8%  n 24
+  u 0.340  real 41.2%  model 44.9%  n 17
+  u 0.549  real 31.3%  model 49.7%  n 16
+  u 0.854  real 73.8%  model 56.7%  n 42
+  u 0.883  real 100.0%  model 57.3%  n 1
+  u 1.111  real 47.4%  model 62.4%  n 19
+  u 1.497  real 80.0%  model 70.4%  n 15
+
+=== Trophy Road ladder: Barbarian Bowl (trophy_road__barbarian_bowl) ===
+legality: 0 random decks checked
+search 26000000:base,26000008:base,26000011:base,26000014:base: 3 decks and 12 swaps match
+search 26000000:base,26000008:base,26000011:base,26000014:base,26000018:base: 3 decks and 9 swaps match
+search 26000000:base,26000008:base,26000011:base,26000014:base,26000018:base,26000036:base: 3 decks and 6 swaps match
+search 26000000:base,26000008:base,26000011:base,26000014:base,26000018:base,26000036:base,28000000:base: 1 decks and 3 swaps match
+search 26000000:base,26000008:base,26000011:base,26000014:base,26000018:base,26000036:base,28000000:base,28000001:base: 1 decks and 0 swaps match
+search 26000008:base,26000011:base,26000018:base,26000036:base: 3 decks and 12 swaps match
+search 26000008:base,26000011:base,26000018:base,26000036:base,27000012:base: 3 decks and 9 swaps match
+search 26000008:base,26000011:base,26000018:base,26000036:base,27000012:base,28000000:base: 3 decks and 6 swaps match
+search 26000008:base,26000011:base,26000018:base,26000036:base,27000012:base,28000000:base,28000001:base: 1 decks and 3 swaps match
+search 26000008:base,26000011:base,26000018:base,26000036:base,27000012:base,28000000:base,28000001:base,26000005:base: 1 decks and 0 swaps match
+search 26000011:base,26000018:base,26000019:base,26000036:base: 3 decks and 12 swaps match
+search 26000011:base,26000018:base,26000019:base,26000036:base,28000000:base: 3 decks and 9 swaps match
+search 26000011:base,26000018:base,26000019:base,26000036:base,28000000:base,28000001:base: 3 decks and 6 swaps match
+search 26000011:base,26000018:base,26000019:base,26000036:base,28000000:base,28000001:base,26000000:base: 1 decks and 3 swaps match
+search 26000011:base,26000018:base,26000019:base,26000036:base,28000000:base,28000001:base,26000000:base,26000001:base: 1 decks and 0 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base: 3 decks and 12 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base: 3 decks and 9 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base: 3 decks and 6 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base,26000001:base: 1 decks and 3 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base,26000001:base,26000003:base: 1 decks and 0 swaps match
+search 27000001:base,27000009:base,27000012:base,28000000:base: 3 decks and 12 swaps match
+search 27000001:base,27000009:base,27000012:base,28000000:base,26000003:base: 3 decks and 9 swaps match
+search 27000001:base,27000009:base,27000012:base,28000000:base,26000003:base,26000011:base: 3 decks and 6 swaps match
+search 27000001:base,27000009:base,27000012:base,28000000:base,26000003:base,26000011:base,26000014:base: 1 decks and 3 swaps match
+search 27000001:base,27000009:base,27000012:base,28000000:base,26000003:base,26000011:base,26000014:base,26000018:base: 1 decks and 0 swaps match
+search 27000012:base,28000000:base,28000001:base,26000003:base: 3 decks and 12 swaps match
+search 27000012:base,28000000:base,28000001:base,26000003:base,26000010:base: 3 decks and 9 swaps match
+search 27000012:base,28000000:base,28000001:base,26000003:base,26000010:base,26000019:base: 3 decks and 6 swaps match
+search 27000012:base,28000000:base,28000001:base,26000003:base,26000010:base,26000019:base,27000001:base: 1 decks and 3 swaps match
+search 27000012:base,28000000:base,28000001:base,26000003:base,26000010:base,26000019:base,27000001:base,27000009:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 380 test deck appearances (156 decks)
+  u -1.025  real 22.9%  model 29.0%  n 48
+  u -0.454  real 31.3%  model 41.2%  n 48
+  u -0.223  real 41.7%  model 46.6%  n 48
+  u -0.077  real 51.1%  model 50.1%  n 47
+  u 0.039  real 63.8%  model 52.9%  n 47
+  u 0.201  real 63.8%  model 56.7%  n 47
+  u 0.351  real 58.3%  model 60.2%  n 48
+  u 0.509  real 68.1%  model 63.7%  n 47
+
+=== Trophy Road ladder: Spell Valley (trophy_road__spell_valley) ===
+legality: 0 random decks checked
+search 26000003:base,26000005:base,26000017:base,26000018:base: 3 decks and 12 swaps match
+search 26000003:base,26000005:base,26000017:base,26000018:base,26000036:base: 3 decks and 9 swaps match
+search 26000003:base,26000005:base,26000017:base,26000018:base,26000036:base,26000102:base: 3 decks and 6 swaps match
+search 26000003:base,26000005:base,26000017:base,26000018:base,26000036:base,26000102:base,27000003:base: 1 decks and 3 swaps match
+search 26000003:base,26000005:base,26000017:base,26000018:base,26000036:base,26000102:base,27000003:base,28000001:base: 1 decks and 0 swaps match
+search 26000001:base,26000017:base,26000018:base,26000039:base: 3 decks and 12 swaps match
+search 26000001:base,26000017:base,26000018:base,26000039:base,27000003:base: 3 decks and 9 swaps match
+search 26000001:base,26000017:base,26000018:base,26000039:base,27000003:base,28000000:base: 3 decks and 6 swaps match
+search 26000001:base,26000017:base,26000018:base,26000039:base,27000003:base,28000000:base,28000001:base: 1 decks and 3 swaps match
+search 26000001:base,26000017:base,26000018:base,26000039:base,27000003:base,28000000:base,28000001:base,26000000:base: 1 decks and 0 swaps match
+search 26000018:base,26000080:base,26000102:base,27000003:base: 3 decks and 12 swaps match
+search 26000018:base,26000080:base,26000102:base,27000003:base,28000000:base: 3 decks and 9 swaps match
+search 26000018:base,26000080:base,26000102:base,27000003:base,28000000:base,28000001:base: 3 decks and 6 swaps match
+search 26000018:base,26000080:base,26000102:base,27000003:base,28000000:base,28000001:base,26000000:base: 1 decks and 3 swaps match
+search 26000018:base,26000080:base,26000102:base,27000003:base,28000000:base,28000001:base,26000000:base,26000001:base: 1 decks and 0 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base: 3 decks and 12 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base: 3 decks and 9 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base: 3 decks and 6 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base,26000001:base: 1 decks and 3 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base,26000001:base,26000003:base: 1 decks and 0 swaps match
+search 26000011:base,26000018:base,26000036:base,28000000:base: 3 decks and 12 swaps match
+search 26000011:base,26000018:base,26000036:base,28000000:base,26000000:base: 3 decks and 9 swaps match
+search 26000011:base,26000018:base,26000036:base,28000000:base,26000000:base,26000003:base: 3 decks and 6 swaps match
+search 26000011:base,26000018:base,26000036:base,28000000:base,26000000:base,26000003:base,26000005:base: 1 decks and 3 swaps match
+search 26000011:base,26000018:base,26000036:base,28000000:base,26000000:base,26000003:base,26000005:base,26000008:base: 1 decks and 0 swaps match
+search 27000012:base,28000000:base,28000001:base,26000003:base: 3 decks and 12 swaps match
+search 27000012:base,28000000:base,28000001:base,26000003:base,26000010:base: 3 decks and 9 swaps match
+search 27000012:base,28000000:base,28000001:base,26000003:base,26000010:base,26000014:base: 3 decks and 6 swaps match
+search 27000012:base,28000000:base,28000001:base,26000003:base,26000010:base,26000014:base,26000018:base: 1 decks and 3 swaps match
+search 27000012:base,28000000:base,28000001:base,26000003:base,26000010:base,26000014:base,26000018:base,26000039:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 300 test deck appearances (163 decks)
+  u -2.204  real 36.6%  model 27.0%  n 41
+  u -1.687  real 25.7%  model 37.3%  n 35
+  u -1.404  real 56.4%  model 43.5%  n 39
+  u -1.247  real 60.0%  model 47.0%  n 35
+  u -1.046  real 44.7%  model 51.5%  n 38
+  u -0.801  real 70.3%  model 57.0%  n 37
+  u -0.422  real 57.4%  model 65.1%  n 47
+  u 0.167  real 46.4%  model 76.1%  n 28
+
+=== Trophy Road ladder: Builder's Workshop (trophy_road__builder_s_workshop) ===
+legality: 0 random decks checked
+search 26000016:base,26000018:base,26000043:evo,26000049:base: 3 decks and 12 swaps match
+search 26000016:base,26000018:base,26000043:evo,26000049:base,26000102:hero: 3 decks and 9 swaps match
+search 26000016:base,26000018:base,26000043:evo,26000049:base,26000102:hero,27000000:base: 3 decks and 6 swaps match
+search 26000016:base,26000018:base,26000043:evo,26000049:base,26000102:hero,27000000:base,28000001:base: 1 decks and 3 swaps match
+search 26000016:base,26000018:base,26000043:evo,26000049:base,26000102:hero,27000000:base,28000001:base,28000024:base: 1 decks and 0 swaps match
+search 26000017:base,26000036:base,26000043:evo,26000049:base: 3 decks and 12 swaps match
+search 26000017:base,26000036:base,26000043:evo,26000049:base,26000102:hero: 3 decks and 9 swaps match
+search 26000017:base,26000036:base,26000043:evo,26000049:base,26000102:hero,27000000:base: 3 decks and 6 swaps match
+search 26000017:base,26000036:base,26000043:evo,26000049:base,26000102:hero,27000000:base,28000024:base: 1 decks and 3 swaps match
+search 26000017:base,26000036:base,26000043:evo,26000049:base,26000102:hero,27000000:base,28000024:base,26000016:base: 1 decks and 0 swaps match
+search 26000021:base,26000043:evo,26000049:base,26000102:hero: 3 decks and 12 swaps match
+search 26000021:base,26000043:evo,26000049:base,26000102:hero,28000001:base: 3 decks and 9 swaps match
+search 26000021:base,26000043:evo,26000049:base,26000102:hero,28000001:base,28000008:base: 3 decks and 6 swaps match
+search 26000021:base,26000043:evo,26000049:base,26000102:hero,28000001:base,28000008:base,26000016:base: 1 decks and 3 swaps match
+search 26000021:base,26000043:evo,26000049:base,26000102:hero,28000001:base,28000008:base,26000016:base,26000018:base: 1 decks and 0 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base: 3 decks and 12 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base: 3 decks and 9 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base: 3 decks and 6 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base,26000001:base: 1 decks and 3 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base,26000001:base,26000003:base: 1 decks and 0 swaps match
+search 26000013:base,26000014:base,26000018:base,26000019:base: 3 decks and 12 swaps match
+search 26000013:base,26000014:base,26000018:base,26000019:base,26000001:base: 3 decks and 9 swaps match
+search 26000013:base,26000014:base,26000018:base,26000019:base,26000001:base,26000002:base: 3 decks and 6 swaps match
+search 26000013:base,26000014:base,26000018:base,26000019:base,26000001:base,26000002:base,26000005:base: 1 decks and 3 swaps match
+search 26000013:base,26000014:base,26000018:base,26000019:base,26000001:base,26000002:base,26000005:base,26000011:base: 1 decks and 0 swaps match
+search 27000001:base,27000009:base,28000000:base,26000000:base: 3 decks and 12 swaps match
+search 27000001:base,27000009:base,28000000:base,26000000:base,26000001:base: 3 decks and 9 swaps match
+search 27000001:base,27000009:base,28000000:base,26000000:base,26000001:base,26000005:base: 3 decks and 6 swaps match
+search 27000001:base,27000009:base,28000000:base,26000000:base,26000001:base,26000005:base,26000014:base: 1 decks and 3 swaps match
+search 27000001:base,27000009:base,28000000:base,26000000:base,26000001:base,26000005:base,26000014:base,26000019:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 328 test deck appearances (177 decks)
+  u -1.448  real 32.6%  model 32.9%  n 46
+  u -1.089  real 38.9%  model 40.8%  n 36
+  u -0.919  real 58.1%  model 44.8%  n 43
+  u -0.775  real 59.5%  model 48.1%  n 42
+  u -0.633  real 55.3%  model 51.5%  n 47
+  u -0.508  real 54.5%  model 54.5%  n 33
+  u -0.231  real 56.5%  model 60.8%  n 46
+  u 0.209  real 42.9%  model 70.2%  n 35
+
+=== Trophy Road ladder: P.E.K.K.A's Playhouse (trophy_road__p_e_k_k_a_s_playhouse) ===
+legality: 0 random decks checked
+search 26000001:base,26000012:base,26000016:base,26000017:base: 3 decks and 12 swaps match
+search 26000001:base,26000012:base,26000016:base,26000017:base,26000043:evo: 3 decks and 9 swaps match
+search 26000001:base,26000012:base,26000016:base,26000017:base,26000043:evo,26000049:base: 3 decks and 6 swaps match
+search 26000001:base,26000012:base,26000016:base,26000017:base,26000043:evo,26000049:base,26000102:hero: 1 decks and 3 swaps match
+search 26000001:base,26000012:base,26000016:base,26000017:base,26000043:evo,26000049:base,26000102:hero,28000024:base: 1 decks and 0 swaps match
+search 26000015:base,26000016:base,26000017:base,26000043:evo: 3 decks and 12 swaps match
+search 26000015:base,26000016:base,26000017:base,26000043:evo,26000049:base: 3 decks and 9 swaps match
+search 26000015:base,26000016:base,26000017:base,26000043:evo,26000049:base,26000102:hero: 3 decks and 6 swaps match
+search 26000015:base,26000016:base,26000017:base,26000043:evo,26000049:base,26000102:hero,28000001:base: 1 decks and 3 swaps match
+search 26000015:base,26000016:base,26000017:base,26000043:evo,26000049:base,26000102:hero,28000001:base,26000012:base: 1 decks and 0 swaps match
+search 26000015:base,26000016:base,26000017:base,26000049:base: 3 decks and 12 swaps match
+search 26000015:base,26000016:base,26000017:base,26000049:base,26000102:hero: 3 decks and 9 swaps match
+search 26000015:base,26000016:base,26000017:base,26000049:base,26000102:hero,27000000:base: 2 decks and 6 swaps match
+search 26000015:base,26000016:base,26000017:base,26000049:base,26000102:hero,27000000:base,26000001:evo: 1 decks and 3 swaps match
+search 26000015:base,26000016:base,26000017:base,26000049:base,26000102:hero,27000000:base,26000001:evo,26000012:base: 1 decks and 0 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base: 3 decks and 12 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base: 3 decks and 9 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base: 3 decks and 6 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base,26000001:base: 1 decks and 3 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base,26000001:base,26000003:base: 1 decks and 0 swaps match
+search 26000015:base,26000018:base,26000025:base,28000004:base: 3 decks and 12 swaps match
+search 26000015:base,26000018:base,26000025:base,28000004:base,26000004:base: 3 decks and 9 swaps match
+search 26000015:base,26000018:base,26000025:base,28000004:base,26000004:base,26000007:base: 3 decks and 6 swaps match
+search 26000015:base,26000018:base,26000025:base,28000004:base,26000004:base,26000007:base,26000008:base: 1 decks and 3 swaps match
+search 26000015:base,26000018:base,26000025:base,28000004:base,26000004:base,26000007:base,26000008:base,26000012:base: 1 decks and 0 swaps match
+search 26000012:base,26000018:base,26000049:base,26000000:hero: 3 decks and 12 swaps match
+search 26000012:base,26000018:base,26000049:base,26000000:hero,26000001:base: 3 decks and 9 swaps match
+search 26000012:base,26000018:base,26000049:base,26000000:hero,26000001:base,26000005:base: 2 decks and 6 swaps match
+search 26000012:base,26000018:base,26000049:base,26000000:hero,26000001:base,26000005:base,26000007:evo: 1 decks and 3 swaps match
+search 26000012:base,26000018:base,26000049:base,26000000:hero,26000001:base,26000005:base,26000007:evo,26000011:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 596 test deck appearances (265 decks)
+  u -1.367  real 38.7%  model 29.0%  n 75
+  u -0.975  real 32.4%  model 37.0%  n 74
+  u -0.751  real 36.0%  model 42.0%  n 75
+  u -0.481  real 45.9%  model 48.1%  n 74
+  u -0.244  real 48.7%  model 53.6%  n 76
+  u -0.067  real 59.5%  model 57.6%  n 74
+  u 0.200  real 69.7%  model 63.5%  n 89
+  u 0.556  real 69.5%  model 70.8%  n 59
+
+=== Trophy Road ladder: Royal Arena (trophy_road__royal_arena) ===
+legality: 0 random decks checked
+search 26000006:base,26000007:base,26000011:base,26000016:base: 3 decks and 12 swaps match
+search 26000006:base,26000007:base,26000011:base,26000016:base,26000027:base: 3 decks and 9 swaps match
+search 26000006:base,26000007:base,26000011:base,26000016:base,26000027:base,26000043:evo: 3 decks and 6 swaps match
+search 26000006:base,26000007:base,26000011:base,26000016:base,26000027:base,26000043:evo,26000102:hero: 1 decks and 3 swaps match
+search 26000006:base,26000007:base,26000011:base,26000016:base,26000027:base,26000043:evo,26000102:hero,26000107:base: 1 decks and 0 swaps match
+search 26000006:base,26000007:base,26000027:base,26000039:base: 3 decks and 12 swaps match
+search 26000006:base,26000007:base,26000027:base,26000039:base,26000043:evo: 3 decks and 9 swaps match
+search 26000006:base,26000007:base,26000027:base,26000039:base,26000043:evo,26000102:hero: 3 decks and 6 swaps match
+search 26000006:base,26000007:base,26000027:base,26000039:base,26000043:evo,26000102:hero,26000107:base: 1 decks and 3 swaps match
+search 26000006:base,26000007:base,26000027:base,26000039:base,26000043:evo,26000102:hero,26000107:base,26000001:base: 1 decks and 0 swaps match
+search 26000006:base,26000007:base,26000011:base,26000017:evo: 3 decks and 12 swaps match
+search 26000006:base,26000007:base,26000011:base,26000017:evo,26000027:base: 3 decks and 9 swaps match
+search 26000006:base,26000007:base,26000011:base,26000017:evo,26000027:base,26000102:hero: 3 decks and 6 swaps match
+search 26000006:base,26000007:base,26000011:base,26000017:evo,26000027:base,26000102:hero,26000000:base: 1 decks and 3 swaps match
+search 26000006:base,26000007:base,26000011:base,26000017:evo,26000027:base,26000102:hero,26000000:base,26000001:base: 1 decks and 0 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base: 3 decks and 12 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base: 3 decks and 9 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base: 3 decks and 6 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base,26000001:base: 1 decks and 3 swaps match
+search 26000005:base,26000014:base,26000018:base,28000000:base,28000001:base,26000000:base,26000001:base,26000003:base: 1 decks and 0 swaps match
+search 26000025:base,26000080:base,27000004:base,27000009:base: 3 decks and 12 swaps match
+search 26000025:base,26000080:base,27000004:base,27000009:base,26000007:base: 3 decks and 9 swaps match
+search 26000025:base,26000080:base,27000004:base,27000009:base,26000007:base,26000010:base: 3 decks and 6 swaps match
+search 26000025:base,26000080:base,27000004:base,27000009:base,26000007:base,26000010:base,26000012:base: 1 decks and 3 swaps match
+search 26000025:base,26000080:base,27000004:base,27000009:base,26000007:base,26000010:base,26000012:base,26000013:base: 1 decks and 0 swaps match
+search 26000036:base,28000000:base,28000004:base,26000001:base: 3 decks and 12 swaps match
+search 26000036:base,28000000:base,28000004:base,26000001:base,26000005:base: 3 decks and 9 swaps match
+search 26000036:base,28000000:base,28000004:base,26000001:base,26000005:base,26000011:base: 3 decks and 6 swaps match
+search 26000036:base,28000000:base,28000004:base,26000001:base,26000005:base,26000011:base,26000014:base: 1 decks and 3 swaps match
+search 26000036:base,28000000:base,28000004:base,26000001:base,26000005:base,26000011:base,26000014:base,26000018:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 670 test deck appearances (317 decks)
+  u -2.148  real 35.3%  model 27.5%  n 85
+  u -1.708  real 42.5%  model 36.1%  n 87
+  u -1.459  real 30.9%  model 41.5%  n 81
+  u -1.228  real 52.9%  model 46.6%  n 85
+  u -0.972  real 44.4%  model 52.4%  n 81
+  u -0.660  real 58.1%  model 59.3%  n 93
+  u -0.427  real 66.7%  model 64.3%  n 75
+  u 0.061  real 69.9%  model 73.7%  n 83
+
+=== Trophy Road ladder: Frozen Peak (trophy_road__frozen_peak) ===
+legality: 0 random decks checked
+search 26000000:base,26000007:base,26000011:base,26000015:base: 3 decks and 12 swaps match
+search 26000000:base,26000007:base,26000011:base,26000015:base,26000017:base: 3 decks and 9 swaps match
+search 26000000:base,26000007:base,26000011:base,26000015:base,26000017:base,26000030:base: 3 decks and 6 swaps match
+search 26000000:base,26000007:base,26000011:base,26000015:base,26000017:base,26000030:base,26000036:evo: 1 decks and 3 swaps match
+search 26000000:base,26000007:base,26000011:base,26000015:base,26000017:base,26000030:base,26000036:evo,28000008:base: 1 decks and 0 swaps match
+search 26000007:base,26000011:evo,26000017:base,26000030:base: 3 decks and 12 swaps match
+search 26000007:base,26000011:evo,26000017:base,26000030:base,26000102:hero: 3 decks and 9 swaps match
+search 26000007:base,26000011:evo,26000017:base,26000030:base,26000102:hero,26000106:base: 3 decks and 6 swaps match
+search 26000007:base,26000011:evo,26000017:base,26000030:base,26000102:hero,26000106:base,28000008:base: 1 decks and 3 swaps match
+search 26000007:base,26000011:evo,26000017:base,26000030:base,26000102:hero,26000106:base,28000008:base,26000000:base: 1 decks and 0 swaps match
+search 26000011:evo,26000017:base,26000030:base,26000038:base: 3 decks and 12 swaps match
+search 26000011:evo,26000017:base,26000030:base,26000038:base,28000008:base: 3 decks and 9 swaps match
+search 26000011:evo,26000017:base,26000030:base,26000038:base,28000008:base,28000017:base: 2 decks and 6 swaps match
+search 26000011:evo,26000017:base,26000030:base,26000038:base,28000008:base,28000017:base,26000000:base: 1 decks and 3 swaps match
+search 26000011:evo,26000017:base,26000030:base,26000038:base,28000008:base,28000017:base,26000000:base,26000007:base: 1 decks and 0 swaps match
+search 26000021:base,26000084:base,27000000:base,28000000:base: 3 decks and 12 swaps match
+search 26000021:base,26000084:base,27000000:base,28000000:base,28000008:base: 3 decks and 9 swaps match
+search 26000021:base,26000084:base,27000000:base,28000000:base,28000008:base,26000002:base: 3 decks and 6 swaps match
+search 26000021:base,26000084:base,27000000:base,28000000:base,28000008:base,26000002:base,26000010:base: 1 decks and 3 swaps match
+search 26000021:base,26000084:base,27000000:base,28000000:base,28000008:base,26000002:base,26000010:base,26000014:hero: 1 decks and 0 swaps match
+search 26000019:base,26000049:base,26000084:base,27000001:base: 3 decks and 12 swaps match
+search 26000019:base,26000049:base,26000084:base,27000001:base,26000011:evo: 3 decks and 9 swaps match
+search 26000019:base,26000049:base,26000084:base,27000001:base,26000011:evo,26000012:base: 3 decks and 6 swaps match
+search 26000019:base,26000049:base,26000084:base,27000001:base,26000011:evo,26000012:base,26000015:base: 1 decks and 3 swaps match
+search 26000019:base,26000049:base,26000084:base,27000001:base,26000011:evo,26000012:base,26000015:base,26000016:base: 1 decks and 0 swaps match
+search 28000000:base,28000004:base,28000008:base,26000000:base: 3 decks and 12 swaps match
+search 28000000:base,28000004:base,28000008:base,26000000:base,26000007:base: 3 decks and 9 swaps match
+search 28000000:base,28000004:base,28000008:base,26000000:base,26000007:base,26000015:base: 2 decks and 6 swaps match
+search 28000000:base,28000004:base,28000008:base,26000000:base,26000007:base,26000015:base,26000021:base: 1 decks and 3 swaps match
+search 28000000:base,28000004:base,28000008:base,26000000:base,26000007:base,26000015:base,26000021:base,26000084:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 638 test deck appearances (324 decks)
+  u -0.983  real 31.0%  model 30.6%  n 84
+  u -0.560  real 38.2%  model 39.7%  n 76
+  u -0.324  real 50.0%  model 45.1%  n 82
+  u -0.185  real 57.0%  model 48.4%  n 79
+  u -0.054  real 52.4%  model 51.5%  n 82
+  u 0.130  real 45.6%  model 55.8%  n 79
+  u 0.344  real 61.0%  model 60.7%  n 77
+  u 0.758  real 65.8%  model 69.5%  n 79
+
+=== Trophy Road ladder: Jungle Arena (trophy_road__jungle_arena) ===
+legality: 0 random decks checked
+search 26000004:base,26000007:base,26000008:evo,26000015:base: 3 decks and 12 swaps match
+search 26000004:base,26000007:base,26000008:evo,26000015:base,26000018:base: 3 decks and 9 swaps match
+search 26000004:base,26000007:base,26000008:evo,26000015:base,26000018:base,26000106:base: 3 decks and 6 swaps match
+search 26000004:base,26000007:base,26000008:evo,26000015:base,26000018:base,26000106:base,28000015:base: 1 decks and 3 swaps match
+search 26000004:base,26000007:base,26000008:evo,26000015:base,26000018:base,26000106:base,28000015:base,28000024:base: 1 decks and 0 swaps match
+search 26000007:base,26000008:evo,26000018:base,26000021:base: 3 decks and 12 swaps match
+search 26000007:base,26000008:evo,26000018:base,26000021:base,26000106:base: 3 decks and 9 swaps match
+search 26000007:base,26000008:evo,26000018:base,26000021:base,26000106:base,28000015:base: 3 decks and 6 swaps match
+search 26000007:base,26000008:evo,26000018:base,26000021:base,26000106:base,28000015:base,28000024:base: 1 decks and 3 swaps match
+search 26000007:base,26000008:evo,26000018:base,26000021:base,26000106:base,28000015:base,28000024:base,26000000:base: 1 decks and 0 swaps match
+search 26000007:base,26000008:evo,26000015:base,26000018:base: 3 decks and 12 swaps match
+search 26000007:base,26000008:evo,26000015:base,26000018:base,26000021:base: 3 decks and 9 swaps match
+search 26000007:base,26000008:evo,26000015:base,26000018:base,26000021:base,26000106:base: 3 decks and 6 swaps match
+search 26000007:base,26000008:evo,26000015:base,26000018:base,26000021:base,26000106:base,26000000:base: 1 decks and 3 swaps match
+search 26000007:base,26000008:evo,26000015:base,26000018:base,26000021:base,26000106:base,26000000:base,26000004:base: 1 decks and 0 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base: 3 decks and 12 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000008:base: 3 decks and 9 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000008:base,26000010:base: 2 decks and 6 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000008:base,26000010:base,26000014:base: 1 decks and 3 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000008:base,26000010:base,26000014:base,26000021:base: 1 decks and 0 swaps match
+search 26000022:evo,26000039:hero,26000080:base,28000003:base: 3 decks and 12 swaps match
+search 26000022:evo,26000039:hero,26000080:base,28000003:base,26000004:base: 3 decks and 9 swaps match
+search 26000022:evo,26000039:hero,26000080:base,28000003:base,26000004:base,26000005:base: 3 decks and 6 swaps match
+search 26000022:evo,26000039:hero,26000080:base,28000003:base,26000004:base,26000005:base,26000015:base: 1 decks and 3 swaps match
+search 26000022:evo,26000039:hero,26000080:base,28000003:base,26000004:base,26000005:base,26000015:base,26000018:base: 1 decks and 0 swaps match
+search 26000011:base,26000019:base,27000009:base,26000000:evo: 3 decks and 12 swaps match
+search 26000011:base,26000019:base,27000009:base,26000000:evo,26000001:base: 3 decks and 9 swaps match
+search 26000011:base,26000019:base,27000009:base,26000000:evo,26000001:base,26000002:base: 3 decks and 6 swaps match
+search 26000011:base,26000019:base,27000009:base,26000000:evo,26000001:base,26000002:base,26000005:base: 1 decks and 3 swaps match
+search 26000011:base,26000019:base,27000009:base,26000000:evo,26000001:base,26000002:base,26000005:base,26000010:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 586 test deck appearances (305 decks)
+  u -0.918  real 24.3%  model 30.4%  n 74
+  u -0.537  real 52.1%  model 38.5%  n 73
+  u -0.346  real 48.6%  model 42.8%  n 74
+  u -0.097  real 33.3%  model 48.6%  n 72
+  u 0.073  real 55.4%  model 52.6%  n 74
+  u 0.271  real 57.9%  model 57.1%  n 76
+  u 0.502  real 60.3%  model 62.3%  n 78
+  u 0.808  real 69.2%  model 68.8%  n 65
+
+=== Trophy Road ladder: Hog Mountain (trophy_road__hog_mountain) ===
+legality: 0 random decks checked
+search 26000007:base,26000011:evo,26000014:base,26000084:base: 3 decks and 12 swaps match
+search 26000007:base,26000011:evo,26000014:base,26000084:base,26000106:base: 3 decks and 9 swaps match
+search 26000007:base,26000011:evo,26000014:base,26000084:base,26000106:base,27000001:base: 3 decks and 6 swaps match
+search 26000007:base,26000011:evo,26000014:base,26000084:base,26000106:base,27000001:base,28000004:evo: 1 decks and 3 swaps match
+search 26000007:base,26000011:evo,26000014:base,26000084:base,26000106:base,27000001:base,28000004:evo,28000024:base: 1 decks and 0 swaps match
+search 26000011:evo,26000049:evo,26000068:base,26000084:base: 3 decks and 12 swaps match
+search 26000011:evo,26000049:evo,26000068:base,26000084:base,26000106:base: 3 decks and 9 swaps match
+search 26000011:evo,26000049:evo,26000068:base,26000084:base,26000106:base,27000001:base: 3 decks and 6 swaps match
+search 26000011:evo,26000049:evo,26000068:base,26000084:base,26000106:base,27000001:base,28000024:base: 1 decks and 3 swaps match
+search 26000011:evo,26000049:evo,26000068:base,26000084:base,26000106:base,27000001:base,28000024:base,26000007:base: 1 decks and 0 swaps match
+search 26000014:base,26000068:base,26000084:base,27000001:base: 3 decks and 12 swaps match
+search 26000014:base,26000068:base,26000084:base,27000001:base,28000004:evo: 3 decks and 9 swaps match
+search 26000014:base,26000068:base,26000084:base,27000001:base,28000004:evo,28000008:base: 3 decks and 6 swaps match
+search 26000014:base,26000068:base,26000084:base,27000001:base,28000004:evo,28000008:base,26000007:base: 1 decks and 3 swaps match
+search 26000014:base,26000068:base,26000084:base,27000001:base,28000004:evo,28000008:base,26000007:base,26000011:evo: 1 decks and 0 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base: 3 decks and 12 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000008:base: 3 decks and 9 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000008:base,26000010:base: 2 decks and 6 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000008:base,26000010:base,26000014:base: 1 decks and 3 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000008:base,26000010:base,26000014:base,26000021:base: 1 decks and 0 swaps match
+search 26000010:base,26000011:base,26000019:base,27000009:base: 3 decks and 12 swaps match
+search 26000010:base,26000011:base,26000019:base,27000009:base,26000000:evo: 3 decks and 9 swaps match
+search 26000010:base,26000011:base,26000019:base,27000009:base,26000000:evo,26000001:base: 3 decks and 6 swaps match
+search 26000010:base,26000011:base,26000019:base,27000009:base,26000000:evo,26000001:base,26000002:base: 1 decks and 3 swaps match
+search 26000010:base,26000011:base,26000019:base,27000009:base,26000000:evo,26000001:base,26000002:base,26000005:base: 1 decks and 0 swaps match
+search 27000009:base,28000000:base,28000001:base,26000000:base: 3 decks and 12 swaps match
+search 27000009:base,28000000:base,28000001:base,26000000:base,26000001:base: 3 decks and 9 swaps match
+search 27000009:base,28000000:base,28000001:base,26000000:base,26000001:base,26000005:base: 2 decks and 6 swaps match
+search 27000009:base,28000000:base,28000001:base,26000000:base,26000001:base,26000005:base,26000014:base: 1 decks and 3 swaps match
+search 27000009:base,28000000:base,28000001:base,26000000:base,26000001:base,26000005:base,26000014:base,27000001:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 672 test deck appearances (299 decks)
+  u -0.610  real 16.7%  model 34.1%  n 84
+  u -0.261  real 45.2%  model 42.0%  n 84
+  u -0.091  real 39.1%  model 46.0%  n 92
+  u 0.028  real 42.1%  model 48.9%  n 76
+  u 0.175  real 58.3%  model 52.4%  n 108
+  u 0.250  real 74.2%  model 54.2%  n 62
+  u 0.384  real 52.4%  model 57.4%  n 82
+  u 0.747  real 76.2%  model 65.7%  n 84
+
+=== Trophy Road ladder: Electro Valley (trophy_road__electro_valley) ===
+legality: 0 random decks checked
+search 26000011:hero,26000015:evo,26000021:base,26000024:base: 3 decks and 12 swaps match
+search 26000011:hero,26000015:evo,26000021:base,26000024:base,26000027:base: 3 decks and 9 swaps match
+search 26000011:hero,26000015:evo,26000021:base,26000024:base,26000027:base,26000041:base: 2 decks and 6 swaps match
+search 26000011:hero,26000015:evo,26000021:base,26000024:base,26000027:base,26000041:base,26000106:base: 1 decks and 3 swaps match
+search 26000011:hero,26000015:evo,26000021:base,26000024:base,26000027:base,26000041:base,26000106:base,28000008:evo: 1 decks and 0 swaps match
+search 26000013:base,26000015:evo,26000021:base,26000024:base: 3 decks and 12 swaps match
+search 26000013:base,26000015:evo,26000021:base,26000024:base,26000106:base: 3 decks and 9 swaps match
+search 26000013:base,26000015:evo,26000021:base,26000024:base,26000106:base,26000107:base: 2 decks and 6 swaps match
+search 26000013:base,26000015:evo,26000021:base,26000024:base,26000106:base,26000107:base,28000008:evo: 1 decks and 3 swaps match
+search 26000013:base,26000015:evo,26000021:base,26000024:base,26000106:base,26000107:base,28000008:evo,26000011:hero: 1 decks and 0 swaps match
+search 26000015:evo,26000021:base,26000024:base,26000084:base: 3 decks and 12 swaps match
+search 26000015:evo,26000021:base,26000024:base,26000084:base,26000106:base: 3 decks and 9 swaps match
+search 26000015:evo,26000021:base,26000024:base,26000084:base,26000106:base,28000008:evo: 3 decks and 6 swaps match
+search 26000015:evo,26000021:base,26000024:base,26000084:base,26000106:base,28000008:evo,26000000:base: 1 decks and 3 swaps match
+search 26000015:evo,26000021:base,26000024:base,26000084:base,26000106:base,28000008:evo,26000000:base,26000011:hero: 1 decks and 0 swaps match
+search 26000014:base,26000019:base,27000001:base,27000009:base: 3 decks and 12 swaps match
+search 26000014:base,26000019:base,27000001:base,27000009:base,28000000:base: 3 decks and 9 swaps match
+search 26000014:base,26000019:base,27000001:base,27000009:base,28000000:base,26000000:base: 2 decks and 6 swaps match
+search 26000014:base,26000019:base,27000001:base,27000009:base,28000000:base,26000000:base,26000001:base: 1 decks and 3 swaps match
+search 26000014:base,26000019:base,27000001:base,27000009:base,28000000:base,26000000:base,26000001:base,26000005:base: 1 decks and 0 swaps match
+search 26000017:evo,26000019:base,26000031:base,26000084:base: 3 decks and 12 swaps match
+search 26000017:evo,26000019:base,26000031:base,26000084:base,26000002:base: 3 decks and 9 swaps match
+search 26000017:evo,26000019:base,26000031:base,26000084:base,26000002:base,26000003:base: 2 decks and 6 swaps match
+search 26000017:evo,26000019:base,26000031:base,26000084:base,26000002:base,26000003:base,26000010:base: 1 decks and 3 swaps match
+search 26000017:evo,26000019:base,26000031:base,26000084:base,26000002:base,26000003:base,26000010:base,26000016:base: 1 decks and 0 swaps match
+search 28000001:base,28000004:base,28000015:base,26000007:base: 3 decks and 12 swaps match
+search 28000001:base,28000004:base,28000015:base,26000007:base,26000011:base: 3 decks and 9 swaps match
+search 28000001:base,28000004:base,28000015:base,26000007:base,26000011:base,26000015:base: 3 decks and 6 swaps match
+search 28000001:base,28000004:base,28000015:base,26000007:base,26000011:base,26000015:base,26000049:base: 1 decks and 3 swaps match
+search 28000001:base,28000004:base,28000015:base,26000007:base,26000011:base,26000015:base,26000049:base,26000080:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 582 test deck appearances (286 decks)
+  u -1.012  real 27.0%  model 30.8%  n 74
+  u -0.583  real 36.1%  model 40.1%  n 72
+  u -0.335  real 49.4%  model 45.8%  n 81
+  u -0.206  real 54.5%  model 48.9%  n 66
+  u -0.033  real 60.6%  model 53.0%  n 71
+  u 0.121  real 48.0%  model 56.6%  n 75
+  u 0.285  real 60.0%  model 60.4%  n 85
+  u 0.556  real 67.2%  model 66.4%  n 58
+
+=== Trophy Road ladder: Spooky Town (trophy_road__spooky_town) ===
+legality: 0 random decks checked
+search 26000001:evo,26000017:evo,26000025:base,26000033:base: 3 decks and 12 swaps match
+search 26000001:evo,26000017:evo,26000025:base,26000033:base,26000051:base: 3 decks and 9 swaps match
+search 26000001:evo,26000017:evo,26000025:base,26000033:base,26000051:base,26000102:hero: 3 decks and 6 swaps match
+search 26000001:evo,26000017:evo,26000025:base,26000033:base,26000051:base,26000102:hero,27000006:base: 1 decks and 3 swaps match
+search 26000001:evo,26000017:evo,26000025:base,26000033:base,26000051:base,26000102:hero,27000006:base,28000001:base: 1 decks and 0 swaps match
+search 26000017:evo,26000025:base,26000051:base,26000102:hero: 3 decks and 12 swaps match
+search 26000017:evo,26000025:base,26000051:base,26000102:hero,26000107:base: 3 decks and 9 swaps match
+search 26000017:evo,26000025:base,26000051:base,26000102:hero,26000107:base,27000000:base: 3 decks and 6 swaps match
+search 26000017:evo,26000025:base,26000051:base,26000102:hero,26000107:base,27000000:base,28000001:base: 1 decks and 3 swaps match
+search 26000017:evo,26000025:base,26000051:base,26000102:hero,26000107:base,27000000:base,28000001:base,26000001:evo: 1 decks and 0 swaps match
+search 26000025:base,26000033:base,26000051:base,26000102:hero: 3 decks and 12 swaps match
+search 26000025:base,26000033:base,26000051:base,26000102:hero,26000107:base: 3 decks and 9 swaps match
+search 26000025:base,26000033:base,26000051:base,26000102:hero,26000107:base,28000001:base: 3 decks and 6 swaps match
+search 26000025:base,26000033:base,26000051:base,26000102:hero,26000107:base,28000001:base,26000015:evo: 1 decks and 3 swaps match
+search 26000025:base,26000033:base,26000051:base,26000102:hero,26000107:base,28000001:base,26000015:evo,26000017:evo: 1 decks and 0 swaps match
+search 26000026:base,26000047:base,26000063:base,26000067:base: 3 decks and 12 swaps match
+search 26000026:base,26000047:base,26000063:base,26000067:base,28000004:base: 3 decks and 9 swaps match
+search 26000026:base,26000047:base,26000063:base,26000067:base,28000004:base,26000007:base: 3 decks and 6 swaps match
+search 26000026:base,26000047:base,26000063:base,26000067:base,28000004:base,26000007:base,26000016:base: 1 decks and 3 swaps match
+search 26000026:base,26000047:base,26000063:base,26000067:base,28000004:base,26000007:base,26000016:base,26000017:base: 1 decks and 0 swaps match
+search 26000017:evo,26000019:base,26000031:base,26000084:base: 3 decks and 12 swaps match
+search 26000017:evo,26000019:base,26000031:base,26000084:base,26000002:base: 3 decks and 9 swaps match
+search 26000017:evo,26000019:base,26000031:base,26000084:base,26000002:base,26000003:base: 3 decks and 6 swaps match
+search 26000017:evo,26000019:base,26000031:base,26000084:base,26000002:base,26000003:base,26000010:base: 1 decks and 3 swaps match
+search 26000017:evo,26000019:base,26000031:base,26000084:base,26000002:base,26000003:base,26000010:base,26000016:base: 1 decks and 0 swaps match
+search 27000012:base,28000004:base,28000008:base,26000040:base: 3 decks and 12 swaps match
+search 27000012:base,28000004:base,28000008:base,26000040:base,26000041:base: 3 decks and 9 swaps match
+search 27000012:base,28000004:base,28000008:base,26000040:base,26000041:base,26000049:base: 2 decks and 6 swaps match
+search 27000012:base,28000004:base,28000008:base,26000040:base,26000041:base,26000049:base,26000055:base: 1 decks and 3 swaps match
+search 27000012:base,28000004:base,28000008:base,26000040:base,26000041:base,26000049:base,26000055:base,26000056:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 516 test deck appearances (243 decks)
+  u -0.601  real 27.7%  model 34.7%  n 65
+  u -0.312  real 32.8%  model 41.3%  n 64
+  u -0.088  real 38.5%  model 46.7%  n 65
+  u 0.012  real 43.8%  model 49.1%  n 64
+  u 0.158  real 63.5%  model 52.6%  n 74
+  u 0.248  real 65.5%  model 54.8%  n 55
+  u 0.382  real 61.5%  model 58.0%  n 65
+  u 0.606  real 67.2%  model 63.2%  n 64
+
+=== Trophy Road ladder: Rascal's Hideout (trophy_road__rascal_s_hideout) ===
+legality: 0 random decks checked
+search 26000007:evo,26000011:base,26000018:base,26000042:base: 3 decks and 12 swaps match
+search 26000007:evo,26000011:base,26000018:base,26000042:base,26000064:base: 3 decks and 9 swaps match
+search 26000007:evo,26000011:base,26000018:base,26000042:base,26000064:base,28000001:base: 3 decks and 6 swaps match
+search 26000007:evo,26000011:base,26000018:base,26000042:base,26000064:base,28000001:base,28000004:evo: 1 decks and 3 swaps match
+search 26000007:evo,26000011:base,26000018:base,26000042:base,26000064:base,28000001:base,28000004:evo,28000011:base: 1 decks and 0 swaps match
+search 26000011:base,26000015:base,26000018:base,28000001:base: 3 decks and 12 swaps match
+search 26000011:base,26000015:base,26000018:base,28000001:base,28000004:evo: 3 decks and 9 swaps match
+search 26000011:base,26000015:base,26000018:base,28000001:base,28000004:evo,28000008:base: 3 decks and 6 swaps match
+search 26000011:base,26000015:base,26000018:base,28000001:base,28000004:evo,28000008:base,28000011:base: 1 decks and 3 swaps match
+search 26000011:base,26000015:base,26000018:base,28000001:base,28000004:evo,28000008:base,28000011:base,26000007:evo: 1 decks and 0 swaps match
+search 26000018:base,26000023:base,26000027:hero,28000001:base: 3 decks and 12 swaps match
+search 26000018:base,26000023:base,26000027:hero,28000001:base,28000004:evo: 3 decks and 9 swaps match
+search 26000018:base,26000023:base,26000027:hero,28000001:base,28000004:evo,28000011:base: 1 decks and 6 swaps match
+search 26000018:base,26000023:base,26000027:hero,28000001:base,28000004:evo,28000011:base,26000007:evo: 1 decks and 3 swaps match
+search 26000018:base,26000023:base,26000027:hero,28000001:base,28000004:evo,28000011:base,26000007:evo,26000011:base: 1 decks and 0 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base: 3 decks and 12 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base: 3 decks and 9 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base,26000010:base: 3 decks and 6 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base,26000010:base,26000014:base: 1 decks and 3 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base,26000010:base,26000014:base,26000021:base: 1 decks and 0 swaps match
+search 27000006:base,27000008:base,28000000:base,28000011:base: 3 decks and 12 swaps match
+search 27000006:base,27000008:base,28000000:base,28000011:base,26000000:hero: 3 decks and 9 swaps match
+search 27000006:base,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo: 2 decks and 6 swaps match
+search 27000006:base,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base: 1 decks and 3 swaps match
+search 27000006:base,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base,26000084:base: 1 decks and 0 swaps match
+search 27000004:base,28000015:base,28000017:base,26000006:base: 3 decks and 12 swaps match
+search 27000004:base,28000015:base,28000017:base,26000006:base,26000010:base: 3 decks and 9 swaps match
+search 27000004:base,28000015:base,28000017:base,26000006:base,26000010:base,26000014:base: 3 decks and 6 swaps match
+search 27000004:base,28000015:base,28000017:base,26000006:base,26000010:base,26000014:base,26000032:base: 1 decks and 3 swaps match
+search 27000004:base,28000015:base,28000017:base,26000006:base,26000010:base,26000014:base,26000032:base,26000038:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 556 test deck appearances (266 decks)
+  u -0.362  real 29.2%  model 37.5%  n 72
+  u -0.090  real 34.3%  model 43.9%  n 67
+  u 0.038  real 50.7%  model 47.1%  n 71
+  u 0.134  real 50.0%  model 49.4%  n 68
+  u 0.198  real 58.3%  model 50.9%  n 72
+  u 0.295  real 60.8%  model 53.3%  n 79
+  u 0.411  real 53.4%  model 56.1%  n 58
+  u 0.686  real 62.3%  model 62.6%  n 69
+
+=== Trophy Road ladder: Serenity Peak (trophy_road__serenity_peak) ===
+legality: 0 random decks checked
+search 26000007:base,26000014:evo,26000017:hero,26000042:base: 3 decks and 12 swaps match
+search 26000007:base,26000014:evo,26000017:hero,26000042:base,26000043:evo: 3 decks and 9 swaps match
+search 26000007:base,26000014:evo,26000017:hero,26000042:base,26000043:evo,26000064:base: 3 decks and 6 swaps match
+search 26000007:base,26000014:evo,26000017:hero,26000042:base,26000043:evo,26000064:base,27000000:base: 1 decks and 3 swaps match
+search 26000007:base,26000014:evo,26000017:hero,26000042:base,26000043:evo,26000064:base,27000000:base,28000001:base: 1 decks and 0 swaps match
+search 26000014:evo,26000017:hero,26000018:base,26000026:base: 3 decks and 12 swaps match
+search 26000014:evo,26000017:hero,26000018:base,26000026:base,26000042:base: 3 decks and 9 swaps match
+search 26000014:evo,26000017:hero,26000018:base,26000026:base,26000042:base,26000043:evo: 3 decks and 6 swaps match
+search 26000014:evo,26000017:hero,26000018:base,26000026:base,26000042:base,26000043:evo,26000064:base: 1 decks and 3 swaps match
+search 26000014:evo,26000017:hero,26000018:base,26000026:base,26000042:base,26000043:evo,26000064:base,26000007:base: 1 decks and 0 swaps match
+search 26000017:hero,26000042:base,26000043:evo,26000064:base: 3 decks and 12 swaps match
+search 26000017:hero,26000042:base,26000043:evo,26000064:base,28000001:base: 3 decks and 9 swaps match
+search 26000017:hero,26000042:base,26000043:evo,26000064:base,28000001:base,28000004:evo: 3 decks and 6 swaps match
+search 26000017:hero,26000042:base,26000043:evo,26000064:base,28000001:base,28000004:evo,26000001:base: 1 decks and 3 swaps match
+search 26000017:hero,26000042:base,26000043:evo,26000064:base,28000001:base,28000004:evo,26000001:base,26000007:base: 1 decks and 0 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base: 3 decks and 12 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base: 3 decks and 9 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base,26000010:base: 2 decks and 6 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base,26000010:base,26000014:base: 1 decks and 3 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base,26000010:base,26000014:base,26000021:base: 1 decks and 0 swaps match
+search 26000017:evo,26000019:base,26000031:base,26000084:base: 3 decks and 12 swaps match
+search 26000017:evo,26000019:base,26000031:base,26000084:base,26000002:base: 3 decks and 9 swaps match
+search 26000017:evo,26000019:base,26000031:base,26000084:base,26000002:base,26000003:base: 2 decks and 6 swaps match
+search 26000017:evo,26000019:base,26000031:base,26000084:base,26000002:base,26000003:base,26000010:base: 1 decks and 3 swaps match
+search 26000017:evo,26000019:base,26000031:base,26000084:base,26000002:base,26000003:base,26000010:base,26000016:base: 1 decks and 0 swaps match
+search 28000001:base,28000004:evo,28000011:base,26000000:hero: 3 decks and 12 swaps match
+search 28000001:base,28000004:evo,28000011:base,26000000:hero,26000010:base: 3 decks and 9 swaps match
+search 28000001:base,28000004:evo,28000011:base,26000000:hero,26000010:base,26000017:base: 2 decks and 6 swaps match
+search 28000001:base,28000004:evo,28000011:base,26000000:hero,26000010:base,26000017:base,26000040:evo: 1 decks and 3 swaps match
+search 28000001:base,28000004:evo,28000011:base,26000000:hero,26000010:base,26000017:base,26000040:evo,27000000:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 564 test deck appearances (258 decks)
+  u -0.657  real 14.1%  model 30.6%  n 71
+  u -0.265  real 28.4%  model 39.0%  n 74
+  u -0.014  real 57.4%  model 44.8%  n 68
+  u 0.165  real 58.0%  model 49.0%  n 69
+  u 0.341  real 53.5%  model 53.2%  n 71
+  u 0.536  real 56.6%  model 57.7%  n 76
+  u 0.693  real 66.2%  model 61.3%  n 65
+  u 0.861  real 68.6%  model 65.0%  n 70
+
+=== Trophy Road ladder: Miner's Mine (trophy_road__miner_s_mine) ===
+legality: 0 random decks checked
+search 26000007:base,26000011:base,26000012:base,26000017:base: 3 decks and 12 swaps match
+search 26000007:base,26000011:base,26000012:base,26000017:base,26000018:hero: 3 decks and 9 swaps match
+search 26000007:base,26000011:base,26000012:base,26000017:base,26000018:hero,26000037:evo: 2 decks and 6 swaps match
+search 26000007:base,26000011:base,26000012:base,26000017:base,26000018:hero,26000037:evo,26000043:evo: 1 decks and 3 swaps match
+search 26000007:base,26000011:base,26000012:base,26000017:base,26000018:hero,26000037:evo,26000043:evo,26000055:base: 1 decks and 0 swaps match
+search 26000008:evo,26000011:base,26000012:base,26000017:base: 3 decks and 12 swaps match
+search 26000008:evo,26000011:base,26000012:base,26000017:base,26000018:hero: 3 decks and 9 swaps match
+search 26000008:evo,26000011:base,26000012:base,26000017:base,26000018:hero,26000021:base: 2 decks and 6 swaps match
+search 26000008:evo,26000011:base,26000012:base,26000017:base,26000018:hero,26000021:base,26000043:evo: 1 decks and 3 swaps match
+search 26000008:evo,26000011:base,26000012:base,26000017:base,26000018:hero,26000021:base,26000043:evo,26000007:base: 1 decks and 0 swaps match
+search 26000011:base,26000012:base,26000017:base,26000018:hero: 3 decks and 12 swaps match
+search 26000011:base,26000012:base,26000017:base,26000018:hero,26000037:evo: 3 decks and 9 swaps match
+search 26000011:base,26000012:base,26000017:base,26000018:hero,26000037:evo,26000042:base: 2 decks and 6 swaps match
+search 26000011:base,26000012:base,26000017:base,26000018:hero,26000037:evo,26000042:base,26000007:base: 1 decks and 3 swaps match
+search 26000011:base,26000012:base,26000017:base,26000018:hero,26000037:evo,26000042:base,26000007:base,26000008:evo: 1 decks and 0 swaps match
+search 26000084:base,27000006:base,28000003:base,28000011:base: 3 decks and 12 swaps match
+search 26000084:base,27000006:base,28000003:base,28000011:base,28000018:base: 3 decks and 9 swaps match
+search 26000084:base,27000006:base,28000003:base,28000011:base,28000018:base,26000010:base: 3 decks and 6 swaps match
+search 26000084:base,27000006:base,28000003:base,28000011:base,28000018:base,26000010:base,26000027:base: 1 decks and 3 swaps match
+search 26000084:base,27000006:base,28000003:base,28000011:base,28000018:base,26000010:base,26000027:base,26000032:base: 1 decks and 0 swaps match
+search 26000022:base,26000040:base,26000041:base,28000004:base: 3 decks and 12 swaps match
+search 26000022:base,26000040:base,26000041:base,28000004:base,26000003:base: 3 decks and 9 swaps match
+search 26000022:base,26000040:base,26000041:base,28000004:base,26000003:base,26000008:base: 2 decks and 6 swaps match
+search 26000022:base,26000040:base,26000041:base,28000004:base,26000003:base,26000008:base,26000017:base: 1 decks and 3 swaps match
+search 26000022:base,26000040:base,26000041:base,28000004:base,26000003:base,26000008:base,26000017:base,26000021:base: 1 decks and 0 swaps match
+search 26000101:base,26000102:base,28000013:base,26000011:base: 3 decks and 12 swaps match
+search 26000101:base,26000102:base,28000013:base,26000011:base,26000035:base: 3 decks and 9 swaps match
+search 26000101:base,26000102:base,28000013:base,26000011:base,26000035:base,26000043:base: 3 decks and 6 swaps match
+search 26000101:base,26000102:base,28000013:base,26000011:base,26000035:base,26000043:base,26000052:base: 1 decks and 3 swaps match
+search 26000101:base,26000102:base,28000013:base,26000011:base,26000035:base,26000043:base,26000052:base,26000063:evo: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 552 test deck appearances (257 decks)
+  u -0.366  real 30.0%  model 37.2%  n 70
+  u -0.111  real 42.6%  model 43.1%  n 68
+  u 0.021  real 48.6%  model 46.3%  n 72
+  u 0.138  real 46.4%  model 49.2%  n 69
+  u 0.239  real 50.7%  model 51.6%  n 67
+  u 0.349  real 59.2%  model 54.3%  n 76
+  u 0.484  real 62.5%  model 57.6%  n 64
+  u 0.648  real 60.6%  model 61.4%  n 66
+
+=== Trophy Road ladder: Executioner's Kitchen (trophy_road__executioner_s_kitchen) ===
+legality: 0 random decks checked
+search 26000000:base,26000001:base,26000007:base,26000012:base: 3 decks and 12 swaps match
+search 26000000:base,26000001:base,26000007:base,26000012:base,26000018:hero: 3 decks and 9 swaps match
+search 26000000:base,26000001:base,26000007:base,26000012:base,26000018:hero,26000042:base: 3 decks and 6 swaps match
+search 26000000:base,26000001:base,26000007:base,26000012:base,26000018:hero,26000042:base,26000085:base: 1 decks and 3 swaps match
+search 26000000:base,26000001:base,26000007:base,26000012:base,26000018:hero,26000042:base,26000085:base,26000106:base: 1 decks and 0 swaps match
+search 26000007:base,26000012:base,26000018:hero,26000042:base: 3 decks and 12 swaps match
+search 26000007:base,26000012:base,26000018:hero,26000042:base,26000055:evo: 3 decks and 9 swaps match
+search 26000007:base,26000012:base,26000018:hero,26000042:base,26000055:evo,26000106:base: 2 decks and 6 swaps match
+search 26000007:base,26000012:base,26000018:hero,26000042:base,26000055:evo,26000106:base,28000004:base: 1 decks and 3 swaps match
+search 26000007:base,26000012:base,26000018:hero,26000042:base,26000055:evo,26000106:base,28000004:base,26000000:base: 1 decks and 0 swaps match
+search 26000012:base,26000018:hero,26000040:base,26000042:base: 3 decks and 12 swaps match
+search 26000012:base,26000018:hero,26000040:base,26000042:base,26000050:evo: 3 decks and 9 swaps match
+search 26000012:base,26000018:hero,26000040:base,26000042:base,26000050:evo,26000106:base: 2 decks and 6 swaps match
+search 26000012:base,26000018:hero,26000040:base,26000042:base,26000050:evo,26000106:base,26000000:base: 1 decks and 3 swaps match
+search 26000012:base,26000018:hero,26000040:base,26000042:base,26000050:evo,26000106:base,26000000:base,26000007:base: 1 decks and 0 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base: 3 decks and 12 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base: 3 decks and 9 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base,26000010:base: 3 decks and 6 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base,26000010:base,26000014:base: 1 decks and 3 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base,26000010:base,26000014:base,26000021:base: 1 decks and 0 swaps match
+search 26000062:base,27000004:base,28000011:base,28000012:base: 3 decks and 12 swaps match
+search 26000062:base,27000004:base,28000011:base,28000012:base,26000000:hero: 3 decks and 9 swaps match
+search 26000062:base,27000004:base,28000011:base,28000012:base,26000000:hero,26000019:base: 3 decks and 6 swaps match
+search 26000062:base,27000004:base,28000011:base,28000012:base,26000000:hero,26000019:base,26000032:base: 1 decks and 3 swaps match
+search 26000062:base,27000004:base,28000011:base,28000012:base,26000000:hero,26000019:base,26000032:base,26000058:base: 1 decks and 0 swaps match
+search 28000003:base,28000004:base,28000011:base,26000000:hero: 3 decks and 12 swaps match
+search 28000003:base,28000004:base,28000011:base,26000000:hero,26000026:base: 3 decks and 9 swaps match
+search 28000003:base,28000004:base,28000011:base,26000000:hero,26000026:base,26000030:base: 2 decks and 6 swaps match
+search 28000003:base,28000004:base,28000011:base,26000000:hero,26000026:base,26000030:base,26000041:base: 1 decks and 3 swaps match
+search 28000003:base,28000004:base,28000011:base,26000000:hero,26000026:base,26000030:base,26000041:base,27000003:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 708 test deck appearances (353 decks)
+  u -0.247  real 17.8%  model 37.3%  n 90
+  u -0.010  real 50.5%  model 42.9%  n 93
+  u 0.114  real 44.6%  model 45.9%  n 83
+  u 0.240  real 54.1%  model 48.9%  n 98
+  u 0.363  real 61.4%  model 51.9%  n 83
+  u 0.483  real 58.6%  model 54.8%  n 87
+  u 0.579  real 58.1%  model 57.1%  n 86
+  u 0.783  real 55.7%  model 61.9%  n 88
+
+=== Trophy Road ladder: Royal Crypt (trophy_road__royal_crypt) ===
+legality: 0 random decks checked
+search 26000000:base,26000001:base,26000012:base,26000021:base: 3 decks and 12 swaps match
+search 26000000:base,26000001:base,26000012:base,26000021:base,26000041:base: 3 decks and 9 swaps match
+search 26000000:base,26000001:base,26000012:base,26000021:base,26000041:base,26000056:evo: 3 decks and 6 swaps match
+search 26000000:base,26000001:base,26000012:base,26000021:base,26000041:base,26000056:evo,27000006:evo: 1 decks and 3 swaps match
+search 26000000:base,26000001:base,26000012:base,26000021:base,26000041:base,26000056:evo,27000006:evo,28000008:base: 1 decks and 0 swaps match
+search 26000001:base,26000026:evo,26000041:base,26000055:base: 3 decks and 12 swaps match
+search 26000001:base,26000026:evo,26000041:base,26000055:base,27000006:evo: 3 decks and 9 swaps match
+search 26000001:base,26000026:evo,26000041:base,26000055:base,27000006:evo,28000008:base: 3 decks and 6 swaps match
+search 26000001:base,26000026:evo,26000041:base,26000055:base,27000006:evo,28000008:base,28000009:base: 1 decks and 3 swaps match
+search 26000001:base,26000026:evo,26000041:base,26000055:base,27000006:evo,28000008:base,28000009:base,26000000:base: 1 decks and 0 swaps match
+search 26000007:evo,26000041:base,26000042:base,27000006:evo: 3 decks and 12 swaps match
+search 26000007:evo,26000041:base,26000042:base,27000006:evo,28000008:base: 3 decks and 9 swaps match
+search 26000007:evo,26000041:base,26000042:base,27000006:evo,28000008:base,28000009:base: 3 decks and 6 swaps match
+search 26000007:evo,26000041:base,26000042:base,27000006:evo,28000008:base,28000009:base,26000000:base: 1 decks and 3 swaps match
+search 26000007:evo,26000041:base,26000042:base,27000006:evo,28000008:base,28000009:base,26000000:base,26000001:base: 1 decks and 0 swaps match
+search 26000058:base,26000062:base,27000004:base,28000011:base: 3 decks and 12 swaps match
+search 26000058:base,26000062:base,27000004:base,28000011:base,28000012:base: 3 decks and 9 swaps match
+search 26000058:base,26000062:base,27000004:base,28000011:base,28000012:base,26000000:hero: 3 decks and 6 swaps match
+search 26000058:base,26000062:base,27000004:base,28000011:base,28000012:base,26000000:hero,26000019:base: 1 decks and 3 swaps match
+search 26000058:base,26000062:base,27000004:base,28000011:base,28000012:base,26000000:hero,26000019:base,26000032:base: 1 decks and 0 swaps match
+search 27000006:base,28000001:base,28000004:base,28000013:base: 3 decks and 12 swaps match
+search 27000006:base,28000001:base,28000004:base,28000013:base,26000012:base: 3 decks and 9 swaps match
+search 27000006:base,28000001:base,28000004:base,28000013:base,26000012:base,26000020:base: 3 decks and 6 swaps match
+search 27000006:base,28000001:base,28000004:base,28000013:base,26000012:base,26000020:base,26000022:base: 1 decks and 3 swaps match
+search 27000006:base,28000001:base,28000004:base,28000013:base,26000012:base,26000020:base,26000022:base,26000033:base: 1 decks and 0 swaps match
+search 26000102:base,27000004:base,28000018:base,26000031:base: 3 decks and 12 swaps match
+search 26000102:base,27000004:base,28000018:base,26000031:base,26000032:base: 3 decks and 9 swaps match
+search 26000102:base,27000004:base,28000018:base,26000031:base,26000032:base,26000049:base: 3 decks and 6 swaps match
+search 26000102:base,27000004:base,28000018:base,26000031:base,26000032:base,26000049:base,26000058:base: 1 decks and 3 swaps match
+search 26000102:base,27000004:base,28000018:base,26000031:base,26000032:base,26000049:base,26000058:base,26000062:hero: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 978 test deck appearances (447 decks)
+  u -0.551  real 30.1%  model 30.9%  n 123
+  u -0.118  real 33.1%  model 40.3%  n 124
+  u 0.070  real 48.3%  model 44.6%  n 120
+  u 0.251  real 45.1%  model 48.9%  n 122
+  u 0.429  real 61.0%  model 53.1%  n 123
+  u 0.595  real 57.4%  model 57.0%  n 122
+  u 0.744  real 60.7%  model 60.5%  n 122
+  u 0.934  real 64.8%  model 64.7%  n 122
+
+=== Trophy Road ladder: Silent Sanctuary (trophy_road__silent_sanctuary) ===
+legality: 0 random decks checked
+search 26000011:base,26000023:base,26000036:evo,26000041:base: 3 decks and 12 swaps match
+search 26000011:base,26000023:base,26000036:evo,26000041:base,26000053:base: 3 decks and 9 swaps match
+search 26000011:base,26000023:base,26000036:evo,26000041:base,26000053:base,26000064:evo: 3 decks and 6 swaps match
+search 26000011:base,26000023:base,26000036:evo,26000041:base,26000053:base,26000064:evo,26000107:base: 1 decks and 3 swaps match
+search 26000011:base,26000023:base,26000036:evo,26000041:base,26000053:base,26000064:evo,26000107:base,27000010:base: 1 decks and 0 swaps match
+search 26000018:hero,26000023:base,26000041:base,26000053:base: 3 decks and 12 swaps match
+search 26000018:hero,26000023:base,26000041:base,26000053:base,26000064:evo: 3 decks and 9 swaps match
+search 26000018:hero,26000023:base,26000041:base,26000053:base,26000064:evo,26000106:base: 3 decks and 6 swaps match
+search 26000018:hero,26000023:base,26000041:base,26000053:base,26000064:evo,26000106:base,26000107:base: 1 decks and 3 swaps match
+search 26000018:hero,26000023:base,26000041:base,26000053:base,26000064:evo,26000106:base,26000107:base,26000017:evo: 1 decks and 0 swaps match
+search 26000023:base,26000036:evo,26000041:base,26000064:evo: 3 decks and 12 swaps match
+search 26000023:base,26000036:evo,26000041:base,26000064:evo,27000010:base: 3 decks and 9 swaps match
+search 26000023:base,26000036:evo,26000041:base,26000064:evo,27000010:base,28000011:base: 3 decks and 6 swaps match
+search 26000023:base,26000036:evo,26000041:base,26000064:evo,27000010:base,28000011:base,26000011:base: 1 decks and 3 swaps match
+search 26000023:base,26000036:evo,26000041:base,26000064:evo,27000010:base,28000011:base,26000011:base,26000020:base: 1 decks and 0 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base: 3 decks and 12 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base: 3 decks and 9 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base,26000010:base: 3 decks and 6 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base,26000010:base,26000014:base: 1 decks and 3 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base,26000010:base,26000014:base,26000021:base: 1 decks and 0 swaps match
+search 28000002:base,28000006:base,28000016:base,28000026:base: 3 decks and 12 swaps match
+search 28000002:base,28000006:base,28000016:base,28000026:base,26000010:base: 3 decks and 9 swaps match
+search 28000002:base,28000006:base,28000016:base,28000026:base,26000010:base,26000030:base: 3 decks and 6 swaps match
+search 28000002:base,28000006:base,28000016:base,28000026:base,26000010:base,26000030:base,26000043:base: 1 decks and 3 swaps match
+search 28000002:base,28000006:base,28000016:base,28000026:base,26000010:base,26000030:base,26000043:base,27000007:base: 1 decks and 0 swaps match
+search 28000001:base,28000004:base,28000013:base,26000012:base: 3 decks and 12 swaps match
+search 28000001:base,28000004:base,28000013:base,26000012:base,26000020:base: 3 decks and 9 swaps match
+search 28000001:base,28000004:base,28000013:base,26000012:base,26000020:base,26000022:base: 3 decks and 6 swaps match
+search 28000001:base,28000004:base,28000013:base,26000012:base,26000020:base,26000022:base,26000033:base: 1 decks and 3 swaps match
+search 28000001:base,28000004:base,28000013:base,26000012:base,26000020:base,26000022:base,26000033:base,27000006:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 1014 test deck appearances (497 decks)
+  u -0.731  real 22.1%  model 26.1%  n 131
+  u -0.132  real 44.7%  model 38.0%  n 123
+  u 0.189  real 43.3%  model 45.2%  n 134
+  u 0.359  real 55.4%  model 49.1%  n 130
+  u 0.530  real 51.3%  model 53.0%  n 117
+  u 0.782  real 63.5%  model 58.8%  n 126
+  u 0.911  real 59.8%  model 61.6%  n 127
+  u 1.248  real 61.1%  model 68.8%  n 126
+
+=== Trophy Road ladder: Dragon Spa (trophy_road__dragon_spa) ===
+legality: 0 random decks checked
+search 26000007:base,26000011:hero,26000012:base,26000026:base: 3 decks and 12 swaps match
+search 26000007:base,26000011:hero,26000012:base,26000026:base,26000055:evo: 3 decks and 9 swaps match
+search 26000007:base,26000011:hero,26000012:base,26000026:base,26000055:evo,26000064:evo: 3 decks and 6 swaps match
+search 26000007:base,26000011:hero,26000012:base,26000026:base,26000055:evo,26000064:evo,28000001:base: 1 decks and 3 swaps match
+search 26000007:base,26000011:hero,26000012:base,26000026:base,26000055:evo,26000064:evo,28000001:base,28000011:base: 1 decks and 0 swaps match
+search 26000012:base,26000055:evo,26000064:evo,26000107:base: 3 decks and 12 swaps match
+search 26000012:base,26000055:evo,26000064:evo,26000107:base,27000010:base: 3 decks and 9 swaps match
+search 26000012:base,26000055:evo,26000064:evo,26000107:base,27000010:base,28000001:base: 2 decks and 6 swaps match
+search 26000012:base,26000055:evo,26000064:evo,26000107:base,27000010:base,28000001:base,28000011:base: 1 decks and 3 swaps match
+search 26000012:base,26000055:evo,26000064:evo,26000107:base,27000010:base,28000001:base,28000011:base,26000007:base: 1 decks and 0 swaps match
+search 26000018:hero,26000021:base,26000055:evo,26000064:evo: 3 decks and 12 swaps match
+search 26000018:hero,26000021:base,26000055:evo,26000064:evo,28000001:base: 3 decks and 9 swaps match
+search 26000018:hero,26000021:base,26000055:evo,26000064:evo,28000001:base,28000011:base: 3 decks and 6 swaps match
+search 26000018:hero,26000021:base,26000055:evo,26000064:evo,28000001:base,28000011:base,26000007:base: 1 decks and 3 swaps match
+search 26000018:hero,26000021:base,26000055:evo,26000064:evo,28000001:base,28000011:base,26000007:base,26000012:base: 1 decks and 0 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base: 3 decks and 12 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base: 3 decks and 9 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base,26000010:base: 3 decks and 6 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base,26000010:base,26000014:base: 1 decks and 3 swaps match
+search 26000030:base,26000038:base,27000000:base,28000000:base,28000011:base,26000010:base,26000014:base,26000021:base: 1 decks and 0 swaps match
+search 27000000:base,28000011:base,28000014:base,28000018:base: 3 decks and 12 swaps match
+search 27000000:base,28000011:base,28000014:base,28000018:base,26000010:base: 3 decks and 9 swaps match
+search 27000000:base,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base: 3 decks and 6 swaps match
+search 27000000:base,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base,26000059:base: 1 decks and 3 swaps match
+search 27000000:base,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base,26000059:base,26000072:base: 1 decks and 0 swaps match
+search 28000003:base,28000004:base,28000011:base,26000000:hero: 3 decks and 12 swaps match
+search 28000003:base,28000004:base,28000011:base,26000000:hero,26000026:base: 3 decks and 9 swaps match
+search 28000003:base,28000004:base,28000011:base,26000000:hero,26000026:base,26000030:base: 2 decks and 6 swaps match
+search 28000003:base,28000004:base,28000011:base,26000000:hero,26000026:base,26000030:base,26000041:base: 1 decks and 3 swaps match
+search 28000003:base,28000004:base,28000011:base,26000000:hero,26000026:base,26000030:base,26000041:base,27000003:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 1284 test deck appearances (690 decks)
+  u -0.224  real 27.8%  model 37.8%  n 162
+  u 0.017  real 44.0%  model 43.5%  n 159
+  u 0.151  real 49.7%  model 46.7%  n 161
+  u 0.254  real 48.1%  model 49.3%  n 160
+  u 0.349  real 52.8%  model 51.6%  n 161
+  u 0.439  real 56.9%  model 53.8%  n 167
+  u 0.565  real 56.1%  model 56.8%  n 157
+  u 0.737  real 65.0%  model 60.9%  n 157
+
+=== Trophy Road ladder: Boot Camp (trophy_road__boot_camp) ===
+legality: 0 random decks checked
+search 26000000:evo,26000017:base,26000023:hero,26000027:base: 3 decks and 12 swaps match
+search 26000000:evo,26000017:base,26000023:hero,26000027:base,26000034:base: 3 decks and 9 swaps match
+search 26000000:evo,26000017:base,26000023:hero,26000027:base,26000034:base,26000035:evo: 3 decks and 6 swaps match
+search 26000000:evo,26000017:base,26000023:hero,26000027:base,26000034:base,26000035:evo,26000044:base: 1 decks and 3 swaps match
+search 26000000:evo,26000017:base,26000023:hero,26000027:base,26000034:base,26000035:evo,26000044:base,28000008:base: 1 decks and 0 swaps match
+search 26000015:base,26000017:base,26000023:hero,26000034:base: 3 decks and 12 swaps match
+search 26000015:base,26000017:base,26000023:hero,26000034:base,26000035:evo: 3 decks and 9 swaps match
+search 26000015:base,26000017:base,26000023:hero,26000034:base,26000035:evo,28000008:base: 3 decks and 6 swaps match
+search 26000015:base,26000017:base,26000023:hero,26000034:base,26000035:evo,28000008:base,28000012:base: 1 decks and 3 swaps match
+search 26000015:base,26000017:base,26000023:hero,26000034:base,26000035:evo,28000008:base,28000012:base,26000000:evo: 1 decks and 0 swaps match
+search 26000027:base,26000034:base,26000035:evo,26000042:base: 3 decks and 12 swaps match
+search 26000027:base,26000034:base,26000035:evo,26000042:base,26000064:evo: 3 decks and 9 swaps match
+search 26000027:base,26000034:base,26000035:evo,26000042:base,26000064:evo,28000008:base: 3 decks and 6 swaps match
+search 26000027:base,26000034:base,26000035:evo,26000042:base,26000064:evo,28000008:base,26000017:base: 1 decks and 3 swaps match
+search 26000027:base,26000034:base,26000035:evo,26000042:base,26000064:evo,28000008:base,26000017:base,26000023:hero: 1 decks and 0 swaps match
+search 26000041:base,26000049:base,26000056:base,28000006:base: 3 decks and 12 swaps match
+search 26000041:base,26000049:base,26000056:base,28000006:base,28000013:base: 3 decks and 9 swaps match
+search 26000041:base,26000049:base,26000056:base,28000006:base,28000013:base,26000005:base: 3 decks and 6 swaps match
+search 26000041:base,26000049:base,26000056:base,28000006:base,28000013:base,26000005:base,26000012:base: 1 decks and 3 swaps match
+search 26000041:base,26000049:base,26000056:base,28000006:base,28000013:base,26000005:base,26000012:base,26000022:base: 1 decks and 0 swaps match
+search 26000022:base,26000026:base,26000067:base,28000004:base: 3 decks and 12 swaps match
+search 26000022:base,26000026:base,26000067:base,28000004:base,26000007:base: 3 decks and 9 swaps match
+search 26000022:base,26000026:base,26000067:base,28000004:base,26000007:base,26000008:evo: 3 decks and 6 swaps match
+search 26000022:base,26000026:base,26000067:base,28000004:base,26000007:base,26000008:evo,26000017:hero: 1 decks and 3 swaps match
+search 26000022:base,26000026:base,26000067:base,28000004:base,26000007:base,26000008:evo,26000017:hero,26000018:base: 1 decks and 0 swaps match
+search 26000080:base,26000106:base,28000001:base,26000007:evo: 3 decks and 12 swaps match
+search 26000080:base,26000106:base,28000001:base,26000007:evo,26000008:base: 3 decks and 9 swaps match
+search 26000080:base,26000106:base,28000001:base,26000007:evo,26000008:base,26000012:base: 3 decks and 6 swaps match
+search 26000080:base,26000106:base,28000001:base,26000007:evo,26000008:base,26000012:base,26000055:evo: 1 decks and 3 swaps match
+search 26000080:base,26000106:base,28000001:base,26000007:evo,26000008:base,26000012:base,26000055:evo,26000074:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 1380 test deck appearances (717 decks)
+  u -0.496  real 39.3%  model 29.2%  n 183
+  u 0.001  real 38.4%  model 39.7%  n 164
+  u 0.269  real 54.2%  model 45.9%  n 177
+  u 0.415  real 46.7%  model 49.3%  n 169
+  u 0.567  real 52.4%  model 52.9%  n 170
+  u 0.735  real 50.6%  model 56.8%  n 178
+  u 0.892  real 59.2%  model 60.4%  n 179
+  u 1.199  real 59.4%  model 67.1%  n 160
+
+=== Trophy Road ladder: Clash Fest (trophy_road__clash_fest) ===
+legality: 0 random decks checked
+search 26000000:base,26000011:base,26000012:base,26000026:evo: 3 decks and 12 swaps match
+search 26000000:base,26000011:base,26000012:base,26000026:evo,26000064:base: 3 decks and 9 swaps match
+search 26000000:base,26000011:base,26000012:base,26000026:evo,26000064:base,27000000:evo: 3 decks and 6 swaps match
+search 26000000:base,26000011:base,26000012:base,26000026:evo,26000064:base,27000000:evo,28000001:base: 1 decks and 3 swaps match
+search 26000000:base,26000011:base,26000012:base,26000026:evo,26000064:base,27000000:evo,28000001:base,28000011:base: 1 decks and 0 swaps match
+search 26000011:base,26000012:base,26000021:base,26000026:evo: 3 decks and 12 swaps match
+search 26000011:base,26000012:base,26000021:base,26000026:evo,26000041:base: 3 decks and 9 swaps match
+search 26000011:base,26000012:base,26000021:base,26000026:evo,26000041:base,27000000:evo: 2 decks and 6 swaps match
+search 26000011:base,26000012:base,26000021:base,26000026:evo,26000041:base,27000000:evo,28000001:base: 1 decks and 3 swaps match
+search 26000011:base,26000012:base,26000021:base,26000026:evo,26000041:base,27000000:evo,28000001:base,26000000:base: 1 decks and 0 swaps match
+search 26000012:base,26000041:base,26000055:evo,26000064:base: 3 decks and 12 swaps match
+search 26000012:base,26000041:base,26000055:evo,26000064:base,27000000:evo: 3 decks and 9 swaps match
+search 26000012:base,26000041:base,26000055:evo,26000064:base,27000000:evo,28000001:base: 2 decks and 6 swaps match
+search 26000012:base,26000041:base,26000055:evo,26000064:base,27000000:evo,28000001:base,26000000:base: 1 decks and 3 swaps match
+search 26000012:base,26000041:base,26000055:evo,26000064:base,27000000:evo,28000001:base,26000000:base,26000011:base: 1 decks and 0 swaps match
+search 26000012:base,26000018:base,26000042:base,26000055:evo: 3 decks and 12 swaps match
+search 26000012:base,26000018:base,26000042:base,26000055:evo,26000106:base: 3 decks and 9 swaps match
+search 26000012:base,26000018:base,26000042:base,26000055:evo,26000106:base,26000006:hero: 2 decks and 6 swaps match
+search 26000012:base,26000018:base,26000042:base,26000055:evo,26000106:base,26000006:hero,26000007:base: 1 decks and 3 swaps match
+search 26000012:base,26000018:base,26000042:base,26000055:evo,26000106:base,26000006:hero,26000007:base,26000011:base: 1 decks and 0 swaps match
+search 26000051:base,27000000:evo,28000000:base,28000011:base: 3 decks and 12 swaps match
+search 26000051:base,27000000:evo,28000000:base,28000011:base,26000000:base: 3 decks and 9 swaps match
+search 26000051:base,27000000:evo,28000000:base,28000011:base,26000000:base,26000007:evo: 3 decks and 6 swaps match
+search 26000051:base,27000000:evo,28000000:base,28000011:base,26000000:base,26000007:evo,26000016:base: 1 decks and 3 swaps match
+search 26000051:base,27000000:evo,28000000:base,28000011:base,26000000:base,26000007:evo,26000016:base,26000018:base: 1 decks and 0 swaps match
+search 26000055:evo,28000005:base,28000006:base,26000006:base: 3 decks and 12 swaps match
+search 26000055:evo,28000005:base,28000006:base,26000006:base,26000008:evo: 3 decks and 9 swaps match
+search 26000055:evo,28000005:base,28000006:base,26000006:base,26000008:evo,26000012:base: 2 decks and 6 swaps match
+search 26000055:evo,28000005:base,28000006:base,26000006:base,26000008:evo,26000012:base,26000017:hero: 1 decks and 3 swaps match
+search 26000055:evo,28000005:base,28000006:base,26000006:base,26000008:evo,26000012:base,26000017:hero,26000033:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 1412 test deck appearances (707 decks)
+  u -0.179  real 32.8%  model 37.9%  n 177
+  u 0.003  real 36.1%  model 42.2%  n 183
+  u 0.167  real 48.9%  model 46.2%  n 174
+  u 0.287  real 50.0%  model 49.1%  n 172
+  u 0.390  real 57.0%  model 51.6%  n 179
+  u 0.491  real 56.3%  model 54.0%  n 174
+  u 0.627  real 63.8%  model 57.3%  n 177
+  u 0.826  real 55.7%  model 62.0%  n 176
+
+=== Trophy Road ladder: PANCAKES! (trophy_road__pancakes) ===
+legality: 0 random decks checked
+search 26000008:base,26000014:base,26000020:base,26000042:hero: 3 decks and 12 swaps match
+search 26000008:base,26000014:base,26000020:base,26000042:hero,26000049:evo: 3 decks and 9 swaps match
+search 26000008:base,26000014:base,26000020:base,26000042:hero,26000049:evo,26000055:base: 3 decks and 6 swaps match
+search 26000008:base,26000014:base,26000020:base,26000042:hero,26000049:evo,26000055:base,28000008:evo: 1 decks and 3 swaps match
+search 26000008:base,26000014:base,26000020:base,26000042:hero,26000049:evo,26000055:base,28000008:evo,28000015:base: 1 decks and 0 swaps match
+search 26000008:base,26000014:base,26000042:hero,26000046:base: 3 decks and 12 swaps match
+search 26000008:base,26000014:base,26000042:hero,26000046:base,26000049:evo: 3 decks and 9 swaps match
+search 26000008:base,26000014:base,26000042:hero,26000046:base,26000049:evo,26000055:base: 3 decks and 6 swaps match
+search 26000008:base,26000014:base,26000042:hero,26000046:base,26000049:evo,26000055:base,28000008:evo: 1 decks and 3 swaps match
+search 26000008:base,26000014:base,26000042:hero,26000046:base,26000049:evo,26000055:base,28000008:evo,26000004:base: 1 decks and 0 swaps match
+search 26000022:evo,26000039:base,26000042:hero,26000055:base: 3 decks and 12 swaps match
+search 26000022:evo,26000039:base,26000042:hero,26000055:base,28000008:evo: 3 decks and 9 swaps match
+search 26000022:evo,26000039:base,26000042:hero,26000055:base,28000008:evo,28000015:base: 3 decks and 6 swaps match
+search 26000022:evo,26000039:base,26000042:hero,26000055:base,28000008:evo,28000015:base,26000008:base: 1 decks and 3 swaps match
+search 26000022:evo,26000039:base,26000042:hero,26000055:base,28000008:evo,28000015:base,26000008:base,26000014:base: 1 decks and 0 swaps match
+search 26000030:base,26000038:hero,27000000:evo,28000000:base: 3 decks and 12 swaps match
+search 26000030:base,26000038:hero,27000000:evo,28000000:base,28000011:base: 3 decks and 9 swaps match
+search 26000030:base,26000038:hero,27000000:evo,28000000:base,28000011:base,26000010:base: 3 decks and 6 swaps match
+search 26000030:base,26000038:hero,27000000:evo,28000000:base,28000011:base,26000010:base,26000014:hero: 1 decks and 3 swaps match
+search 26000030:base,26000038:hero,27000000:evo,28000000:base,28000011:base,26000010:base,26000014:hero,26000021:base: 1 decks and 0 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base: 3 decks and 12 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero: 3 decks and 9 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo: 3 decks and 6 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base: 1 decks and 3 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base,26000084:base: 1 decks and 0 swaps match
+search 26000062:hero,28000000:base,28000008:base,26000004:base: 3 decks and 12 swaps match
+search 26000062:hero,28000000:base,28000008:base,26000004:base,26000036:evo: 3 decks and 9 swaps match
+search 26000062:hero,28000000:base,28000008:base,26000004:base,26000036:evo,26000042:base: 3 decks and 6 swaps match
+search 26000062:hero,28000000:base,28000008:base,26000004:base,26000036:evo,26000042:base,26000046:base: 1 decks and 3 swaps match
+search 26000062:hero,28000000:base,28000008:base,26000004:base,26000036:evo,26000042:base,26000046:base,26000050:evo: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 1362 test deck appearances (665 decks)
+  u -0.569  real 36.8%  model 26.2%  n 171
+  u -0.038  real 40.9%  model 36.7%  n 171
+  u 0.285  real 44.4%  model 43.8%  n 169
+  u 0.486  real 56.5%  model 48.3%  n 170
+  u 0.721  real 52.8%  model 53.7%  n 178
+  u 0.936  real 56.4%  model 58.5%  n 172
+  u 1.135  real 56.5%  model 62.9%  n 161
+  u 1.495  real 55.9%  model 70.3%  n 170
+
+=== Trophy Road ladder: Valkalla (trophy_road__valkalla) ===
+legality: 0 random decks checked
+search 26000031:base,26000039:base,26000040:evo,26000041:base: 3 decks and 12 swaps match
+search 26000031:base,26000039:base,26000040:evo,26000041:base,26000042:hero: 3 decks and 9 swaps match
+search 26000031:base,26000039:base,26000040:evo,26000041:base,26000042:hero,27000002:evo: 3 decks and 6 swaps match
+search 26000031:base,26000039:base,26000040:evo,26000041:base,26000042:hero,27000002:evo,28000008:base: 1 decks and 3 swaps match
+search 26000031:base,26000039:base,26000040:evo,26000041:base,26000042:hero,27000002:evo,28000008:base,28000015:base: 1 decks and 0 swaps match
+search 26000040:evo,26000041:base,26000042:hero,27000002:evo: 3 decks and 12 swaps match
+search 26000040:evo,26000041:base,26000042:hero,27000002:evo,28000008:base: 3 decks and 9 swaps match
+search 26000040:evo,26000041:base,26000042:hero,27000002:evo,28000008:base,28000009:base: 3 decks and 6 swaps match
+search 26000040:evo,26000041:base,26000042:hero,27000002:evo,28000008:base,28000009:base,28000015:base: 1 decks and 3 swaps match
+search 26000040:evo,26000041:base,26000042:hero,27000002:evo,28000008:base,28000009:base,28000015:base,26000014:base: 1 decks and 0 swaps match
+search 26000041:base,26000042:hero,27000002:evo,28000001:base: 3 decks and 12 swaps match
+search 26000041:base,26000042:hero,27000002:evo,28000001:base,28000011:base: 3 decks and 9 swaps match
+search 26000041:base,26000042:hero,27000002:evo,28000001:base,28000011:base,28000015:base: 3 decks and 6 swaps match
+search 26000041:base,26000042:hero,27000002:evo,28000001:base,28000011:base,28000015:base,26000031:base: 1 decks and 3 swaps match
+search 26000041:base,26000042:hero,27000002:evo,28000001:base,28000011:base,28000015:base,26000031:base,26000040:evo: 1 decks and 0 swaps match
+search 26000030:base,26000038:hero,27000000:evo,28000000:base: 3 decks and 12 swaps match
+search 26000030:base,26000038:hero,27000000:evo,28000000:base,28000011:base: 3 decks and 9 swaps match
+search 26000030:base,26000038:hero,27000000:evo,28000000:base,28000011:base,26000010:base: 3 decks and 6 swaps match
+search 26000030:base,26000038:hero,27000000:evo,28000000:base,28000011:base,26000010:base,26000014:hero: 1 decks and 3 swaps match
+search 26000030:base,26000038:hero,27000000:evo,28000000:base,28000011:base,26000010:base,26000014:hero,26000021:base: 1 decks and 0 swaps match
+search 26000062:hero,26000102:base,27000004:base,28000018:base: 3 decks and 12 swaps match
+search 26000062:hero,26000102:base,27000004:base,28000018:base,26000031:base: 3 decks and 9 swaps match
+search 26000062:hero,26000102:base,27000004:base,28000018:base,26000031:base,26000032:base: 3 decks and 6 swaps match
+search 26000062:hero,26000102:base,27000004:base,28000018:base,26000031:base,26000032:base,26000049:base: 1 decks and 3 swaps match
+search 26000062:hero,26000102:base,27000004:base,28000018:base,26000031:base,26000032:base,26000049:base,26000058:evo: 1 decks and 0 swaps match
+search 27000008:base,28000000:base,28000011:base,26000000:hero: 3 decks and 12 swaps match
+search 27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo: 3 decks and 9 swaps match
+search 27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base: 3 decks and 6 swaps match
+search 27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base,26000084:base: 1 decks and 3 swaps match
+search 27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base,26000084:base,27000006:evo: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 1554 test deck appearances (787 decks)
+  u -0.441  real 33.5%  model 28.5%  n 200
+  u 0.085  real 52.4%  model 39.5%  n 189
+  u 0.332  real 49.7%  model 45.2%  n 195
+  u 0.510  real 45.1%  model 49.4%  n 193
+  u 0.682  real 57.0%  model 53.4%  n 200
+  u 0.832  real 52.5%  model 56.9%  n 204
+  u 0.961  real 52.5%  model 59.8%  n 179
+  u 1.315  real 57.7%  model 67.6%  n 194
+
+=== Trophy Road ladder: Legendary Arena (trophy_road__legendary_arena) ===
+legality: 0 random decks checked
+search 26000004:base,26000011:evo,26000014:base,26000017:evo: 3 decks and 12 swaps match
+search 26000004:base,26000011:evo,26000014:base,26000017:evo,26000041:base: 3 decks and 9 swaps match
+search 26000004:base,26000011:evo,26000014:base,26000017:evo,26000041:base,26000064:base: 3 decks and 6 swaps match
+search 26000004:base,26000011:evo,26000014:base,26000017:evo,26000041:base,26000064:base,28000004:base: 1 decks and 3 swaps match
+search 26000004:base,26000011:evo,26000014:base,26000017:evo,26000041:base,26000064:base,28000004:base,28000011:base: 1 decks and 0 swaps match
+search 26000007:evo,26000011:evo,26000014:base,26000064:base: 3 decks and 12 swaps match
+search 26000007:evo,26000011:evo,26000014:base,26000064:base,27000006:base: 3 decks and 9 swaps match
+search 26000007:evo,26000011:evo,26000014:base,26000064:base,27000006:base,28000004:base: 3 decks and 6 swaps match
+search 26000007:evo,26000011:evo,26000014:base,26000064:base,27000006:base,28000004:base,28000011:base: 1 decks and 3 swaps match
+search 26000007:evo,26000011:evo,26000014:base,26000064:base,27000006:base,28000004:base,28000011:base,26000005:base: 1 decks and 0 swaps match
+search 26000042:base,26000055:evo,26000064:base,28000004:base: 3 decks and 12 swaps match
+search 26000042:base,26000055:evo,26000064:base,28000004:base,28000008:base: 3 decks and 9 swaps match
+search 26000042:base,26000055:evo,26000064:base,28000004:base,28000008:base,28000011:base: 3 decks and 6 swaps match
+search 26000042:base,26000055:evo,26000064:base,28000004:base,28000008:base,28000011:base,26000012:base: 1 decks and 3 swaps match
+search 26000042:base,26000055:evo,26000064:base,28000004:base,28000008:base,28000011:base,26000012:base,26000014:base: 1 decks and 0 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:base: 3 decks and 12 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:base,28000011:base: 3 decks and 9 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:base,28000011:base,26000000:hero: 2 decks and 6 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:base,28000011:base,26000000:hero,26000026:base: 1 decks and 3 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:base,28000011:base,26000000:hero,26000026:base,26000030:base: 1 decks and 0 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base: 3 decks and 12 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base: 3 decks and 9 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base: 2 decks and 6 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base,26000059:evo: 1 decks and 3 swaps match
+search 27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base,26000059:evo,26000072:base: 1 decks and 0 swaps match
+search 27000008:base,28000000:base,28000011:base,26000000:hero: 3 decks and 12 swaps match
+search 27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo: 3 decks and 9 swaps match
+search 27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base: 2 decks and 6 swaps match
+search 27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base,26000084:base: 1 decks and 3 swaps match
+search 27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base,26000084:base,27000006:evo: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 1850 test deck appearances (909 decks)
+  u -0.204  real 30.6%  model 37.3%  n 232
+  u 0.065  real 41.1%  model 43.7%  n 231
+  u 0.195  real 50.4%  model 46.8%  n 236
+  u 0.296  real 52.6%  model 49.3%  n 228
+  u 0.391  real 50.9%  model 51.6%  n 230
+  u 0.468  real 58.5%  model 53.5%  n 234
+  u 0.583  real 54.7%  model 56.3%  n 236
+  u 0.823  real 61.4%  model 61.9%  n 223
+
+=== Trophy Road ladder: Lumberlove Cabin (trophy_road__lumberlove_cabin) ===
+legality: 0 random decks checked
+search 26000004:evo,26000005:base,26000012:base,26000017:base: 3 decks and 12 swaps match
+search 26000004:evo,26000005:base,26000012:base,26000017:base,26000064:evo: 3 decks and 9 swaps match
+search 26000004:evo,26000005:base,26000012:base,26000017:base,26000064:evo,28000004:base: 3 decks and 6 swaps match
+search 26000004:evo,26000005:base,26000012:base,26000017:base,26000064:evo,28000004:base,28000008:base: 1 decks and 3 swaps match
+search 26000004:evo,26000005:base,26000012:base,26000017:base,26000064:evo,28000004:base,28000008:base,28000011:base: 1 decks and 0 swaps match
+search 26000005:base,26000017:base,26000040:base,26000041:base: 3 decks and 12 swaps match
+search 26000005:base,26000017:base,26000040:base,26000041:base,26000064:evo: 3 decks and 9 swaps match
+search 26000005:base,26000017:base,26000040:base,26000041:base,26000064:evo,28000004:base: 3 decks and 6 swaps match
+search 26000005:base,26000017:base,26000040:base,26000041:base,26000064:evo,28000004:base,28000011:base: 1 decks and 3 swaps match
+search 26000005:base,26000017:base,26000040:base,26000041:base,26000064:evo,28000004:base,28000011:base,26000004:evo: 1 decks and 0 swaps match
+search 26000030:base,26000040:base,26000055:evo,26000064:evo: 3 decks and 12 swaps match
+search 26000030:base,26000040:base,26000055:evo,26000064:evo,28000004:base: 3 decks and 9 swaps match
+search 26000030:base,26000040:base,26000055:evo,26000064:evo,28000004:base,28000011:base: 3 decks and 6 swaps match
+search 26000030:base,26000040:base,26000055:evo,26000064:evo,28000004:base,28000011:base,26000001:base: 1 decks and 3 swaps match
+search 26000030:base,26000040:base,26000055:evo,26000064:evo,28000004:base,28000011:base,26000001:base,26000011:base: 1 decks and 0 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:base: 3 decks and 12 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:base,28000011:base: 3 decks and 9 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:base,28000011:base,26000000:hero: 2 decks and 6 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:base,28000011:base,26000000:hero,26000026:base: 1 decks and 3 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:base,28000011:base,26000000:hero,26000026:base,26000030:base: 1 decks and 0 swaps match
+search 26000061:base,26000084:base,28000000:base,28000015:hero: 3 decks and 12 swaps match
+search 26000061:base,26000084:base,28000000:base,28000015:hero,26000010:base: 3 decks and 9 swaps match
+search 26000061:base,26000084:base,28000000:base,28000015:hero,26000010:base,26000024:evo: 3 decks and 6 swaps match
+search 26000061:base,26000084:base,28000000:base,28000015:hero,26000010:base,26000024:evo,26000044:base: 1 decks and 3 swaps match
+search 26000061:base,26000084:base,28000000:base,28000015:hero,26000010:base,26000024:evo,26000044:base,26000050:evo: 1 decks and 0 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000002:hero: 3 decks and 12 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000002:hero,26000005:base: 3 decks and 9 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000002:hero,26000005:base,26000053:base: 2 decks and 6 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000002:hero,26000005:base,26000053:base,26000054:base: 1 decks and 3 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000002:hero,26000005:base,26000053:base,26000054:base,26000056:evo: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 1740 test deck appearances (835 decks)
+  u -0.194  real 31.2%  model 38.4%  n 218
+  u 0.008  real 39.4%  model 43.2%  n 218
+  u 0.108  real 51.6%  model 45.6%  n 217
+  u 0.247  real 48.0%  model 49.0%  n 223
+  u 0.355  real 52.3%  model 51.7%  n 214
+  u 0.438  real 55.6%  model 53.7%  n 216
+  u 0.565  real 63.1%  model 56.8%  n 217
+  u 0.770  real 59.0%  model 61.6%  n 217
+
+=== Trophy Road ladder: Royal Road (trophy_road__royal_road) ===
+legality: 0 random decks checked
+search 26000011:hero,26000042:base,26000055:evo,26000064:evo: 3 decks and 12 swaps match
+search 26000011:hero,26000042:base,26000055:evo,26000064:evo,28000001:base: 3 decks and 9 swaps match
+search 26000011:hero,26000042:base,26000055:evo,26000064:evo,28000001:base,28000004:base: 3 decks and 6 swaps match
+search 26000011:hero,26000042:base,26000055:evo,26000064:evo,28000001:base,28000004:base,28000008:base: 1 decks and 3 swaps match
+search 26000011:hero,26000042:base,26000055:evo,26000064:evo,28000001:base,28000004:base,28000008:base,28000011:base: 1 decks and 0 swaps match
+search 26000011:hero,26000055:evo,26000064:evo,28000001:base: 3 decks and 12 swaps match
+search 26000011:hero,26000055:evo,26000064:evo,28000001:base,28000008:base: 3 decks and 9 swaps match
+search 26000011:hero,26000055:evo,26000064:evo,28000001:base,28000008:base,28000011:base: 3 decks and 6 swaps match
+search 26000011:hero,26000055:evo,26000064:evo,28000001:base,28000008:base,28000011:base,28000015:base: 1 decks and 3 swaps match
+search 26000011:hero,26000055:evo,26000064:evo,28000001:base,28000008:base,28000011:base,28000015:base,26000002:base: 1 decks and 0 swaps match
+search 26000042:base,26000055:evo,26000064:evo,28000001:base: 3 decks and 12 swaps match
+search 26000042:base,26000055:evo,26000064:evo,28000001:base,28000008:base: 3 decks and 9 swaps match
+search 26000042:base,26000055:evo,26000064:evo,28000001:base,28000008:base,28000011:base: 3 decks and 6 swaps match
+search 26000042:base,26000055:evo,26000064:evo,28000001:base,28000008:base,28000011:base,26000002:base: 1 decks and 3 swaps match
+search 26000042:base,26000055:evo,26000064:evo,28000001:base,28000008:base,28000011:base,26000002:base,26000030:base: 1 decks and 0 swaps match
+search 26000033:base,27000006:evo,28000001:base,28000004:base: 3 decks and 12 swaps match
+search 26000033:base,27000006:evo,28000001:base,28000004:base,28000013:base: 3 decks and 9 swaps match
+search 26000033:base,27000006:evo,28000001:base,28000004:base,28000013:base,26000012:evo: 2 decks and 6 swaps match
+search 26000033:base,27000006:evo,28000001:base,28000004:base,28000013:base,26000012:evo,26000020:base: 1 decks and 3 swaps match
+search 26000033:base,27000006:evo,28000001:base,28000004:base,28000013:base,26000012:evo,26000020:base,26000022:base: 1 decks and 0 swaps match
+search 27000003:base,28000003:base,28000004:evo,28000011:base: 3 decks and 12 swaps match
+search 27000003:base,28000003:base,28000004:evo,28000011:base,26000000:hero: 3 decks and 9 swaps match
+search 27000003:base,28000003:base,28000004:evo,28000011:base,26000000:hero,26000026:base: 3 decks and 6 swaps match
+search 27000003:base,28000003:base,28000004:evo,28000011:base,26000000:hero,26000026:base,26000030:base: 1 decks and 3 swaps match
+search 27000003:base,28000003:base,28000004:evo,28000011:base,26000000:hero,26000026:base,26000030:base,26000041:base: 1 decks and 0 swaps match
+search 28000011:base,28000014:base,28000018:base,26000010:base: 3 decks and 12 swaps match
+search 28000011:base,28000014:base,28000018:base,26000010:base,26000030:base: 3 decks and 9 swaps match
+search 28000011:base,28000014:base,28000018:base,26000010:base,26000030:base,26000059:evo: 3 decks and 6 swaps match
+search 28000011:base,28000014:base,28000018:base,26000010:base,26000030:base,26000059:evo,26000072:base: 1 decks and 3 swaps match
+search 28000011:base,28000014:base,28000018:base,26000010:base,26000030:base,26000059:evo,26000072:base,27000000:evo: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 1904 test deck appearances (930 decks)
+  u -0.152  real 32.6%  model 38.0%  n 239
+  u 0.109  real 49.4%  model 44.2%  n 237
+  u 0.216  real 50.8%  model 46.8%  n 240
+  u 0.317  real 50.8%  model 49.3%  n 236
+  u 0.394  real 54.2%  model 51.2%  n 240
+  u 0.480  real 52.6%  model 53.3%  n 247
+  u 0.604  real 53.6%  model 56.3%  n 239
+  u 0.819  real 56.2%  model 61.4%  n 226
+
+=== Trophy Road ladder: Musketeer Street (trophy_road__musketeer_street) ===
+legality: 0 random decks checked
+search 26000000:evo,26000012:base,26000018:base,26000041:base: 3 decks and 12 swaps match
+search 26000000:evo,26000012:base,26000018:base,26000041:base,26000055:base: 3 decks and 9 swaps match
+search 26000000:evo,26000012:base,26000018:base,26000041:base,26000055:base,27000002:evo: 3 decks and 6 swaps match
+search 26000000:evo,26000012:base,26000018:base,26000041:base,26000055:base,27000002:evo,28000001:base: 1 decks and 3 swaps match
+search 26000000:evo,26000012:base,26000018:base,26000041:base,26000055:base,27000002:evo,28000001:base,28000011:base: 1 decks and 0 swaps match
+search 26000011:evo,26000018:base,26000030:base,26000041:base: 3 decks and 12 swaps match
+search 26000011:evo,26000018:base,26000030:base,26000041:base,26000055:base: 3 decks and 9 swaps match
+search 26000011:evo,26000018:base,26000030:base,26000041:base,26000055:base,28000001:base: 3 decks and 6 swaps match
+search 26000011:evo,26000018:base,26000030:base,26000041:base,26000055:base,28000001:base,28000011:base: 1 decks and 3 swaps match
+search 26000011:evo,26000018:base,26000030:base,26000041:base,26000055:base,28000001:base,28000011:base,26000000:evo: 1 decks and 0 swaps match
+search 26000018:base,26000030:base,26000041:base,26000064:evo: 3 decks and 12 swaps match
+search 26000018:base,26000030:base,26000041:base,26000064:evo,28000001:base: 3 decks and 9 swaps match
+search 26000018:base,26000030:base,26000041:base,26000064:evo,28000001:base,28000011:base: 3 decks and 6 swaps match
+search 26000018:base,26000030:base,26000041:base,26000064:evo,28000001:base,28000011:base,26000000:evo: 1 decks and 3 swaps match
+search 26000018:base,26000030:base,26000041:base,26000064:evo,28000001:base,28000011:base,26000000:evo,26000004:base: 1 decks and 0 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:evo: 3 decks and 12 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:evo,28000011:base: 3 decks and 9 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:evo,28000011:base,26000000:hero: 3 decks and 6 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:evo,28000011:base,26000000:hero,26000026:base: 1 decks and 3 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:evo,28000011:base,26000000:hero,26000026:base,26000030:base: 1 decks and 0 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base: 3 decks and 12 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero: 3 decks and 9 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo: 3 decks and 6 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base: 1 decks and 3 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base,26000084:base: 1 decks and 0 swaps match
+search 27000013:base,28000003:base,28000017:evo,26000010:base: 3 decks and 12 swaps match
+search 27000013:base,28000003:base,28000017:evo,26000010:base,26000013:base: 3 decks and 9 swaps match
+search 27000013:base,28000003:base,28000017:evo,26000010:base,26000013:base,26000031:base: 3 decks and 6 swaps match
+search 27000013:base,28000003:base,28000017:evo,26000010:base,26000013:base,26000031:base,26000102:base: 1 decks and 3 swaps match
+search 27000013:base,28000003:base,28000017:evo,26000010:base,26000013:base,26000031:base,26000102:base,27000000:evo: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 2410 test deck appearances (1070 decks)
+  u -0.355  real 35.5%  model 31.6%  n 304
+  u 0.083  real 44.6%  model 41.3%  n 334
+  u 0.268  real 46.4%  model 45.6%  n 267
+  u 0.448  real 47.3%  model 49.9%  n 300
+  u 0.588  real 54.4%  model 53.3%  n 305
+  u 0.702  real 57.5%  model 56.0%  n 301
+  u 0.841  real 55.0%  model 59.2%  n 300
+  u 1.041  real 59.5%  model 63.8%  n 299
+
+=== Trophy Road ladder: Summit of Heroes (trophy_road__summit_of_heroes) ===
+legality: 0 random decks checked
+search 26000003:hero,26000011:base,26000026:evo,26000027:base: 3 decks and 12 swaps match
+search 26000003:hero,26000011:base,26000026:evo,26000027:base,26000057:base: 3 decks and 9 swaps match
+search 26000003:hero,26000011:base,26000026:evo,26000027:base,26000057:base,26000059:evo: 3 decks and 6 swaps match
+search 26000003:hero,26000011:base,26000026:evo,26000027:base,26000057:base,26000059:evo,27000012:base: 1 decks and 3 swaps match
+search 26000003:hero,26000011:base,26000026:evo,26000027:base,26000057:base,26000059:evo,27000012:base,28000015:base: 1 decks and 0 swaps match
+search 26000011:base,26000026:evo,26000027:base,26000058:base: 3 decks and 12 swaps match
+search 26000011:base,26000026:evo,26000027:base,26000058:base,27000012:base: 3 decks and 9 swaps match
+search 26000011:base,26000026:evo,26000027:base,26000058:base,27000012:base,28000004:evo: 3 decks and 6 swaps match
+search 26000011:base,26000026:evo,26000027:base,26000058:base,27000012:base,28000004:evo,28000015:base: 1 decks and 3 swaps match
+search 26000011:base,26000026:evo,26000027:base,26000058:base,27000012:base,28000004:evo,28000015:base,26000003:hero: 1 decks and 0 swaps match
+search 26000026:evo,26000027:base,26000040:base,27000012:base: 3 decks and 12 swaps match
+search 26000026:evo,26000027:base,26000040:base,27000012:base,28000004:evo: 3 decks and 9 swaps match
+search 26000026:evo,26000027:base,26000040:base,27000012:base,28000004:evo,28000011:base: 3 decks and 6 swaps match
+search 26000026:evo,26000027:base,26000040:base,27000012:base,28000004:evo,28000011:base,26000003:hero: 1 decks and 3 swaps match
+search 26000026:evo,26000027:base,26000040:base,27000012:base,28000004:evo,28000011:base,26000003:hero,26000011:base: 1 decks and 0 swaps match
+search 26000084:base,27000006:evo,27000008:base,28000000:base: 3 decks and 12 swaps match
+search 26000084:base,27000006:evo,27000008:base,28000000:base,28000011:base: 3 decks and 9 swaps match
+search 26000084:base,27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero: 3 decks and 6 swaps match
+search 26000084:base,27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo: 1 decks and 3 swaps match
+search 26000084:base,27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base: 1 decks and 0 swaps match
+search 27000006:evo,28000001:base,28000004:base,28000013:base: 3 decks and 12 swaps match
+search 27000006:evo,28000001:base,28000004:base,28000013:base,26000012:evo: 3 decks and 9 swaps match
+search 27000006:evo,28000001:base,28000004:base,28000013:base,26000012:evo,26000020:base: 3 decks and 6 swaps match
+search 27000006:evo,28000001:base,28000004:base,28000013:base,26000012:evo,26000020:base,26000022:base: 1 decks and 3 swaps match
+search 27000006:evo,28000001:base,28000004:base,28000013:base,26000012:evo,26000020:base,26000022:base,26000033:base: 1 decks and 0 swaps match
+search 26000062:hero,28000000:base,28000008:base,26000004:base: 3 decks and 12 swaps match
+search 26000062:hero,28000000:base,28000008:base,26000004:base,26000036:evo: 3 decks and 9 swaps match
+search 26000062:hero,28000000:base,28000008:base,26000004:base,26000036:evo,26000042:base: 3 decks and 6 swaps match
+search 26000062:hero,28000000:base,28000008:base,26000004:base,26000036:evo,26000042:base,26000046:base: 1 decks and 3 swaps match
+search 26000062:hero,28000000:base,28000008:base,26000004:base,26000036:evo,26000042:base,26000046:base,26000050:evo: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 2418 test deck appearances (1108 decks)
+  u -0.357  real 38.1%  model 32.6%  n 312
+  u -0.009  real 38.6%  model 40.4%  n 293
+  u 0.191  real 51.3%  model 45.1%  n 302
+  u 0.371  real 48.1%  model 49.4%  n 316
+  u 0.506  real 52.7%  model 52.6%  n 296
+  u 0.627  real 57.8%  model 55.5%  n 296
+  u 0.776  real 55.7%  model 59.0%  n 314
+  u 1.023  real 58.1%  model 64.6%  n 289
+
+=== Trophy Road ladder: Magic Academy (trophy_road__magic_academy) ===
+legality: 0 random decks checked
+search 26000000:evo,26000023:hero,26000025:base,26000035:evo: 3 decks and 12 swaps match
+search 26000000:evo,26000023:hero,26000025:base,26000035:evo,27000006:base: 3 decks and 9 swaps match
+search 26000000:evo,26000023:hero,26000025:base,26000035:evo,27000006:base,28000001:base: 3 decks and 6 swaps match
+search 26000000:evo,26000023:hero,26000025:base,26000035:evo,27000006:base,28000001:base,28000008:base: 1 decks and 3 swaps match
+search 26000000:evo,26000023:hero,26000025:base,26000035:evo,27000006:base,28000001:base,28000008:base,28000011:base: 1 decks and 0 swaps match
+search 26000005:base,26000023:hero,26000025:base,26000035:evo: 3 decks and 12 swaps match
+search 26000005:base,26000023:hero,26000025:base,26000035:evo,28000001:base: 3 decks and 9 swaps match
+search 26000005:base,26000023:hero,26000025:base,26000035:evo,28000001:base,28000008:base: 3 decks and 6 swaps match
+search 26000005:base,26000023:hero,26000025:base,26000035:evo,28000001:base,28000008:base,28000015:base: 1 decks and 3 swaps match
+search 26000005:base,26000023:hero,26000025:base,26000035:evo,28000001:base,28000008:base,28000015:base,26000000:evo: 1 decks and 0 swaps match
+search 26000035:evo,26000041:base,27000006:base,28000001:base: 3 decks and 12 swaps match
+search 26000035:evo,26000041:base,27000006:base,28000001:base,28000003:base: 3 decks and 9 swaps match
+search 26000035:evo,26000041:base,27000006:base,28000001:base,28000003:base,28000011:base: 3 decks and 6 swaps match
+search 26000035:evo,26000041:base,27000006:base,28000001:base,28000003:base,28000011:base,26000000:evo: 1 decks and 3 swaps match
+search 26000035:evo,26000041:base,27000006:base,28000001:base,28000003:base,28000011:base,26000000:evo,26000023:hero: 1 decks and 0 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base: 3 decks and 12 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base: 3 decks and 9 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base: 3 decks and 6 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base: 1 decks and 3 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base,26000059:evo: 1 decks and 0 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base: 3 decks and 12 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero: 3 decks and 9 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo: 3 decks and 6 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base: 1 decks and 3 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base,26000084:base: 1 decks and 0 swaps match
+search 26000102:base,27000004:base,28000018:base,26000031:base: 3 decks and 12 swaps match
+search 26000102:base,27000004:base,28000018:base,26000031:base,26000032:base: 3 decks and 9 swaps match
+search 26000102:base,27000004:base,28000018:base,26000031:base,26000032:base,26000049:evo: 3 decks and 6 swaps match
+search 26000102:base,27000004:base,28000018:base,26000031:base,26000032:base,26000049:evo,26000058:evo: 1 decks and 3 swaps match
+search 26000102:base,27000004:base,28000018:base,26000031:base,26000032:base,26000049:evo,26000058:evo,26000062:hero: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 2886 test deck appearances (1375 decks)
+  u -0.237  real 43.6%  model 38.7%  n 362
+  u 0.035  real 43.6%  model 45.2%  n 360
+  u 0.132  real 49.3%  model 47.5%  n 365
+  u 0.213  real 48.0%  model 49.5%  n 356
+  u 0.299  real 50.1%  model 51.6%  n 365
+  u 0.390  real 51.9%  model 53.8%  n 370
+  u 0.466  real 55.2%  model 55.7%  n 348
+  u 0.609  real 58.3%  model 59.1%  n 360
+
+=== Trophy Road ladder: Ultimate Clash Pit (trophy_road__ultimate_clash_pit) ===
+legality: 0 random decks checked
+search 26000011:evo,26000035:base,26000041:base,26000046:base: 3 decks and 12 swaps match
+search 26000011:evo,26000035:base,26000041:base,26000046:base,27000010:evo: 3 decks and 9 swaps match
+search 26000011:evo,26000035:base,26000041:base,26000046:base,27000010:evo,28000001:base: 3 decks and 6 swaps match
+search 26000011:evo,26000035:base,26000041:base,26000046:base,27000010:evo,28000001:base,28000011:base: 1 decks and 3 swaps match
+search 26000011:evo,26000035:base,26000041:base,26000046:base,27000010:evo,28000001:base,28000011:base,28000015:base: 1 decks and 0 swaps match
+search 26000030:evo,26000035:base,26000041:base,28000000:base: 3 decks and 12 swaps match
+search 26000030:evo,26000035:base,26000041:base,28000000:base,28000001:base: 3 decks and 9 swaps match
+search 26000030:evo,26000035:base,26000041:base,28000000:base,28000001:base,28000011:base: 3 decks and 6 swaps match
+search 26000030:evo,26000035:base,26000041:base,28000000:base,28000001:base,28000011:base,28000015:base: 1 decks and 3 swaps match
+search 26000030:evo,26000035:base,26000041:base,28000000:base,28000001:base,28000011:base,28000015:base,26000011:evo: 1 decks and 0 swaps match
+search 26000038:base,26000041:base,27000010:evo,28000001:base: 3 decks and 12 swaps match
+search 26000038:base,26000041:base,27000010:evo,28000001:base,28000011:base: 3 decks and 9 swaps match
+search 26000038:base,26000041:base,27000010:evo,28000001:base,28000011:base,28000015:base: 3 decks and 6 swaps match
+search 26000038:base,26000041:base,27000010:evo,28000001:base,28000011:base,28000015:base,26000030:evo: 1 decks and 3 swaps match
+search 26000038:base,26000041:base,27000010:evo,28000001:base,28000011:base,28000015:base,26000030:evo,26000035:base: 1 decks and 0 swaps match
+search 26000084:base,27000006:evo,27000008:base,28000000:base: 3 decks and 12 swaps match
+search 26000084:base,27000006:evo,27000008:base,28000000:base,28000011:base: 3 decks and 9 swaps match
+search 26000084:base,27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero: 3 decks and 6 swaps match
+search 26000084:base,27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo: 1 decks and 3 swaps match
+search 26000084:base,27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base: 1 decks and 0 swaps match
+search 27000003:base,28000003:base,28000004:evo,28000011:base: 3 decks and 12 swaps match
+search 27000003:base,28000003:base,28000004:evo,28000011:base,26000000:hero: 3 decks and 9 swaps match
+search 27000003:base,28000003:base,28000004:evo,28000011:base,26000000:hero,26000026:evo: 3 decks and 6 swaps match
+search 27000003:base,28000003:base,28000004:evo,28000011:base,26000000:hero,26000026:evo,26000030:base: 1 decks and 3 swaps match
+search 27000003:base,28000003:base,28000004:evo,28000011:base,26000000:hero,26000026:evo,26000030:base,26000041:base: 1 decks and 0 swaps match
+search 26000102:base,27000004:base,28000018:base,26000031:base: 3 decks and 12 swaps match
+search 26000102:base,27000004:base,28000018:base,26000031:base,26000032:base: 3 decks and 9 swaps match
+search 26000102:base,27000004:base,28000018:base,26000031:base,26000032:base,26000049:evo: 3 decks and 6 swaps match
+search 26000102:base,27000004:base,28000018:base,26000031:base,26000032:base,26000049:evo,26000058:evo: 1 decks and 3 swaps match
+search 26000102:base,27000004:base,28000018:base,26000031:base,26000032:base,26000049:evo,26000058:evo,26000062:hero: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 2928 test deck appearances (1417 decks)
+  u -0.157  real 40.7%  model 39.2%  n 366
+  u 0.072  real 48.4%  model 44.7%  n 366
+  u 0.188  real 49.7%  model 47.5%  n 366
+  u 0.273  real 53.8%  model 49.7%  n 366
+  u 0.350  real 49.2%  model 51.5%  n 366
+  u 0.427  real 59.0%  model 53.4%  n 371
+  u 0.511  real 46.3%  model 55.5%  n 361
+  u 0.652  real 52.7%  model 58.9%  n 366
+
+=== Trophy Road ladder: Little Prince's Tavern (trophy_road__little_prince_s_tavern) ===
+legality: 0 random decks checked
+search 26000000:hero,26000023:base,26000033:base,26000035:evo: 3 decks and 12 swaps match
+search 26000000:hero,26000023:base,26000033:base,26000035:evo,26000046:base: 3 decks and 9 swaps match
+search 26000000:hero,26000023:base,26000033:base,26000035:evo,26000046:base,26000056:evo: 3 decks and 6 swaps match
+search 26000000:hero,26000023:base,26000033:base,26000035:evo,26000046:base,26000056:evo,28000003:base: 1 decks and 3 swaps match
+search 26000000:hero,26000023:base,26000033:base,26000035:evo,26000046:base,26000056:evo,28000003:base,28000015:base: 1 decks and 0 swaps match
+search 26000033:base,26000035:evo,26000046:base,26000054:base: 3 decks and 12 swaps match
+search 26000033:base,26000035:evo,26000046:base,26000054:base,26000056:evo: 3 decks and 9 swaps match
+search 26000033:base,26000035:evo,26000046:base,26000054:base,26000056:evo,28000000:base: 3 decks and 6 swaps match
+search 26000033:base,26000035:evo,26000046:base,26000054:base,26000056:evo,28000000:base,28000015:base: 1 decks and 3 swaps match
+search 26000033:base,26000035:evo,26000046:base,26000054:base,26000056:evo,28000000:base,28000015:base,26000005:base: 1 decks and 0 swaps match
+search 26000030:base,26000056:evo,26000102:hero,28000001:base: 3 decks and 12 swaps match
+search 26000030:base,26000056:evo,26000102:hero,28000001:base,28000011:base: 3 decks and 9 swaps match
+search 26000030:base,26000056:evo,26000102:hero,28000001:base,28000011:base,28000015:base: 3 decks and 6 swaps match
+search 26000030:base,26000056:evo,26000102:hero,28000001:base,28000011:base,28000015:base,26000000:hero: 1 decks and 3 swaps match
+search 26000030:base,26000056:evo,26000102:hero,28000001:base,28000011:base,28000015:base,26000000:hero,26000021:base: 1 decks and 0 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:evo: 3 decks and 12 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:evo,28000011:base: 3 decks and 9 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:evo,28000011:base,26000000:hero: 3 decks and 6 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:evo,28000011:base,26000000:hero,26000026:evo: 1 decks and 3 swaps match
+search 26000041:base,27000003:base,28000003:base,28000004:evo,28000011:base,26000000:hero,26000026:evo,26000030:base: 1 decks and 0 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base: 3 decks and 12 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero: 3 decks and 9 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo: 3 decks and 6 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base: 1 decks and 3 swaps match
+search 27000006:evo,27000008:base,28000000:base,28000011:base,26000000:hero,26000001:evo,26000010:base,26000084:base: 1 decks and 0 swaps match
+search 27000000:evo,28000000:base,28000011:base,26000010:base: 3 decks and 12 swaps match
+search 27000000:evo,28000000:base,28000011:base,26000010:base,26000014:evo: 3 decks and 9 swaps match
+search 27000000:evo,28000000:base,28000011:base,26000010:base,26000014:evo,26000021:base: 3 decks and 6 swaps match
+search 27000000:evo,28000000:base,28000011:base,26000010:base,26000014:evo,26000021:base,26000030:base: 1 decks and 3 swaps match
+search 27000000:evo,28000000:base,28000011:base,26000010:base,26000014:evo,26000021:base,26000030:base,26000038:hero: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 2192 test deck appearances (1088 decks)
+  u -0.141  real 42.4%  model 40.3%  n 276
+  u 0.061  real 44.5%  model 45.1%  n 274
+  u 0.164  real 51.6%  model 47.7%  n 273
+  u 0.246  real 51.3%  model 49.7%  n 273
+  u 0.316  real 53.3%  model 51.4%  n 276
+  u 0.387  real 54.2%  model 53.2%  n 284
+  u 0.459  real 49.6%  model 54.9%  n 262
+  u 0.591  real 52.9%  model 58.1%  n 274
+
+=== Trophy Road ladder: Spirit Square (trophy_road__spirit_square) ===
+legality: 0 random decks checked
+search 26000000:hero,26000007:evo,26000010:base,26000021:base: 3 decks and 12 swaps match
+search 26000000:hero,26000007:evo,26000010:base,26000021:base,28000000:base: 3 decks and 9 swaps match
+search 26000000:hero,26000007:evo,26000010:base,26000021:base,28000000:base,28000001:base: 3 decks and 6 swaps match
+search 26000000:hero,26000007:evo,26000010:base,26000021:base,28000000:base,28000001:base,28000008:base: 1 decks and 3 swaps match
+search 26000000:hero,26000007:evo,26000010:base,26000021:base,28000000:base,28000001:base,28000008:base,28000011:base: 1 decks and 0 swaps match
+search 26000010:base,26000021:base,26000040:base,26000042:base: 3 decks and 12 swaps match
+search 26000010:base,26000021:base,26000040:base,26000042:base,28000000:base: 3 decks and 9 swaps match
+search 26000010:base,26000021:base,26000040:base,26000042:base,28000000:base,28000001:base: 3 decks and 6 swaps match
+search 26000010:base,26000021:base,26000040:base,26000042:base,28000000:base,28000001:base,28000011:base: 1 decks and 3 swaps match
+search 26000010:base,26000021:base,26000040:base,26000042:base,28000000:base,28000001:base,28000011:base,26000000:hero: 1 decks and 0 swaps match
+search 26000040:base,26000056:evo,27000009:hero,28000000:base: 3 decks and 12 swaps match
+search 26000040:base,26000056:evo,27000009:hero,28000000:base,28000001:base: 3 decks and 9 swaps match
+search 26000040:base,26000056:evo,27000009:hero,28000000:base,28000001:base,28000011:base: 2 decks and 6 swaps match
+search 26000040:base,26000056:evo,27000009:hero,28000000:base,28000001:base,28000011:base,26000000:hero: 1 decks and 3 swaps match
+search 26000040:base,26000056:evo,27000009:hero,28000000:base,28000001:base,28000011:base,26000000:hero,26000010:base: 1 decks and 0 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base: 3 decks and 12 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base: 3 decks and 9 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base: 2 decks and 6 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base: 1 decks and 3 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base,26000059:evo: 1 decks and 0 swaps match
+search 26000018:base,26000035:evo,26000049:evo,28000008:base: 3 decks and 12 swaps match
+search 26000018:base,26000035:evo,26000049:evo,28000008:base,26000006:base: 3 decks and 9 swaps match
+search 26000018:base,26000035:evo,26000049:evo,28000008:base,26000006:base,26000011:hero: 3 decks and 6 swaps match
+search 26000018:base,26000035:evo,26000049:evo,28000008:base,26000006:base,26000011:hero,26000012:base: 1 decks and 3 swaps match
+search 26000018:base,26000035:evo,26000049:evo,28000008:base,26000006:base,26000011:hero,26000012:base,26000017:base: 1 decks and 0 swaps match
+search 26000106:base,28000000:base,28000005:base,26000006:base: 3 decks and 12 swaps match
+search 26000106:base,28000000:base,28000005:base,26000006:base,26000007:evo: 3 decks and 9 swaps match
+search 26000106:base,28000000:base,28000005:base,26000006:base,26000007:evo,26000017:hero: 2 decks and 6 swaps match
+search 26000106:base,28000000:base,28000005:base,26000006:base,26000007:evo,26000017:hero,26000055:base: 1 decks and 3 swaps match
+search 26000106:base,28000000:base,28000005:base,26000006:base,26000007:evo,26000017:hero,26000055:base,26000063:evo: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 992 test deck appearances (520 decks)
+  u -0.146  real 37.9%  model 41.1%  n 124
+  u 0.027  real 58.7%  model 45.2%  n 126
+  u 0.107  real 52.6%  model 47.2%  n 135
+  u 0.187  real 46.3%  model 49.2%  n 123
+  u 0.239  real 62.9%  model 50.5%  n 116
+  u 0.317  real 43.3%  model 52.4%  n 120
+  u 0.421  real 44.4%  model 54.9%  n 124
+  u 0.627  real 54.0%  model 59.9%  n 124
+
+=== Trophy Road ladder: Seasonal Arena I (trophy_road__seasonal_arena_i) ===
+legality: 0 random decks checked
+search 26000036:evo,26000048:base,26000050:evo,26000083:base: 3 decks and 12 swaps match
+search 26000036:evo,26000048:base,26000050:evo,26000083:base,26000097:base: 3 decks and 9 swaps match
+search 26000036:evo,26000048:base,26000050:evo,26000083:base,26000097:base,27000007:base: 3 decks and 6 swaps match
+search 26000036:evo,26000048:base,26000050:evo,26000083:base,26000097:base,27000007:base,28000001:base: 1 decks and 3 swaps match
+search 26000036:evo,26000048:base,26000050:evo,26000083:base,26000097:base,27000007:base,28000001:base,28000016:base: 1 decks and 0 swaps match
+search 26000053:base,26000056:base,26000097:base,26000102:hero: 3 decks and 12 swaps match
+search 26000053:base,26000056:base,26000097:base,26000102:hero,27000007:base: 3 decks and 9 swaps match
+search 26000053:base,26000056:base,26000097:base,26000102:hero,27000007:base,28000016:base: 3 decks and 6 swaps match
+search 26000053:base,26000056:base,26000097:base,26000102:hero,27000007:base,28000016:base,28000017:evo: 1 decks and 3 swaps match
+search 26000053:base,26000056:base,26000097:base,26000102:hero,27000007:base,28000016:base,28000017:evo,26000050:evo: 1 decks and 0 swaps match
+search 26000083:base,26000097:base,27000007:base,27000010:base: 3 decks and 12 swaps match
+search 26000083:base,26000097:base,27000007:base,27000010:base,28000008:evo: 3 decks and 9 swaps match
+search 26000083:base,26000097:base,27000007:base,27000010:base,28000008:evo,28000016:base: 3 decks and 6 swaps match
+search 26000083:base,26000097:base,27000007:base,27000010:base,28000008:evo,28000016:base,26000039:hero: 1 decks and 3 swaps match
+search 26000083:base,26000097:base,27000007:base,27000010:base,28000008:evo,28000016:base,26000039:hero,26000043:evo: 1 decks and 0 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base: 3 decks and 12 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base: 3 decks and 9 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base: 3 decks and 6 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base: 1 decks and 3 swaps match
+search 26000072:base,27000000:evo,28000011:base,28000014:base,28000018:base,26000010:base,26000030:base,26000059:evo: 1 decks and 0 swaps match
+search 26000040:base,27000003:base,28000004:evo,28000011:base: 3 decks and 12 swaps match
+search 26000040:base,27000003:base,28000004:evo,28000011:base,26000000:hero: 3 decks and 9 swaps match
+search 26000040:base,27000003:base,28000004:evo,28000011:base,26000000:hero,26000012:evo: 3 decks and 6 swaps match
+search 26000040:base,27000003:base,28000004:evo,28000011:base,26000000:hero,26000012:evo,26000026:base: 1 decks and 3 swaps match
+search 26000040:base,27000003:base,28000004:evo,28000011:base,26000000:hero,26000012:evo,26000026:base,26000030:base: 1 decks and 0 swaps match
+search 27000000:evo,28000000:base,28000011:base,26000010:evo: 3 decks and 12 swaps match
+search 27000000:evo,28000000:base,28000011:base,26000010:evo,26000014:hero: 3 decks and 9 swaps match
+search 27000000:evo,28000000:base,28000011:base,26000010:evo,26000014:hero,26000021:base: 3 decks and 6 swaps match
+search 27000000:evo,28000000:base,28000011:base,26000010:evo,26000014:hero,26000021:base,26000030:base: 1 decks and 3 swaps match
+search 27000000:evo,28000000:base,28000011:base,26000010:evo,26000014:hero,26000021:base,26000030:base,26000038:base: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 2872 test deck appearances (1618 decks)
+  u -0.358  real 25.6%  model 33.0%  n 363
+  u -0.066  real 27.0%  model 39.4%  n 355
+  u 0.102  real 35.8%  model 43.3%  n 360
+  u 0.260  real 48.3%  model 47.0%  n 358
+  u 0.453  real 52.6%  model 51.6%  n 365
+  u 0.616  real 61.3%  model 55.4%  n 354
+  u 0.853  real 66.3%  model 60.9%  n 365
+  u 1.209  real 83.5%  model 68.6%  n 352
+
+=== Trophy Road ladder: Seasonal Arena II (trophy_road__seasonal_arena_ii) ===
+legality: 0 random decks checked
+search 26000003:hero,26000018:base,26000022:evo,26000027:base: 3 decks and 12 swaps match
+search 26000003:hero,26000018:base,26000022:evo,26000027:base,26000033:base: 3 decks and 9 swaps match
+search 26000003:hero,26000018:base,26000022:evo,26000027:base,26000033:base,26000049:evo: 3 decks and 6 swaps match
+search 26000003:hero,26000018:base,26000022:evo,26000027:base,26000033:base,26000049:evo,28000002:base: 1 decks and 3 swaps match
+search 26000003:hero,26000018:base,26000022:evo,26000027:base,26000033:base,26000049:evo,28000002:base,28000016:base: 1 decks and 0 swaps match
+search 26000022:evo,26000027:base,26000029:base,26000049:evo: 3 decks and 12 swaps match
+search 26000022:evo,26000027:base,26000029:base,26000049:evo,28000002:base: 3 decks and 9 swaps match
+search 26000022:evo,26000027:base,26000029:base,26000049:evo,28000002:base,28000009:base: 3 decks and 6 swaps match
+search 26000022:evo,26000027:base,26000029:base,26000049:evo,28000002:base,28000009:base,28000016:base: 1 decks and 3 swaps match
+search 26000022:evo,26000027:base,26000029:base,26000049:evo,28000002:base,28000009:base,28000016:base,26000003:hero: 1 decks and 0 swaps match
+search 26000039:hero,26000049:evo,26000080:base,26000095:base: 3 decks and 12 swaps match
+search 26000039:hero,26000049:evo,26000080:base,26000095:base,28000009:base: 3 decks and 9 swaps match
+search 26000039:hero,26000049:evo,26000080:base,26000095:base,28000009:base,28000012:base: 3 decks and 6 swaps match
+search 26000039:hero,26000049:evo,26000080:base,26000095:base,28000009:base,28000012:base,26000022:evo: 1 decks and 3 swaps match
+search 26000039:hero,26000049:evo,26000080:base,26000095:base,28000009:base,28000012:base,26000022:evo,26000029:base: 1 decks and 0 swaps match
+search 26000065:base,26000084:base,27000006:evo,28000011:base: 3 decks and 12 swaps match
+search 26000065:base,26000084:base,27000006:evo,28000011:base,28000014:base: 3 decks and 9 swaps match
+search 26000065:base,26000084:base,27000006:evo,28000011:base,28000014:base,26000010:base: 3 decks and 6 swaps match
+search 26000065:base,26000084:base,27000006:evo,28000011:base,28000014:base,26000010:base,26000021:base: 1 decks and 3 swaps match
+search 26000065:base,26000084:base,27000006:evo,28000011:base,28000014:base,26000010:base,26000021:base,26000064:evo: 1 decks and 0 swaps match
+search 26000040:base,26000058:base,27000000:base,28000004:evo: 3 decks and 12 swaps match
+search 26000040:base,26000058:base,27000000:base,28000004:evo,26000011:hero: 3 decks and 9 swaps match
+search 26000040:base,26000058:base,27000000:base,28000004:evo,26000011:hero,26000012:evo: 3 decks and 6 swaps match
+search 26000040:base,26000058:base,27000000:base,28000004:evo,26000011:hero,26000012:evo,26000026:base: 1 decks and 3 swaps match
+search 26000040:base,26000058:base,27000000:base,28000004:evo,26000011:hero,26000012:evo,26000026:base,26000030:base: 1 decks and 0 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000005:base: 3 decks and 12 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000005:base,26000023:hero: 3 decks and 9 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000005:base,26000023:hero,26000053:base: 3 decks and 6 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000005:base,26000023:hero,26000053:base,26000054:base: 1 decks and 3 swaps match
+search 27000002:evo,28000000:base,28000015:base,26000005:base,26000023:hero,26000053:base,26000054:base,26000056:evo: 1 decks and 0 swaps match
+explanations: 30 checked
+calibration: 8 bins over 2320 test deck appearances (1362 decks)
+  u -0.810  real 16.9%  model 24.3%  n 290
+  u -0.251  real 32.1%  model 34.6%  n 290
+  u 0.045  real 38.6%  model 40.7%  n 290
+  u 0.363  real 38.6%  model 47.6%  n 290
+  u 0.689  real 58.5%  model 54.8%  n 294
+  u 0.934  real 64.9%  model 60.1%  n 288
+  u 1.159  real 70.1%  model 64.8%  n 288
+  u 1.638  real 80.3%  model 73.9%  n 290
+
+all 11924 checks agree with Python

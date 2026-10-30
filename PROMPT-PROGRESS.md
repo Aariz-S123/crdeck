@@ -6,7 +6,8 @@ boundaries, protected files, validation and blocker rules still apply. Local com
 
 ## Current state
 
-- Active run: **none: Runs 1–5 complete**
+- Active run: **none: Runs 1–5 complete; user changes after Run 5 below**
+- After Run 5 (user, 2026-10-29: "No official art. DONT LISTEN TO PICk CHANGE TO 8"): **two decisions that override the prompt pack where they differ.** (1) No official card art: card imagery is closed and cards keep their text names. (2) The builder takes up to a full deck of 8 picks instead of 0–3 (START-HERE and the spec said "pick up to three"; `docs/spec.md` now says 0–8). See "After Run 5" under Completed changes and Checks.
 - Run 1: **PASS** (all P0 items; P1 newcomer definitions done)
 - Run 2: **PASS** (all P0 items; comparison view is P2 backlog, not started)
 - Run 3: **PASS** (P0 items and P1 three-layer disclosures; new evaluation methods are backlog)
@@ -89,6 +90,7 @@ dependency, no fabricated results, tests not weakened. Gap inventory (all done u
 
 - Screenshots: Chrome headless via DevTools protocol (`docs/claude-redesign/evidence/shots.mjs`, Node 22 built-in WebSocket, no new dependency) with real mobile emulation and explicit `prefers-color-scheme`. Plain `--screenshot` was rejected: Windows dark theme leaked into "light" shots and desktop Chrome cannot make a 390 px window.
 - Six views per run, chosen before editing: builder and deck explanation × desktop light 1440 / mobile light 390 / mobile dark 390. Extra layout-only checks: 768, 200% zoom, desktop dark.
+- User decisions after Run 5 (2026-10-29), overriding the prompt pack: no official card art (no card images at all); builder picks up to a full deck of 8.
 
 ## Completed changes
 
@@ -136,6 +138,17 @@ dependency, no fabricated results, tests not weakened. Gap inventory (all done u
 - Final touch-ups after the checkpoint commits: the pick's remove button and Base/Evo/Hero toggle, the card map's colour select, the back link and the counter style chips are 44 px (they were 32 to 40); the explanation page's headline percentage is 1.625rem like the builder's (the spec asks to avoid oversized win percentages).
 - Docs: README (pages, menu, script, tests, test count 183), model-notes §17 (forward check), BACKLOG (what Run 5 closed), Word document regenerated (forward-check paragraph from `doc_claims.forward_check`, website table, a bracket fix) and its text checked; "right now" without a date replaced by "in this export".
 - Test changes: page_test, site_check and run3_test open the layers before checking their charts (lazy layers; every assertion kept); page_test's menu label "Counters" → "Find counters". New: `tests/web/run5_test.cjs`, `tests/test_counter_eval.py` (11), 3 doc_claims tests.
+
+### After Run 5: picks up to a full deck (web/index.html, reason.html, common.js; scripts/sweep_web_engine.mjs, check_web_engine.mjs, more_picks_golden.py new; tests; docs)
+- Why: the user asked to pick 8 cards, then (2026-10-29) "No official art. DONT LISTEN TO PICk CHANGE TO 8". The limit lived only in the builder page (`seeds.length < 3`); `engine.js` and its Python twin already take up to a full deck (8 picks are returned as that deck alone, a ninth is refused; `tests/test_search.py::test_full_eight_card_seed_returns_itself`), `observed.js` takes any number, and the Counters page already took 1 to 8 opponent cards. Engine untouched; nothing exported, retrained or protected changed.
+- Builder: the limit is the rules' deck size (8); the ninth pick is refused with "You already picked 8 cards, a full deck. Remove one to pick another." Picks are listed one row each with a single "N of 8 slots free" line (eight empty rows would push the card list off the screen). Lede and meta description say up to all eight.
+- A full set of picks is scored as the reader's own deck in either source: one card labelled "Your deck" (no "Option 1", no source tag, no "Your pick" on every tile), whether it is also an observed deck and with how many appearances, "How its score is made", no comparison panel, the source chips replaced by a sentence, and a reading note without the selection-optimism caution (the deck was not picked as the top of many estimates). It goes through `Engine.complete`, so the refusals are the search's (three Champions: "No legal deck can hold these cards together", picks kept).
+- With one free slot the search can return only one option (options must differ by `min_diff_cards` = 2 cards); the page now says why, and "1 generated option" is singular.
+- Layout fix found while measuring: on desktop the sticky picker was already taller than the window (1,013 to 1,225 px in 720 to 1,080 px windows, even with no picks), so most of the card list sat below the screen. It is now never taller than the window: the card list takes the height that is left (at least 200 px) and only then does the panel scroll.
+- Keyboard: picking, removing, switching a form, Clear picks and Try an example redraw the lists; focus now returns to the matching control instead of falling to the page.
+- Deck page: picked cards stay out of every swap, as before, but the reader can press "Let swaps replace my picks" (and "Keep my picks"); the choice is kept in the link (`~free`, read by `UI.readHash` as `extra`; `UI.token` takes an optional extra part). Without it, a deck of 8 picks had nothing to swap. "Your pick" marks are left out when every card is a pick.
+- Checks added because the exported golden files only hold searches with 0 to 3 picks: the rules sweep's new section 3a (4 to 9 cards of up to 15 legal decks per mode) and `scripts/more_picks_golden.py` (Python's answers for 4 to 8 picks from the cached models, never retraining) compared by `node scripts/check_web_engine.mjs <dir>` (new optional argument; without it the check is unchanged).
+- Tests: run1_test and page_test now fill the deck to 8 and expect the ninth pick to be refused (they expected the fourth); new `tests/web/picks_test.cjs`.
 
 Not done in Run 1 (explicitly deferred): "Try an example" action and comparison view (not Run 1 P0); model.html still says "Win rates describe top players" (Run 4 teaching page); counters.html "strongest" wording (Run 3).
 
@@ -216,6 +229,19 @@ Run 5 after (`docs/claude-redesign/evidence/run5-after/`):
 | regression | `.venv/Scripts/python -m pytest`; `node scripts/check_web_engine.mjs`; run1–run5 tests; page_test; site_check; engine snapshot `cmp` with run1-before | PASS | 183 passed; all 137,367 checks agree; all `fails: []`; 44 modes x 4 pages + 2 pages + 10 edge links, no problems; engine snapshot identical to the pre-redesign baseline |
 | regression, rules sweep | `node scripts/sweep_web_engine.mjs` | PASS | 44 modes, each "0 problems"; 16,905 searches (9,429 correctly refused), 150,141 swaps checked, no problems found (5,249 s); same counts as Run 4 (`run5-after/sweep.txt`) |
 
+After Run 5 (picks up to a full deck), evidence in `docs/claude-redesign/evidence/picks8/`:
+
+| Item | Command | Result | What was checked |
+|---|---|---|---|
+| P8.1 picking | `cd tests/web && node picks_test.cjs`; run1_test; page_test | PASS | one line "No cards picked. You can pick up to 8." then "7 of 8 slots free"; 8 picks accepted, the 9th refused with its message and the 8 kept; all 8 in the link; removing one brings the source chips and the usual reading note back |
+| P8.2 full deck | picks_test | PASS | in both sources one card "Your deck": status, hint, no source chips, tiles = the picks, no "Your pick" marks, estimate = the engine's, observed-deck appearances = the pool's (8,248 for the most played Ranked deck), none for a deck outside the pool, no comparison, adapted score and reading notes, deck-page link with all 8 picks; three Champions refused with the picks kept |
+| P8.3 4 to 7 picks | picks_test | PASS | generated decks equal `Engine.complete` for 4, 5, 6, 7 picks; observed decks for 5 picks equal the observed-deck rule and hold every pick; 7 picks: one option, explained, singular status |
+| P8.4 deck page | picks_test | PASS | all 8 picked: one sentence and "Let swaps replace my picks", 0 swaps; pressed: `~free` in the link, swap count and best swap equal `Engine.swaps` without locks, focus to the summary; the link reopens in that state; applying a swap leaves 7 marked picks; "Keep my picks" locks them again; with 3 picks the swaps equal the engine's with those 3 locked |
+| P8.5 layout | picker heights measured in Chrome at 1440x1000, 1366x768, 1920x1080 with 0/3/5/8 picks; `OPEN_DETAILS=1 VIEWS=… node …/shots.mjs` | PASS | picker never taller than the window (976, 744, 1056 px; it was 1,013 to 1,225), card list at least 200 px; 0 px sideways overflow on 20 views (tablet, 200% zoom, desktop dark, mobile dark; every disclosure open) and the 12 screenshot views |
+| P8.6 keyboard | `node docs/claude-redesign/evidence/keys.mjs …/picks8/keys.json …` (10 views); `node …/enter.mjs` | PASS | every stop has a focus ring, no trap, every walk comes back around, Shift+Tab and Escape work; Enter on nine cards: focus stays on each pressed card with its ring, 8 picked, the 9th refused. The probe now identifies elements by document position: the old screen-position key ended walks early inside the scrolling card list (the builder was 48 stops in Run 5, now 217 to 222, every card) and hid that How it works had about 400 Tab stops in its loss surface; those cells are hover only now (58 stops; run5_test checks it) |
+| P8.7 Python parity, 4 to 8 picks | `python scripts/more_picks_golden.py <dir>`; `node scripts/check_web_engine.mjs <dir>` | PASS | 44 modes, 1,320 searches (5 sizes of 6 decks per mode); all 11,924 checks agree with Python (decks, scores, swaps with the picks locked, swap breakdowns, card-map swaps, explanations) |
+| regression | `.venv/Scripts/python -m pytest`; `node scripts/check_web_engine.mjs`; run1–run5 tests; page_test; site_check | PASS | 183 passed; all 137,367 checks agree; all `fails: []`; 44 modes x 4 pages + 2 pages + 10 edge links, no problems |
+
 Screenshots (local only, git-ignored): `docs/claude-redesign/evidence/run1-before/*.png`, `run1-after/*.png`, `run1-after/extra/*.png`.
 
 ## Checkpoints
@@ -236,13 +262,13 @@ None for Run 1. Note for later runs: a new top-level `src/crdeck/*.py` would cha
 
 ## Remaining limitations
 
-- Card imagery is not added: the repository has no card images and no image source is approved (the raw API responses hold icon URLs on Supercell's server, but hotlinking or copying them is the user's call). Cards keep their text names.
+- No card imagery, by the user's decision (2026-10-29: no official art). Cards keep their text names.
 - The forecast picture is drawn only when the export has forecast rows; the current export has none (the latest period has 23 battles), so the live page explains that instead. It was checked with a fixture.
 - The forward counter check uses the validation window for its inputs and one-way player clustering; two-way clustering and the combined retrain design (BACKLOG item 3) are not done. The exported retrospective check stays as exported and is shown next to the forward one.
-- The builder still takes 0–3 picks, as every version of the spec says ("pick up to three cards"); the user's question about picking 8 cards is a separate decision.
+- With 8 picks the deck page has nothing to swap until the reader presses "Let swaps replace my picks"; picks stay locked by default, as the redesign specified.
 - The shared Artifact copy of the site was not republished (not asked); it predates Run 5.
 - Screenshots stay local (git-ignored).
 
 ## Next exact action
 
-None. Runs 1–5 are done and committed (no push). Open decisions for the user: card imagery source, an 8-card "check my own deck" entry, and whether to republish the shared Artifact. A fresh daily collection would give the forecast a normal-sized latest period.
+None. Runs 1–5 and the after-Run-5 changes are done and committed (no push). Open decision for the user: whether to republish the shared Artifact. A fresh daily collection would give the forecast a normal-sized latest period.

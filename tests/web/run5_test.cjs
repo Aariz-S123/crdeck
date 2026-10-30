@@ -317,6 +317,11 @@ function clean(name, p) {
   expect(spl.every((s) => gl("Training, validation and test battles").includes(s.battles.toLocaleString())), "model: split example counts not from the export");
   const sl = INDEX.landscape.slices[0], lt = text(d.querySelector("#learn"));
   expect(/two-parameter slice/.test(lt) && /illustration/.test(lt) && lt.includes(`N = ${sl.n_train.toLocaleString()}`) && lt.includes(`C = ${sl.C}`), "model: loss surface symbols or slice/illustration labels missing");
+  // the loss surface's cells show their numbers on hover only: as Tab stops they were about 400 of them
+  // (found after Run 5 by a keyboard walk that identifies elements by document position)
+  const cells = [...d.querySelectorAll("#learn path[data-tip]")], marks = [...d.querySelectorAll("#learn circle[data-tip]")];
+  out.lossSurface = { hover_cells: cells.length, tab_marks: marks.length };
+  expect(cells.length > 100 && cells.every((c) => !c.hasAttribute("tabindex")) && marks.length > 0 && marks.every((c) => c.getAttribute("tabindex") === "0"), "model: loss-surface cells are Tab stops, or its descent marks aren't");
   clean("model", p);
 
   out.fails = fails;

@@ -1,4 +1,4 @@
-// Invariant sweep: seed web/engine.js with every card form (and some pairs) and check
+// Invariant sweep: seed web/engine.js with every card form (and some pairs, and 4 to 9 cards of real decks) and check
 // every result: legal decks, seeds kept, distinct decks, legal swaps, finite numbers,
 // and explanations that add up. Complements check_web_engine.mjs (parity with Python).
 //   node scripts/sweep_web_engine.mjs
@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const { Engine, SeedError, parseDeckKey, keyOf } = require(join(root, "web", "engine.js"));
+const { Engine, SeedError, parseDeckKey, keyOf, deckKey, sortedEntries } = require(join(root, "web", "engine.js"));
 const index = JSON.parse(readFileSync(join(root, "web", "modes.json"), "utf8"));
 const onlySlug = process.argv[2]; // optional: sweep one mode only
 let model, E;
@@ -104,6 +104,24 @@ combo(evos.slice(0, 3).map((c) => ({ id: c.id, form: "evo" })), "three evolution
 combo([{ id: heroes[0].id, form: "hero" }, { id: heroes[1].id, form: "hero" }, { id: champs[0].id, form: "base" }], "2 heroes + champion", true);
 combo([{ id: champs[0].id, form: "base" }, { id: heroes[0].id, form: "hero" }, { id: evos[0].id, form: "evo" }], "champion + hero + evo", false);
 run([], "no seeds", false);
+// 3a. more picks (the builder takes up to a full deck since 2026-10-29): 4 to 8 card forms of legal, unlocked decks
+// (the top generated decks and up to 12 decks spread over the pool), so a legal completion exists. A full set of
+// picks must come back as that very deck, alone, and a ninth card must be refused.
+{
+  const size = model.rules.deck_size;
+  const pool = E.counterPool().filter((p) => E.checkDeck(p.entries).legal && p.entries.every((e) => E.isAvailable(e)));
+  const step = Math.max(1, Math.ceil(pool.length / 12));
+  const sources = E.complete([]).map((d) => d.entries).concat(pool.filter((_, i) => i % step === 0).slice(0, 12).map((p) => p.entries));
+  sources.forEach((src, j) => {
+    const es = sortedEntries(src), order = es.slice(j % size).concat(es.slice(0, j % size)); // other cards first for each deck
+    for (let n = 4; n <= size; n++) run(order.slice(0, n), `${entry.slug} deck ${j}: ${n} picks`, false);
+    let full = null;
+    try { full = E.complete(order); } catch (e) { bad(`${entry.slug} deck ${j}: a full set of picks was refused: ${e.message}`); }
+    if (full && (full.length !== 1 || full[0].key !== deckKey(order))) bad(`${entry.slug} deck ${j}: a full set of picks did not come back as itself alone`);
+    const extra = E.candidates.find((c) => !order.some((o) => o.id === c.id));
+    if (extra) run(order.concat([extra]), `${entry.slug} deck ${j}: ${size + 1} picks`, true);
+  });
+}
 // 3b. counters against every deck style: only real decks (in the pool), legal and unlocked, win rates are
 // probabilities; every tech swap is like-for-like, legal, unlocked, an improvement, and adds no deck warning
 if (model.matchup) for (const st of Object.keys(model.matchup.styles)) {

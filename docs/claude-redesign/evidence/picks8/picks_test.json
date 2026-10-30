@@ -1,0 +1,40 @@
+{
+ "decks": {
+  "observed": "26000010:evo|26000014:hero|26000021:base|26000030:base|26000038:base|27000000:evo|28000000:base|28000011:base",
+  "played": 8248,
+  "not_observed": "26000000:base|26000010:evo|26000031:base|26000095:base|26000102:base|27000004:base|27000013:evo|28000017:base"
+ },
+ "empty": "No cards picked. You can pick up to 8.",
+ "oneFree": "7 of 8 slots free",
+ "ninth": "You already picked 8 cards, a full deck. Remove one to pick another.",
+ "full_observed": {
+  "status": "Your 8 picks, scored as one deck.",
+  "k": "Your deck",
+  "prov": "The 8 cards you picked, scored the same way as the suggestions. It is also one of this mode's observed decks: 8,248 appearances in the training battles.",
+  "big": "51.4%",
+  "srcbar": "All 8 cards are picked, so nothing is added and there are no options to choose between: below is your deck, scored the same way as the suggestions. Remove a pick to see suggested decks again.",
+  "hint": "All 8 slots used: that is a full deck, so it is scored as it is. Press × to remove a card, or switch its form."
+ },
+ "full_generated": {
+  "status": "Your 8 picks, scored as one deck.",
+  "k": "Your deck",
+  "prov": "The 8 cards you picked, scored the same way as the suggestions. It is also one of this mode's observed decks: 8,248 appearances in the training battles.",
+  "big": "51.4%",
+  "srcbar": "All 8 cards are picked, so nothing is added and there are no options to choose between: below is your deck, scored the same way as the suggestions. Remove a pick to see suggested decks again.",
+  "hint": "All 8 slots used: that is a full deck, so it is scored as it is. Press × to remove a card, or switch its form."
+ },
+ "full_not_observed": "The 8 cards you picked, scored the same way as the suggestions.",
+ "partial": {
+  "generated_4": 3,
+  "generated_5": 3,
+  "observed_5": 1,
+  "generated_6": 3,
+  "generated_7": 1
+ },
+ "reason_locked": "Best next stepEvery card here is one you picked, and swaps never replace a pick, so there is nothing to swap. Let swaps replace my picks",
+ "reason_free": {
+  "hash": "#ranked~26000010e-26000014h-26000021b-26000030b-26000038b-27000000e-28000000b-28000011b~26000010e-26000014h-26000021b-26000030b-26000038b-27000000e-28000000b-28000011b~~free",
+  "summary": "All score swaps24 single-card changes ranked by the deck builder's score"
+ },
+ "fails": []
+}
