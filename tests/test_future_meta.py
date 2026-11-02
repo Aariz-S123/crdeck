@@ -194,6 +194,22 @@ def test_a_perfect_forecaster_passes_the_gate_and_copying_no_change_does_not():
     assert passed["passed"] and passed["error"] < passed["error_no_change"] / 3 and calls["n"] == len(origins)
 
 
+def test_an_origin_knowing_too_few_battles_is_skipped_and_the_live_one_never_is():
+    b, d, p = tables(periods=6, per_period=300)
+    # period 2 was hardly fetched by its end: almost all of it arrives with a later collection
+    late = b["battle_key"].str.contains(r"\|2\|") & (b.index % 50 != 0)
+    b.loc[late, "fetched_at"] = (START + pd.Timedelta(days=5)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    data = dm.assemble(b, d, p, None, None, None, None)
+    cfg = {**CFG, "forecast": {**CFG["forecast"], "min_known_battles": 100}}
+    res = fc.run_family(data, family(data), cfg, persistence)
+    assert [x["origin"] for x in res["skipped"]] == [3]
+    assert res["skipped"][0]["known_battles"] < 100
+    assert 3 not in {r["origin"] for r in res["rows"]}
+    assert not [x for x in res["origins"] if x.index == 3][0].forecast
+    assert [x for x in res["origins"] if x.index == data.n_periods][0].forecast
+    assert 3 in {r["period"] for r in res["rows"]}       # the period itself can still be predicted from an earlier origin
+
+
 def test_calibrated_bands_hold_about_the_right_share_when_misses_are_steady():
     """Shares that bounce around a fixed level: the bands, widened from earlier misses, should hold most real shares."""
     data = built(periods=10, per_period=600, seed=3)
@@ -241,6 +257,36 @@ def test_own_record_shrinks_small_samples_and_finds_a_planted_edge():
     # a deck with no games in the period keeps the prior
     m, v = dk.record_for(rec, ["no such deck"])
     assert m[0] == 0.0 and v[0] == rec.tau2
+
+
+def test_battles_without_a_rating_gap_count_for_usage_but_not_for_any_win_measure():
+    decks = deck_pool(seed=1)
+    b, d, p = tables(strong=decks[0], edge=1.0, per_period=800, seed=1)
+    data = dm.assemble(b, d, p, None, None, None, None)
+    # the same battles, with ratings missing and every result flipped for half of the newest period's battles
+    gone = b["battle_key"].str.contains(r"\|3\|") & (b.index % 2 == 0)
+    d2 = d.copy()
+    swap = d2["battle_key"].isin(set(b.loc[gone, "battle_key"]))
+    d2.loc[swap, "trophies_or_rank"] = np.nan
+    d2.loc[swap, "won"] = ~d2.loc[swap, "won"].astype(bool)
+    data2 = dm.assemble(b, d2, p, None, None, None, None)
+    assert data2.battles["rating_diff"].isna().sum() == gone.sum()
+
+    class Flat:
+        @staticmethod
+        def predict_df(df):
+            return np.full(len(df), 0.5)
+    # the record uses only battles with a known gap, so those flipped results can't move it
+    partial = d.copy()
+    partial.loc[swap, "trophies_or_rank"] = np.nan
+    data3 = dm.assemble(b, partial, p, None, None, None, None)
+    r2, r3 = dk.own_record(data2, Flat, 4, 10), dk.own_record(data3, Flat, 4, 10)
+    assert r2.decks == r3.decks and np.array_equal(r2.raw, r3.raw)
+    assert len(dk.period_battles(data2, [3])) == 800 - gone.sum()
+    assert dk.target_rows(data2, 3)["y"].size == 2 * (800 - gone.sum())
+    # usage still sees every battle
+    every = np.ones(len(data2.deck), dtype=bool)
+    assert data2.share_table(every, data2.period, data2.n_periods)[1][3] == 1600
 
 
 def test_no_real_edge_gives_little_spread():
@@ -315,6 +361,42 @@ def test_the_whole_flow_prefers_a_deck_with_a_planted_edge():
     assert dk.adjusted(side).loc[strong, "adj"] > 0.6
     assert (s.runs >= 0).all() and (s.runs <= 1).all()
     assert s.top_share(3).sum() == pytest.approx(3.0)
+
+
+def test_past_picks_estimate_is_weighted_by_the_games_they_got():
+    data = built(periods=2)
+    n = len(data.decks)
+    s = dk.Scored(2, list(data.decks), data.membership, np.tile(np.linspace(0.4, 0.6, n), (5, 1)), np.zeros(n), np.zeros(n), np.zeros(n), np.zeros(n), np.ones(n, dtype=int),
+                  np.arange(n), pd.DataFrame({"adj": np.zeros(n)}, index=data.decks), np.zeros(len(data.keys)), dk.Weights(np.zeros(len(data.keys)), np.zeros((len(data.keys), len(data.keys))), 0.0), 0.0)
+    a, b = data.decks[0], data.decks[-1]
+    side = pd.DataFrame({"deck": [a, a, a, b], "new": [True, False, False, True]})
+    rows = dk.pick_games(s, [a, b], side)
+    assert rows == [(pytest.approx(0.4), 3, 1), (pytest.approx(0.6), 1, 1)]
+    got = dk.picks_estimate(rows)
+    assert got["listed"] == 2
+    assert got["mean_at_listing"] == pytest.approx(0.5)
+    assert got["all_players"] == pytest.approx((0.4 * 3 + 0.6) / 4)
+    assert got["new_to_deck"] == pytest.approx(0.5)
+    assert dk.picks_estimate([])["new_to_deck"] is None
+
+
+def test_the_older_forecast_cannot_see_battles_fetched_after_its_origin():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("future_meta_script", PROJECT_ROOT / "scripts" / "future_meta.py")
+    script = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(script)
+    b, d, p = tables(late_fetch=True, per_period=300)
+    data = dm.assemble(b, d, p, None, None, None, None)
+    cfg, model_cfg = {"seed": 42, "forecast": {"runs": 30}}, {"forecast": {"n_boot": 20, "min_games": 20}}
+    o = 3
+    before = script.replicator_runner(data, b, d, cfg, model_cfg)[0](o)
+    cut = p["end"].iloc[o - 1]
+    keys = set(b.loc[pd.to_datetime(b["fetched_at"], utc=True) > cut, "battle_key"])
+    d2 = d.copy()
+    swap = d2["battle_key"].isin(keys)
+    d2.loc[swap, "deck_key"] = d2.loc[swap, "deck_key"].iloc[::-1].to_numpy()
+    after = script.replicator_runner(dm.assemble(b, d2, p, None, None, None, None), b, d2, cfg, model_cfg)[0](o)
+    np.testing.assert_array_equal(before, after)
 
 
 # ---------------------------------------------------------------- what makes a deck good
@@ -413,6 +495,38 @@ def test_timesfm_results_come_from_the_cache_without_running_anything(tmp_path):
     assert point.shape == (1, 4) and quant.shape == (1, 4, 10)
     assert tr._digest(tr.Task(np.array([[0.1, np.nan, 0.31]]), 4), "x/y", 32, 16) != name.stem
     assert tr._digest(tr.Task(np.array([[0.1, np.nan, 0.3]]), 5), "x/y", 32, 16) != name.stem
+
+
+def test_an_event_inside_the_newest_period_is_measured_and_one_outside_is_not():
+    b, d, p = tables(periods=4, per_period=800)
+    data = dm.assemble(b, d, p, None, None, None, None)
+    inside = {"time": str(START + pd.Timedelta(days=3, hours=12)), "text": "x"}
+    out = rp.event_shift(data, inside, min_sides=100)
+    assert out["hours_after"] == pytest.approx(12.0) and out["sides_after"] > 0 and out["sides_before"] > 0
+    assert 1 <= out["typical_days"] <= 3 and out["typical_points"] > 0
+    assert len(out["movers"]) <= 8
+    assert rp.event_shift(data, {"time": str(START + pd.Timedelta(days=1)), "text": "x"}) is None
+    mask = rp.after_event_mask(data, [inside])
+    shares = rp.since_event_shares(data, data.membership, mask)
+    assert shares.sum() == pytest.approx(8.0)
+    records = rp.since_event_records(data, mask)
+    assert sum(g for g, _ in records.values()) == int((mask & data.usable).sum())
+    assert all(w <= g for g, w in records.values())
+    assert rp.after_event_mask(data, []) is None and rp.since_event_shares(data, data.membership, None) is None
+
+
+def test_sampled_players_results_either_side_of_an_event():
+    b, d, p = tables(periods=2, per_period=400)
+    b["source_player_tag"] = d[d["side"] == "A"]["player_tag"].to_numpy()
+    d = d.copy()
+    # source players always win after the moment
+    moment = START + pd.Timedelta(days=1)
+    after = set(b.loc[pd.to_datetime(b["battle_time"], utc=True) >= moment, "battle_key"])
+    d.loc[d["battle_key"].isin(after) & (d["side"] == "A"), "won"] = True
+    got = rp.sampled_player_results(b, d, {"time": str(moment)}, 24)
+    assert got["after"]["win_rate"] == 1.0 and got["after"]["games"] == 400
+    assert 0.35 < got["before"]["win_rate"] < 0.65
+    assert got["before"]["range"][0] < got["before"]["win_rate"] < got["before"]["range"][1]
 
 
 def test_rounding_makes_clean_json():

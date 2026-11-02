@@ -60,6 +60,7 @@ class Origin:
     hourly: np.ndarray            # [hours, series]
     targets: list[Target]
     hours: int = 0                # TimesFM horizon in hours
+    known_battles: int = 0        # battles of the period ending at the origin that had been fetched by then
     forecast: dict = field(default_factory=dict)  # horizon -> {median, q10, q90, sims, gamma, calibrated, period_median}
 
 
@@ -106,7 +107,8 @@ def origin_inputs(data: RankedData, fam: Family, o: int, cfg: dict) -> Origin:
     hourly[happ < int(fc["min_hour_appearances"])] = np.nan
     targets = targets_for(data, o, int(fc["horizons"]), int(fc["live_hours_per_step"]), int(tf["max_horizon"]))
     hours = max((t.last + 1 for t in targets), default=1)
-    return Origin(o, o >= data.n_periods, scored, shares, last_games, hourly, targets, hours)
+    known = int((mask & (data.period == o - 1)).sum() // 2)
+    return Origin(o, o >= data.n_periods, scored, shares, last_games, hourly, targets, hours, known)
 
 
 def tasks_for(org: Origin, horizons: int) -> tuple[Task, Task]:
@@ -177,8 +179,12 @@ def run_family(data: RankedData, fam: Family, cfg: dict, forecaster: Callable[[l
     outputs = forecaster(tasks)
     history: list[dict] = []
     rows: list[dict] = []
+    skipped: list[dict] = []
     for i, org in enumerate(origins):
         o, idx, last = org.index, org.scored, org.shares[org.index - 1]
+        if not org.live and org.known_battles < int(fc.get("min_known_battles", 0)):
+            skipped.append({"origin": o, "known_battles": org.known_battles})
+            continue
         (hp, hq), (pp, _) = outputs[2 * i], outputs[2 * i + 1]
         rng = np.random.default_rng(int(cfg["seed"]) + o)
         for t in org.targets:
@@ -214,7 +220,7 @@ def run_family(data: RankedData, fam: Family, cfg: dict, forecaster: Callable[[l
             z = np.full(K, np.nan)
             z[idx] = (logit(truth[idx]) - logit(median[idx])) / sigma[idx]
             history.append({"horizon": t.horizon, "period": t.period, "z": z})
-    return {"family": fam, "origins": origins, "rows": rows, "actual": actual, "appearances": app_final, "history": history}
+    return {"family": fam, "origins": origins, "rows": rows, "actual": actual, "appearances": app_final, "history": history, "skipped": skipped}
 
 
 def summarize(rows: list[dict], horizon: int = 1) -> dict:

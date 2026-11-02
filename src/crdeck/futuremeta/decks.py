@@ -3,6 +3,9 @@
 The matchup model at origin o is fitted on battles up to the end of period o-2, so period o-1 is out of sample for it.
 Definitions: docs/future-meta/DESIGN.md. Everything here reads battles and fits its own models; it never touches the
 exported models.
+
+Win measures use only battles with a known rating gap. Without one, a skill gap can't be told from a deck's strength: right after a
+season reset, logs carry no ratings while top players meet weaker opponents, which would inflate every deck they play.
 """
 
 from __future__ import annotations
@@ -29,7 +32,7 @@ from .forecasting import sigmoid
 def fit_model(data: RankedData, o: int, cfg: dict, model_cfg: dict, cache: Path, verbose: bool = True) -> MatchupModel:
     """The matchup model for origin o (cached): battles played up to the end of period o-2 and fetched by the origin."""
     b = data.battles
-    keep = (b["t"] <= data.periods["end"].iloc[o - 2]) & (b["first_seen"] <= data.periods["end"].iloc[o - 1])
+    keep = (b["t"] <= data.periods["end"].iloc[o - 2]) & (b["first_seen"] <= data.periods["end"].iloc[o - 1]) & b["rating_diff"].notna()
     df = b[keep].reset_index(drop=True)
     tag = hashlib.sha1("|".join([str(len(df)), str(df["battle_key"].iloc[-1]), str(cfg["matchup"]["C"]),
                                  str(model_cfg["matchup"]["min_pair_battles"]), str(model_cfg["strength"]["min_feature_games"])]).encode()).hexdigest()[:16]
@@ -101,7 +104,7 @@ def own_record(data: RankedData, model: MatchupModel, o: int, min_games_tau: int
     """Residuals of period o-1's battles (fetched by the origin) under the model that has not seen them, per deck, then
     empirical Bayes: few games means the record barely counts."""
     b = data.battles
-    df = b[(b["t"] > data.periods["start"].iloc[o - 1]) & (b["t"] <= data.periods["end"].iloc[o - 1]) & (b["first_seen"] <= data.periods["end"].iloc[o - 1])]
+    df = b[(b["t"] > data.periods["start"].iloc[o - 1]) & (b["t"] <= data.periods["end"].iloc[o - 1]) & (b["first_seen"] <= data.periods["end"].iloc[o - 1]) & b["rating_diff"].notna()]
     df = df.reset_index(drop=True)
     p = np.clip(model.predict_df(df), 1e-9, 1 - 1e-9)
     y = df["a_won"].astype(float).to_numpy()
@@ -139,14 +142,14 @@ def side_rows(df: pd.DataFrame, expected_a: np.ndarray) -> pd.DataFrame:
 
 def rating_model(data: RankedData, moment) -> RatingBaseline:
     b = data.battles
-    return RatingBaseline().fit(b[(b["t"] <= moment) & (b["first_seen"] <= moment)])
+    return RatingBaseline().fit(b[(b["t"] <= moment) & (b["first_seen"] <= moment) & b["rating_diff"].notna()])
 
 
 def period_battles(data: RankedData, periods: range | list[int], moment=None) -> pd.DataFrame:
-    """OK battles of these periods; with `moment`, only those fetched by then."""
+    """OK battles with a known rating gap in these periods; with `moment`, only those fetched by then."""
     b = data.battles
     start, end = data.periods["start"].iloc[min(periods)], data.periods["end"].iloc[max(periods)]
-    keep = (b["t"] > start) & (b["t"] <= end)
+    keep = (b["t"] > start) & (b["t"] <= end) & b["rating_diff"].notna()
     if moment is not None:
         keep &= b["first_seen"] <= moment
     return b[keep].reset_index(drop=True)
@@ -304,6 +307,24 @@ def range_check(s: Scored, adj: pd.DataFrame, min_games: int) -> list[tuple[floa
             n = float(adj.at[d, "n"])
             out.append((float(mean[i]), float(np.sqrt(var[i] + mean[i] * (1 - mean[i]) / n)), float(adj.at[d, "adj"]), int(n)))
     return out
+
+
+def pick_games(s: Scored, picked: list[str], side: pd.DataFrame) -> list[tuple[float, int, int]]:
+    """(estimate when picked, games in the target period, of which by players new to the deck) for each listed deck."""
+    pos = {d: i for i, d in enumerate(s.decks)}
+    mean = s.mean
+    rows = side[side["deck"].isin(picked)]
+    games = rows["deck"].value_counts()
+    new = rows.loc[rows["new"], "deck"].value_counts()
+    return [(float(mean[pos[d]]), int(games.get(d, 0)), int(new.get(d, 0))) for d in picked]
+
+
+def picks_estimate(picks: list[tuple[float, int, int]]) -> dict:
+    """What past picks were estimated to win when picked, weighted by the games they then got. Compared on the page with what
+    those games really won: the top of many noisy estimates tends to be too high, and this measures by how much."""
+    a = np.array(picks, dtype=float).reshape(-1, 3)
+    mean = lambda w: float(np.sum(a[:, 0] * w) / np.sum(w)) if np.sum(w) else None  # noqa: E731
+    return {"listed": int(len(a)), "mean_at_listing": float(a[:, 0].mean()) if len(a) else None, "all_players": mean(a[:, 1]), "new_to_deck": mean(a[:, 2])}
 
 
 def rank_correlation(values: dict[str, np.ndarray], s: Scored, adj: pd.DataFrame, min_games: int) -> dict[str, float | None]:

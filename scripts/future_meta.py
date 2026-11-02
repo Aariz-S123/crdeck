@@ -70,19 +70,25 @@ def deck_family(data, cfg, force: set[str]) -> fc.Family:
 
 
 def replicator_runner(data, battles, dib, cfg, model_cfg):
-    """The existing replicator Monte Carlo for a period, with its series in this run's card order, and the history ranges."""
+    """The existing replicator Monte Carlo for a period, in this run's card order, fed only battles fetched by the origin,
+    like every other method here. Also returns the measured history's 90% bootstrap ranges, from all battles."""
     settings = model_cfg["forecast"]
-    pdat = period_data(battles, dib, data.periods.copy())
-    stats = period_stats(pdat, int(settings["n_boot"]), int(cfg["seed"]))
-    order = [pdat.keys.index(k) if k in pdat.keys else -1 for k in data.keys]
-    appearances = pdat.periods["appearances"].astype(int).tolist()
+    n_boot, seed, min_games = int(settings["n_boot"]), int(cfg["seed"]), int(settings["min_games"])
+    fetched = pd.to_datetime(battles["fetched_at"], utc=True)
+    final = period_data(battles, dib, data.periods.copy())
+    stats = period_stats(final, n_boot, seed)
+    appearances = final.periods["appearances"].astype(int).tolist()
 
     def run(o: int) -> np.ndarray:
-        sims = monte_carlo(stats, o - 1, list(range(o - 1)), appearances[o], int(cfg["forecast"]["runs"]), int(cfg["seed"]) + o, int(settings["min_games"]))
-        return np.column_stack([sims[:, i] if i >= 0 else np.zeros(sims.shape[0]) for i in order])
+        known = battles[fetched <= data.periods["end"].iloc[o - 1]]
+        pdat = period_data(known, dib, data.periods.iloc[:o].copy())
+        st = period_stats(pdat, n_boot, seed + o)
+        sims = monte_carlo(st, o - 1, list(range(o - 1)), appearances[o], int(cfg["forecast"]["runs"]), seed + o, min_games)
+        where = {k: i for i, k in enumerate(pdat.keys)}
+        return np.column_stack([sims[:, where[k]] if k in where else np.zeros(sims.shape[0]) for k in data.keys])
+    order = [final.keys.index(k) for k in data.keys]
     lo, hi = np.nanquantile(stats["share_boot"], 0.05, axis=1), np.nanquantile(stats["share_boot"], 0.95, axis=1)
-    rng = np.stack([lo[:, [i if i >= 0 else 0 for i in order]], hi[:, [i if i >= 0 else 0 for i in order]]], axis=2)
-    return run, rng
+    return run, np.stack([lo[:, order], hi[:, order]], axis=2)
 
 
 def recommender(data, res_cards, models, styles, cfg, facts):
@@ -91,9 +97,12 @@ def recommender(data, res_cards, models, styles, cfg, facts):
     P = data.n_periods
     memo: dict[str, bool] = {}
     by_origin = {org.index: org for org in res_cards["origins"]}
-    quality_rows, frames, members_10, members_30, checks, correlations = [], [], [], [], [], []
+    quality_rows, frames, members_10, members_30, checks, correlations, picks = [], [], [], [], [], [], []
     live_rows, live_scored, gap = None, None, None
+    origins_used = []
     for o in range(2, P + 1):
+        if not by_origin[o].forecast:   # too few battles known at this origin: not a forecast time
+            continue
         W = dk.weights_of(models[o], data.keys)
         rec = dk.own_record(data, models[o], o, int(dc["min_games_tau"]))
         now = np.nan_to_num(by_origin[o].shares[o - 1], nan=0.0)
@@ -112,18 +121,20 @@ def recommender(data, res_cards, models, styles, cfg, facts):
             opp = data.membership[np.argsort(-np.bincount(data.deck[data.period == o - 1], minlength=len(data.decks)), kind="stable")[:2000]]
             gap = dk.exact_field_gap(s.members[top], opp, W)
             continue
+        origins_used.append(o)
         adj = dk.adjusted(side)
         lists10, lists30 = dk.lists_at(s, int(dc["top"]), int(dc["min_diff"])), dk.lists_at(s, int(dc["top_secondary"]), int(dc["min_diff"]))
         frames.append(side)
         members_10.append({k: set(v) for k, v in lists10.items()})
         members_30.append({k: set(v) for k, v in lists30.items()})
         checks += dk.range_check(s, adj, int(dc["min_games_range_check"]))
+        picks += dk.pick_games(s, lists10["future_field"], side)
         rec_adj = s.record["adj"].reindex(s.decks).fillna(0.5).to_numpy()
         correlations.append({"origin": o, **dk.rank_correlation({"future_field": s.mean, "current_field": s.current, "cards_only": s.cards_only, "last_record": rec_adj,
                                                                  "most_played": s.played_last.astype(float)}, s, adj, int(dc["min_games_range_check"]))})
         log(f"origin {o}: {len(s.decks)} candidates, tau {np.sqrt(s.tau2):.3f}, largest forecast effect {np.abs(s.mean - s.current).max() * 100:.3f} points")
     return {"quality_rows": pd.concat(quality_rows, ignore_index=True), "live_rows": live_rows, "live": live_scored, "frames": frames, "members_10": members_10,
-            "members_30": members_30, "checks": checks, "correlations": correlations, "gap": gap}
+            "members_30": members_30, "checks": checks, "correlations": correlations, "gap": gap, "picks": picks, "origins": origins_used}
 
 
 def range_summary(checks: list[tuple]) -> dict:
@@ -147,6 +158,8 @@ def main() -> None:
     battles, dib = pd.read_parquet(cache / "battles.parquet"), pd.read_parquet(cache / "sides.parquet")
     replicator, history_range = replicator_runner(data, battles, dib, cfg, model_cfg)
     log("replicator statistics done")
+    events = [e for e in cfg.get("events", []) if rp.event_shift(data, e) is not None]
+    after = rp.after_event_mask(data, events)
     res_cards = fc.run_family(data, card_family(data, cfg), cfg, forecaster, replicator, keep_sims=True)
     log("card forecast done:", json.dumps(fc.gate(res_cards["rows"])))
     res_styles = fc.run_family(data, style_family(data, styles, cfg), cfg, forecaster)
@@ -175,7 +188,13 @@ def main() -> None:
     listed = dk.lists_at(s, int(dc["top"]), int(dc["min_diff"]))
     pos = {d: i for i, d in enumerate(s.decks)}
     row_of = lambda d: live_rows[live_rows["deck"] == d] if (live_rows["deck"] == d).any() else None  # noqa: E731
-    make = lambda d: rp.deck_row(s, pos[d], top_share, styles, sims, fitted, row_of(d), data.keys)  # noqa: E731
+    since = rp.since_event_records(data, after)
+
+    def make(d: str) -> dict:
+        row = rp.deck_row(s, pos[d], top_share, styles, sims, fitted, row_of(d), data.keys)
+        if after is not None:
+            row["since_event"] = {"games": since.get(d, (0, 0))[0], "wins": since.get(d, (0, 0))[1]}
+        return row
     consider, popular = [make(d) for d in listed["future_field"]], [make(d) for d in listed["most_played"]]
     res_decks = fc.run_family(data, deck_family(data, cfg, {x["deck"] for x in consider + popular}), cfg, forecaster)
     log("deck usage forecast done")
@@ -185,12 +204,14 @@ def main() -> None:
         "settings": {"runs": cfg["forecast"]["runs"], "seed": cfg["seed"], "min_games": cfg["forecast"]["min_games"], "top": dc["top"], "top_secondary": dc["top_secondary"], "min_diff": dc["min_diff"],
                      "min_games_judge": dc["min_games_judge"], "min_games_candidate": dc["min_games_candidate"], "candidate_periods": dc["candidate_periods"], "hours_per_step": cfg["forecast"]["live_hours_per_step"], "ridge_alpha": qc["ridge_alpha"]},
         "data": {"periods": rp.periods_json(data), "in_progress": data.in_progress, "newest_battle": info["last_battle"], "battles": int(len(data.deck) // 2), "logs": info["logs"],
-                 "live_from": str(data.periods["end"].iloc[-1]), "unknown_card_ids": info["unknown_card_ids"]},
+                 "live_from": str(data.periods["end"].iloc[-1]), "unknown_card_ids": info["unknown_card_ids"], "skipped_origins": res_cards["skipped"],
+                 "events": [{**rp.event_shift(data, e), "sampled_players": rp.sampled_player_results(battles, dib, e, rp.event_shift(data, e)["hours_after"])} for e in events]},
         "gate": fc.gate(res_cards["rows"]),
-        "forecast": {"cards": rp.family_json(res_cards, history_range=history_range), "styles": rp.family_json(res_styles), "decks": rp.family_json(res_decks)},
+        "forecast": {"cards": rp.family_json(res_cards, rp.since_event_shares(data, res_cards["family"].membership, after), history_range),
+                     "styles": rp.family_json(res_styles, rp.since_event_shares(data, res_styles["family"].membership, after)), "decks": rp.family_json(res_decks)},
         "quality": {"targets": analyses, "transitions": int(rec["quality_rows"]["origin"].nunique())},
-        "recommend": {"check_top": check_10, "check_secondary": check_30, "origins": [m for m in range(3, data.n_periods)], "range_check": range_summary(rec["checks"]),
-                      "rank_correlation": rec["correlations"], "field_gap": rec["gap"], "tau": float(np.sqrt(s.tau2)), "candidates": len(s.decks), "consider": consider, "popular": popular},
+        "recommend": {"check_top": check_10, "check_secondary": check_30, "origins": rec["origins"], "range_check": range_summary(rec["checks"]),
+                      "rank_correlation": rec["correlations"], "field_gap": rec["gap"], "picks_estimate": dk.picks_estimate(rec["picks"]), "tau": float(np.sqrt(s.tau2)), "candidates": len(s.decks), "consider": consider, "popular": popular},
         "assumptions": [{"text": a, "test": b} for a, b in rp.ASSUMPTIONS],
     }
     target = WEB / "future_meta.json"

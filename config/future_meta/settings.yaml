@@ -9,6 +9,7 @@ periods:
 forecast:
   min_games: 200           # a card form is scored with this many appearances in the period ending at the origin
   min_hour_appearances: 200  # hours with fewer are gaps in the hourly series
+  min_known_battles: 5000  # an origin knowing fewer battles of its latest period is not a forecast time, and is skipped
   horizons: 3              # periods ahead
   runs: 2000
   independent_part: 0.25   # share of each draw's variance that is independent of past misses
@@ -33,6 +34,11 @@ decks:
   min_games_judge: 200     # fewer primary-population games in a compared list: too few to judge
   min_games_range_check: 20
   bootstrap: 2000
+
+# Things that happened in the game, as observed in the data. Shown on the page when they fall in the newest period.
+events:
+  - time: "2026-11-02T09:00:00Z"
+    text: "A new season appears to have started around 09:00 UTC on 2026-11-02: player ratings vanished from battle logs at that hour, a new Evolution appeared, and later that day the Path of Legends leaderboards came back empty on all 13 boards."
 
 quality:
   min_games: 30            # OK games in period t for a deck to enter

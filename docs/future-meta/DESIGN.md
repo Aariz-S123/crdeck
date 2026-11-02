@@ -203,3 +203,37 @@ with their explanation, track record, assumptions. Every chart has a question ti
 - **Season start.** The leaderboards answered with no players on 2026-11-02, as a new season began, so that day's logs were
   fetched for the players on the newest non-empty lists (`scripts/collect_known_players.py`). The final period therefore crosses a
   season start, with the same players. It stays in the backtest: a forecast should be tested on the hard case too.
+
+**2026-11-02, after a preview run on partial data, before the final run.**
+
+- **The replicator baseline gets the same time cut.** The preview fed it every battle fetched at any time, unlike every other
+  method, and that visibly flattered it (one target period's input was fetched mostly after its origin). It now reads only battles
+  fetched by the origin, as this design's opening rule requires. Nothing about the primary method or the gate changed.
+- **One more number, reported only.** The preview's top estimates sat well above what past picks won. The page now shows the mean
+  estimate of past picks next to what they really won, so the selection effect is measured rather than only warned about.
+- **Wording.** TimesFM's own ranges turned out too wide, so calibration narrows them on this data. The page describes the direction
+  the data shows. The calibration rule itself is unchanged.
+
+**2026-11-02, after the first full run, before the results were used.**
+
+- **An origin must know enough battles to be a forecast time.** The merge rule above counts a period's battles as finally seen, but
+  an origin only knows those fetched by then. Interrupted collections left two origins with almost nothing: the end of P5 knew 4,852
+  battles and the end of P9 knew 384, so at the latter only 2 card forms could be scored, and their misses swung every average. An origin
+  knowing fewer than 5,000 battles of its latest period is now skipped by every method, in the forecast, the deck check and the signal
+  analysis, and the page says which ones. The period can still be a target for earlier origins. On the full run's numbers the gate
+  failed with or without this rule (by hand, without P5 and P9: mean error 0.443 against 0.427 for no change, better in 2 of 6
+  periods), so it does not flatter the primary method. It does remove a mean error that looked below no change only because of those
+  2 card forms.
+
+**2026-11-02, reported only.** While checking the page, the data showed the season change sharply at about 09:00 UTC on 2026-11-02:
+ratings vanish from battle logs, a new Evolution jumps from 0% to about 7% of decks, and usage moves about twice as much as usual. The
+newest period mixes both sides. The page now measures this directly: equal spans of hours on each side, each card's share since then, and
+each listed deck's raw games since then. Forecasts, periods, the gate and the deck check are unchanged.
+
+**2026-11-02, a data validity correction after inspecting the listed decks.**
+
+- **Win measures need a known rating gap.** The top picks' records came almost entirely from the hours after the season reset, when logs hold
+  no ratings, so those battles counted as evenly rated. Battles without a known rating gap now count toward usage only: the matchup fits, own
+  records, the rating-only model and every adjusted win rate leave them out. Before the reset, about 1 to 3% of battles lacked a gap, so backtest
+  numbers move slightly. The rule was chosen for what it means, not for how it scores, and the gate and the deck check are read as they come.
+- **One more number, reported only.** The sampled players' own win rate either side of the reset, to show whether their results jumped.
