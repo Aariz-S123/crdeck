@@ -18,7 +18,7 @@ All spec phases (section 11, 1–7) are done on real data.
 | 6. Search | Done. Completion, swaps, explanations |
 | 7. Demo | Done. `notebooks/07_demo.ipynb`: Hog Rider → three legal Hog–Earthquake cycle decks with full explanations |
 
-214 tests pass (`pytest`, 2026-11-02). All 7 notebooks run restart-and-run-all on real data with identical outputs across two fresh runs (`scripts/run_notebooks.py --twice`).
+219 tests pass (`pytest`, 2026-11-02). All 7 notebooks run restart-and-run-all on real data with identical outputs across two fresh runs (`scripts/run_notebooks.py --twice`).
 
 ## Results (held-out top-player battles from 2026-10-18 20:42 to 2026-10-19 01:36 UTC)
 
@@ -86,12 +86,14 @@ Or open `notebooks/07_demo.ipynb`.
 
 1. `.env` holds `CR_API_KEY=...`. The key is tied to the IP it was registered for; check yours with `curl https://api.ipify.org`. Never commit `.env` (it is git-ignored).
 2. `python -m crdeck gate`: re-checks the API format and regenerates [docs/api-notes-observed.md](docs/api-notes-observed.md) with config suggestions. Run it if Supercell changes the API.
-3. `python -m crdeck collect --window auto`: battle logs for the leaderboards in `config/collection.yaml`. Logs hold only the last 30 battles, so run it daily to widen the time window. To schedule it on Windows:
-   ```
-   schtasks /Create /SC DAILY /ST 20:00 /TN crdeck-collect /TR "C:\Users\simty\crdeck\.venv\Scripts\python.exe -m crdeck collect --window auto"
+3. `python -m crdeck collect --window auto`: battle logs for the leaderboards in `config/collection.yaml`. Logs hold only the last 30 battles, so run it daily to widen the time window. To schedule it on Windows, use `scripts/daily_collect.py`, which does the same collection, falls back to the last good player list when the leaderboards are empty or refilling, retries a dropped connection, and logs to `data/collect_daily.log`. In PowerShell:
+   ```powershell
+   $action = New-ScheduledTaskAction -Execute "C:\Users\simty\crdeck\.venv\Scripts\pythonw.exe" -Argument "scripts\daily_collect.py" -WorkingDirectory "C:\Users\simty\crdeck"
+   $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 6)
+   Register-ScheduledTask -TaskName crdeck-collect -Action $action -Settings $settings -Trigger (New-ScheduledTaskTrigger -Daily -At 8pm) -Force
    ```
    For lower arenas, also run `python -m crdeck collect --arenas --window auto`: it finds players in every Trophy Road arena through clan search (and their ladder opponents), up to `arena_sample.players_per_arena` each, and prints how many each arena got. Those logs are kept apart (`battlelog_arena/`) and are not used for the meta history.
-   When a season starts, the leaderboards can answer with no players and `collect` stops with "leaderboards returned no players" (seen on 2026-11-02). `python scripts/collect_known_players.py` then fetches the logs of the players on the newest non-empty lists, into the same layout.
+   When a season starts, the leaderboards can answer with no players and `collect` stops with "leaderboards returned no players" (seen on 2026-11-02). `python scripts/collect_known_players.py` then fetches the logs of the players on the newest lists with enough players, into the same layout. The scheduled script does this by itself.
 4. Refresh order: `collect` → `build` → `evaluate` → `python scripts/export_web.py` → `node scripts/check_web_engine.mjs` → `node scripts/sweep_web_engine.mjs`. `python scripts/future_meta.py` can run after any collection, on its own. The export re-runs the evaluation for any mode whose saved one is stale. Then the notebooks. Models retrain automatically when data, labels, configs or code change (cache: `data/processed/context_cache_<mode>.pkl`; `CRDECK_NO_CACHE=1` forces a retrain); the counter page's `src/crdeck/counters.py` and `config/counters.yaml` run after training and never trigger a retrain. `data/raw_manifest.csv` records every raw file's fetch time; like `data/raw`, it is not committed, because its file names are player tags.
 5. Re-check notebook 02's slot audit and notebook 06's co-occurrence tuning after each new window.
 

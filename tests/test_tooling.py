@@ -119,3 +119,86 @@ def test_save_model_outputs(small_ctx, tmp_path):
     assert {"name_i", "name_j", "synergy", "games", "status"} <= set(pairs.columns)
     ev = json.loads((tmp_path / "processed" / "evaluation_ranked.json").read_text())
     assert ev["source"] == "synthetic" and ev["evaluation"]["table"] == [{"a": 1}]
+
+
+# ---------------------------------------------------------------- the scheduled collection
+
+def _script(name):
+    import importlib.util
+    from crdeck.config import PROJECT_ROOT
+    spec = importlib.util.spec_from_file_location(name, PROJECT_ROOT / "scripts" / f"{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _calls(*results):
+    """A stand-in for a collection: each call returns or raises the next result, and the calls are counted."""
+    state = {"n": 0}
+
+    def call():
+        out = results[state["n"]]
+        state["n"] += 1
+        if isinstance(out, Exception):
+            raise out
+        return out
+    return call, state
+
+
+def test_daily_collection_needs_no_fallback_on_a_normal_day():
+    daily = _script("daily_collect")
+    collect, c = _calls({"players": 2800, "errors": []})
+    known, k = _calls()
+    slept = []
+    assert daily.run(collect, known, slept.append) == 0
+    assert (c["n"], k["n"], slept) == (1, 0, [])
+
+
+def test_daily_collection_falls_back_when_the_leaderboards_are_empty_or_refilling():
+    from crdeck.api import ApiError
+    daily = _script("daily_collect")
+    collect, _ = _calls(ApiError("leaderboards returned no players"))
+    known, k = _calls({"players": 2877, "errors": []})
+    assert daily.run(collect, known, lambda s: None) == 0 and k["n"] == 1
+    collect, c = _calls({"players": 40, "errors": []})
+    known, k = _calls({"players": 2877, "errors": []})
+    assert daily.run(collect, known, lambda s: None) == 0 and (c["n"], k["n"]) == (1, 1)
+
+
+def test_daily_collection_retries_a_dropped_connection_and_too_many_failed_logs():
+    daily = _script("daily_collect")
+    collect, c = _calls(OSError("connection dropped"), {"players": 2800, "errors": ["x"] * 51}, {"players": 2800, "errors": ["x"] * 2})
+    known, k = _calls()
+    slept = []
+    assert daily.run(collect, known, slept.append, wait_seconds=5) == 0
+    assert (c["n"], k["n"], slept) == (3, 0, [5, 5])
+
+
+def test_daily_collection_gives_up_with_a_failing_exit_code():
+    from crdeck.api import ApiError
+    daily = _script("daily_collect")
+    collect, c = _calls(ApiError("403 from /players"), ApiError("403 from /players"), ApiError("403 from /players"))
+    known, k = _calls()
+    slept = []
+    assert daily.run(collect, known, slept.append, wait_seconds=1) == 1
+    assert (c["n"], k["n"], slept) == (3, 0, [1, 1])      # another API error is not an empty leaderboard
+
+
+def _board(raw, window, name, tags):
+    d = raw / window / "leaderboard"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / f"{name}.json").write_text(json.dumps({"body": {"items": [{"tag": t} for t in tags]}}), encoding="utf-8")
+
+
+def test_known_players_takes_the_newest_list_with_enough_players(tmp_path):
+    import pytest
+    from crdeck.api import ApiError
+    script = _script("collect_known_players")
+    _board(tmp_path, "2026-10-30", "a", ["#A", "#B", "#C"])
+    _board(tmp_path, "2026-10-30", "b", ["#C", "#D"])
+    _board(tmp_path, "2026-11-01", "a", ["#Z"])          # still refilling
+    _board(tmp_path, "2026-11-02", "a", [])              # empty
+    tags, source = script.known_players(tmp_path, min_players=3)
+    assert source == "2026-10-30" and tags == ["#A", "#B", "#C", "#D"]
+    with pytest.raises(ApiError):
+        script.known_players(tmp_path, min_players=10)
