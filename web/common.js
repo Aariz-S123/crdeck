@@ -61,10 +61,10 @@
   const cardHref = (slug, e) => `cards.html#${token(slug, null, [e])}`;
 
   // ------------------------------------------------------------ site bar and mode switch
-  // Four destinations. Explore trends groups usage trends, season readiness and the card table under one
+  // Four destinations. Explore trends groups usage trends, the future meta, season readiness and the card table under one
   // menu entry with its own sub-menu; every old page address still works.
   const PAGES = [["index.html", "Build a deck"], ["counters.html", "Find counters"], ["meta.html", "Explore trends"], ["model.html", "How it works"]];
-  const EXPLORE = [["meta.html", "Card usage trends"], ["seasons.html", "Season readiness"], ["cards.html", "All cards"]];
+  const EXPLORE = [["meta.html", "Card usage trends"], ["future.html", "Future meta"], ["seasons.html", "Season readiness"], ["cards.html", "All cards"]];
   const LOGO = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z" fill="var(--elixir)"/><path d="M9.2 14.5a2.9 2.9 0 0 0 2.8 2.9" stroke="var(--surface)" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>`;
   function siteBar(page, slug) {
     const el = $("#site"); if (!el) return;

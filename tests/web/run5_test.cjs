@@ -67,11 +67,11 @@ function clean(name, p) {
   out.nav = main;
   expect(JSON.stringify(main) === JSON.stringify(["Build a deck", "Find counters", "Explore trends", "How it works"]), `nav: not the four destinations: ${main}`);
   expect(!d.querySelector(".subnav"), "nav: Explore sub-menu shown outside Explore trends");
-  for (const [page, cur] of [["meta.html", "Card usage trends"], ["seasons.html", "Season readiness"], ["cards.html", "All cards"]]) {
+  for (const [page, cur] of [["meta.html", "Card usage trends"], ["future.html", "Future meta"], ["seasons.html", "Season readiness"], ["cards.html", "All cards"]]) {
     const q = await open(page, "ranked");
     await until(() => q.d.querySelector(".subnav"));
     const sub = [...q.d.querySelectorAll(".subnav a")];
-    expect(sub.map(text).join("|") === "Card usage trends|Season readiness|All cards", `${page}: Explore sub-menu wrong`);
+    expect(sub.map(text).join("|") === "Card usage trends|Future meta|Season readiness|All cards", `${page}: Explore sub-menu wrong`);
     expect(text(q.d.querySelector('.subnav a[aria-current="page"]')) === cur, `${page}: sub-menu doesn't mark the page`);
     expect(text(q.d.querySelector('nav.nav:not(.subnav) a[aria-current]')) === "Explore trends", `${page}: Explore trends not marked as the section`);
   }

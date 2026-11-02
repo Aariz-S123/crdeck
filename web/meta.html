@@ -209,7 +209,7 @@
         <div class="multiples" id="tres"></div></section>
 
       <section class="section" aria-labelledby="fc-sec">
-        <header><h2 id="fc-sec">Experimental next-period forecast</h2><p>A guess at next period's usage share from a Monte Carlo simulation. It is a usage share, not a win rate. How it works is explained step by step on <a href="model.html#ranked">How it works</a>. <span class="src model">model</span></p></header>
+        <header><h2 id="fc-sec">Experimental next-period forecast</h2><p>A guess at next period's usage share from a Monte Carlo simulation. It is a usage share, not a win rate. How it works is explained step by step on <a href="model.html#ranked">How it works</a>. A newer experiment using TimesFM, with deck picks and a fuller track record, is on <a href="future.html#ranked">Future meta</a>. <span class="src model">model</span></p></header>
         <section class="panel state" aria-labelledby="fc-h">
           <h3 id="fc-h" style="font-size:1.125rem"><span class="pill ${label[0]}">${label[1]}</span></h3>
           <p>${F.shown_but_empty ? `It passed its backtest gate (${esc(st.reason)}), but the latest period has only ${num(F.last.battles)} battles, so no card form reaches the ${num(M.settings.min_games)} games a forecast needs.` : esc(st.reason)}</p>

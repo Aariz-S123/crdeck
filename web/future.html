@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Future Meta · crdeck</title>
+<meta name="description" content="What goes with a Clash Royale deck winning or being adopted, a TimesFM and Monte Carlo forecast of card usage among sampled Ranked players, and decks to consider, with every method's track record against simple baselines.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z' fill='%23a8247f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="app.css">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+#main, #body { width: 100%; }
+.box { padding: var(--space-4) var(--space-5); display: grid; gap: var(--space-3); min-width: 0; grid-template-columns: minmax(0, 1fr); align-content: start; }
+.box h3 { font-size: 1.125rem; }
+.box p, .plain { color: var(--muted); font-size: 0.9375rem; max-width: 75ch; }
+.box p b, .plain b { color: var(--ink); }
+.trust { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: var(--space-4); align-items: start; }
+.summary { padding: var(--space-4) var(--space-5); display: grid; gap: var(--space-2); }
+.summary p { font-size: 1.0625rem; max-width: 72ch; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: var(--space-4); align-items: start; }
+.multiples { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); gap: var(--space-3); }
+.mcell { border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: grid; gap: 4px; min-width: 0; background: var(--surface); }
+.mcell b { font-size: 0.875rem; }
+.mcell .read { font-size: 0.8125rem; color: var(--muted); }
+.controls { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.controls .lab { font-size: var(--step--1); color: var(--muted); font-weight: 600; }
+.steps { margin: 0; padding-left: 22px; display: grid; gap: var(--space-2); color: var(--muted); font-size: 0.9375rem; max-width: 78ch; }
+.steps b { color: var(--ink); }
+.decks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr)); gap: var(--space-4); }
+.deck { padding: var(--space-4); display: grid; gap: var(--space-3); min-width: 0; align-content: start; }
+.deck-top { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); flex-wrap: wrap; }
+.deck-top .rank { font-size: 0.8125rem; color: var(--muted); font-weight: 600; }
+.deck h3 { font-size: 1.0625rem; }
+.nums3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); }
+.nums3 div { display: grid; gap: 2px; align-content: start; }
+.nums3 b { font-family: var(--display); font-size: 1.25rem; line-height: 1.1; }
+.nums3 span { font-size: 0.75rem; color: var(--muted); }
+.why { display: grid; gap: var(--space-2); font-size: 0.875rem; color: var(--muted); }
+.why ul { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
+.why h4 { font-size: 0.875rem; color: var(--ink); }
+.math { font-variant-numeric: tabular-nums; }
+.math td, .math th { padding: 3px 8px; }
+.assume { margin: 0; padding-left: 18px; display: grid; gap: var(--space-2); color: var(--muted); font-size: 0.9375rem; max-width: 80ch; }
+.assume i { display: block; font-style: normal; font-size: 0.8125rem; }
+.chart .soft { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.takeaway { font-weight: 600; font-size: 0.9375rem; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the future meta</a>
+<div class="wrap">
+  <header class="site" id="site"></header>
+  <main id="main" class="wrap">
+    <div class="pagehead">
+      <h1>Future meta</h1>
+      <p class="lede">What the next few days may look like among sampled top Ranked players, which decks are worth considering, and how often this kind of prediction has been right. The track record comes first, so you can decide how much to trust the rest.</p>
+    </div>
+    <div id="body" class="wrap"><div class="panel box"><div class="skel" style="height:80px"></div></div></div>
+  </main>
+  <footer class="site-foot">
+    <span>Usage share: the share of Ranked deck appearances holding a card. Win estimates are at equal player rating. Every forecast here was made offline and is an experiment, not a promise.</span>
+    <span>A fan-made learning project. Not affiliated with, endorsed by or sponsored by Supercell. Battle data from the official Clash Royale API.</span>
+  </footer>
+</div>
+
+<script src="engine.js"></script>
+<script src="learn.js"></script>
+<script src="common.js"></script>
+<script>
+(() => {
+  "use strict";
+  const { $, esc, pct, num } = UI;
+  let E = null, F = null, fanView = "used", extraCard = "", deckView = "consider", targetView = "next_edge";
+  history.replaceState(null, "", "#ranked");   // this page always describes Ranked
+
+  UI.start("future.html", (c) => {
+    E = c.E; UI.setHash(c.entry.slug);
+    fetch("future_meta.json").then((r) => { if (!r.ok) throw new UI.LoadError("missing", "future_meta.json", `future_meta.json answered HTTP ${r.status}`); return r.json(); })
+      .then((j) => { F = j; render(); })
+      .catch((e) => {
+        if (e instanceof UI.LoadError && e.kind === "missing") {
+          $("#body").innerHTML = `<div class="panel box" role="status"><b>The future meta hasn't been built in this copy of the site.</b>
+            <p>Its results live in one file, future_meta.json. Run <code>python scripts/future_meta.py</code> to make it. Nothing else on the site depends on it.</p></div>`;
+        } else UI.failed("#body", e, { label: "the future meta", retry: () => location.reload() });
+      });
+  }, { failTarget: "#body" });
+
+  // ------------------------------------------------------------ names and numbers
+  const entries = (k) => k.split("|").filter(Boolean).map((x) => { const [id, form] = x.split(":"); return { id: Number(id), form }; });
+  const keyName = (k) => { const e = CRDeck.parseKey(k); return E.card(e.id) ? E.describe(e) : `Card ${e.id}`; };
+  const pts = (x, d = 2) => `${(x >= 0 ? "+" : "−")}${Math.abs(x).toFixed(d)}`;
+  const day = (t) => UI.when(t).split(",")[0];
+  const plural = (n, one, many) => `${num(n)} ${n === 1 ? one : many}`;
+  const list = (a) => (a.length < 2 ? a.join("") : `${a.slice(0, -1).join(", ")} and ${a[a.length - 1]}`);
+  const logOddsPoints = (z, base = 0.5) => 100 * (1 / (1 + Math.exp(-(Math.log(base / (1 - base)) + z))) - base);
+  const styleName = (s) => (s === CRDeck.UNCERTAIN ? "Mixed style" : s);
+
+  const SIGNALS = {
+    own_record: ["Own record", "Won more than its cards predict, on battles the card model had not seen. Few games barely count."],
+    card_strength: ["Card strength", "The deck's card weights added up, against the average deck in the field."],
+    field_fit: ["Field fit", "How well its cards match up against the cards being played most right now."],
+    usage: ["Usage", "How much of the field already plays this exact deck."],
+    momentum: ["Momentum", "Whether its usage rose or fell in the latest change between periods."],
+    breadth: ["Breadth of players", "Different players per game: high means many people, low means a few playing it a lot."],
+    return_rate: ["Return rate", "Of those who played it one period earlier, how many kept playing it."],
+    player_rating: ["Player rating", "How highly rated its players are, against the period's average."],
+    elixir: ["Elixir cost", "Average elixir of the eight cards."],
+    spells: ["Spells", "How many spells it holds."],
+    buildings: ["Buildings", "How many buildings it holds."],
+    win_conditions: ["Win conditions", "How many cards built to pressure towers it holds."],
+    air_defense: ["Air defense", "How many cards labelled as answering air units it holds."],
+    splash: ["Splash", "How many cards labelled as hitting groups it holds."],
+    evolutions: ["Evolutions", "How many Evolution forms it uses."],
+    heroes: ["Heroes", "How many Hero forms it uses."],
+    style: ["Deck style", "Its predicted style (all styles together)."],
+  };
+  const signalName = (s) => (s.startsWith("style:") ? `Style: ${styleName(s.slice(6))}` : (SIGNALS[s] ? SIGNALS[s][0] : s));
+  const LISTS = { future_field: "This page's picks", current_field: "Same picks without the forecast", cards_only: "Card weights only", last_record: "Best recent record", most_played: "Most played", all_candidates: "All candidate decks" };
+
+  // ------------------------------------------------------------ charts
+  const narrow = () => document.documentElement.clientWidth < 560;
+  // one dot and range per row, on one axis, with a reference line; emphasized rows wear the accent, the rest stay gray
+  function forest(rows, o) {
+    const vals = rows.flatMap((r) => [r.lo, r.hi, r.value]).concat([o.ref]);
+    let lo = Math.min(...vals), hi = Math.max(...vals); const pad = (hi - lo) * 0.08 || 0.01; lo -= pad; hi += pad;
+    const W = narrow() ? 340 : o.width || 460, L = narrow() ? 132 : o.left || 170, R = 14, rowH = 26, top = 6, H = top + rows.length * rowH + 22, chars = narrow() ? 21 : o.chars || 26;
+    const X = (v) => L + (W - L - R) * (v - lo) / (hi - lo);
+    const step = UI.niceStep(hi - lo, 4);
+    let g = UI.ticks(lo, hi, 4).map((v) => `<line x1="${X(v)}" y1="${top}" x2="${X(v)}" y2="${H - 18}" stroke="var(--grid)" stroke-width="1"/>
+      <text x="${X(v)}" y="${H - 5}" text-anchor="middle">${esc(o.tick(v, step))}</text>`).join("");
+    g += `<line x1="${X(o.ref)}" y1="${top}" x2="${X(o.ref)}" y2="${H - 18}" stroke="var(--muted)" stroke-width="1"/>`;
+    rows.forEach((r, k) => {
+      const y = top + k * rowH + rowH / 2, col = r.emph ? "var(--elixir)" : "var(--muted)";
+      g += `<text class="lbl" x="${L - 10}" y="${y + 4}" text-anchor="end"${r.emph ? ' font-weight="700"' : ""}>${esc(UI.shorten(r.label, chars))}</text>
+        <line x1="${X(r.lo)}" y1="${y}" x2="${X(r.hi)}" y2="${y}" stroke="${col}" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="${X(r.value)}" cy="${y}" r="4.5" fill="${col}" stroke="var(--surface)" stroke-width="2"/>
+        <rect class="hit" x="0" y="${y - rowH / 2}" width="${W}" height="${rowH}" ${UI.tipAttr(r.label, r.lines)}/>`;
+    });
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" style="max-width:${Math.round(W * 1.5)}px" role="group" aria-label="${esc(o.aria)}">${g}</svg>`;
+  }
+  // diverging bars from zero, one per row
+  function bars(rows, o) {
+    const dom = Math.max(o.min || 0.01, ...rows.map((r) => Math.abs(r.value))) * 1.15;
+    const small = narrow() || o.compact;
+    const W = small ? 340 : 420, L = small ? Math.min(o.left || 92, 96) : o.left || 92, R = 44, pad = 40, rowH = 24, top = 4, H = top + rows.length * rowH + 22;
+    const X = (v) => L + pad + (W - L - pad - R) * (v + dom) / (2 * dom);   // pad keeps a value left of its bar clear of the row's name
+    let g = UI.ticks(-dom, dom, 4).map((v) => `<line x1="${X(v)}" y1="${top}" x2="${X(v)}" y2="${H - 18}" stroke="var(--grid)" stroke-width="1"/>
+      <text x="${X(v)}" y="${H - 5}" text-anchor="middle">${v === 0 ? "0" : pts(v, Math.abs(v) < 0.1 ? 2 : 1)}</text>`).join("");
+    g += `<line x1="${X(0)}" y1="${top}" x2="${X(0)}" y2="${H - 18}" stroke="var(--muted)" stroke-width="1"/>`;
+    rows.forEach((r, k) => {
+      const y = top + k * rowH + 5, h = 13, good = o.goodIsNegative ? r.value < 0 : r.value > 0;
+      g += `<text class="lbl" x="${L - 8}" y="${y + 10}" text-anchor="end">${esc(r.label)}</text>
+        <path d="${UI.barPath(X(0), X(r.value), y, h)}" fill="${good ? "var(--pos)" : "var(--neg)"}"/>
+        <text class="val" x="${r.value >= 0 ? X(r.value) + 5 : X(r.value) - 5}" y="${y + 10}" text-anchor="${r.value >= 0 ? "start" : "end"}">${pts(r.value)}</text>
+        <rect class="hit" x="0" y="${top + k * rowH}" width="${W}" height="${rowH}" ${UI.tipAttr(r.label, r.lines)}/>`;
+    });
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" style="max-width:${Math.round(W * 1.5)}px" role="group" aria-label="${esc(o.aria)}">${g}</svg>`;
+  }
+  // measured history, then the three forecast steps with their 50% and 90% bands and a "no change" line
+  function fan(s, title) {
+    const periods = F.data.periods, n = periods.length, steps = s.median.length, P = n + steps;
+    const W = 250, H = 150, L = 38, R = 8, T = 20, B = 20;
+    const known = s.history.map((v, i) => ({ v, i })).filter((p) => p.v !== null);
+    const vals = known.map((p) => p.v).concat(s.band90.flat(), [s.no_change], (s.history_range || []).flat().filter((v) => v !== null), s.since_event === undefined || s.since_event === null ? [] : [s.since_event]);
+    let y0 = Math.min(...vals), y1 = Math.max(...vals); const pad = (y1 - y0) * 0.12 || 0.003; y0 = Math.max(0, y0 - pad); y1 += pad;
+    const X = (i) => L + (W - L - R) * i / (P - 1), Y = (v) => T + (H - T - B) * (1 - (v - y0) / (y1 - y0));
+    const dec = y1 - y0 < 0.02 ? 2 : 1;
+    let g = UI.ticks(y0, y1, 3).map((v) => `<line x1="${L}" y1="${Y(v)}" x2="${W - R}" y2="${Y(v)}" stroke="var(--grid)" stroke-width="1"/>
+      <text x="${L - 4}" y="${Y(v) + 4}" text-anchor="end">${(v * 100).toFixed(dec)}%</text>`).join("");
+    const mid = (X(n - 1) + X(n)) / 2, lastX = X(n - 1), lastV = known.length ? known[known.length - 1].v : s.no_change;
+    g += `<rect x="${mid}" y="${T}" width="${W - R - mid}" height="${H - T - B}" fill="var(--sunken)" opacity="0.7"/>
+      <text x="${L}" y="12" font-size="10">measured</text><text x="${W - R}" y="12" font-size="10" text-anchor="end">forecast</text>
+      <text x="${X(0)}" y="${H - 5}" text-anchor="middle">P1</text><text x="${lastX}" y="${H - 5}" text-anchor="middle">P${n}</text><text x="${X(P - 1)}" y="${H - 5}" text-anchor="middle">+${steps}</text>`;
+    const area = (band) => {
+      const up = band.map((b, i) => `L${X(n + i)},${Y(b[1])}`).join(""), down = band.slice().reverse().map((b, i) => `L${X(n + band.length - 1 - i)},${Y(b[0])}`).join("");
+      return `M${lastX},${Y(lastV)}${up}${down}Z`;
+    };
+    g += `<path d="${area(s.band90)}" fill="var(--elixir)" opacity="0.13"/><path d="${area(s.band50)}" fill="var(--elixir)" opacity="0.24"/>
+      <line class="soft" x1="${lastX}" y1="${Y(s.no_change)}" x2="${X(P - 1)}" y2="${Y(s.no_change)}"/>
+      <path d="M${lastX},${Y(lastV)}${s.median.map((m, i) => `L${X(n + i)},${Y(m)}`).join("")}" fill="none" stroke="var(--elixir)" stroke-width="2" stroke-linejoin="round"/>`;
+    if (s.history_range) known.forEach((p) => { const r = s.history_range[p.i]; if (r[0] === null || r[1] === null) return; g += `<line x1="${X(p.i)}" y1="${Y(r[0])}" x2="${X(p.i)}" y2="${Y(r[1])}" stroke="var(--ink)" stroke-width="2" opacity="0.4"/>`; });
+    g += `<path d="${known.map((p, k) => `${k ? "L" : "M"}${X(p.i)},${Y(p.v)}`).join("")}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round"/>`;
+    known.forEach((p) => {
+      const per = periods[p.i];
+      g += `<circle cx="${X(p.i)}" cy="${Y(p.v)}" r="3.5" fill="var(--ink)" stroke="var(--surface)" stroke-width="1.5"/>
+        <rect class="hit" x="${X(p.i) - 9}" y="${T}" width="18" height="${H - T - B}" ${UI.tipAttr(`${title}, period ${p.i + 1}`, [`measured: ${pct(p.v)} of Ranked decks`, `${day(per.start)} to ${day(per.end)}, ${num(per.battles)} battles`], false)}/>`;
+    });
+    s.median.forEach((m, i) => {
+      g += `<circle cx="${X(n + i)}" cy="${Y(m)}" r="3.5" fill="var(--elixir)" stroke="var(--surface)" stroke-width="1.5"/>
+        <rect class="hit" x="${X(n + i) - 9}" y="${T}" width="18" height="${H - T - B}" ${UI.tipAttr(`${title}, forecast step ${i + 1} (${F.settings.hours_per_step * (i + 1)} hours ahead)`, [`middle guess ${pct(m)}`, `half of the runs: ${pct(s.band50[i][0])} to ${pct(s.band50[i][1])}`, `nine in ten runs: ${pct(s.band90[i][0])} to ${pct(s.band90[i][1])}`, `no change would say ${pct(s.no_change)}`], i === 0)}/>`;
+    });
+    if (s.since_event !== undefined && s.since_event !== null) g += `<circle cx="${lastX}" cy="${Y(s.since_event)}" r="4.5" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/>`;
+    const move = s.median[0] - s.no_change;
+    return `<div class="mcell"><b>${esc(title)}</b><svg class="chart" viewBox="0 0 ${W} ${H}" role="group" aria-label="${esc(title)}: measured usage per period, then the forecast">${g}</svg>
+      <span class="read">Next: ${pct(s.median[0])} (${pct(s.band90[0][0])} to ${pct(s.band90[0][1])}), ${pts(move * 100)} points from the latest period${s.since_event === undefined || s.since_event === null ? "" : `. Since the season started: ${pct(s.since_event)}`}</span></div>`;
+  }
+  function fanTable(rows, label, caption) {
+    const n = F.data.periods.length;
+    return `<details class="more"><summary>${esc(label)} as a table</summary><div class="body"><div class="tblwrap"><table class="nums"><caption class="sr">${esc(caption)}</caption>
+      <thead><tr><th scope="col">Series</th>${F.data.periods.map((_, i) => `<th scope="col">P${i + 1}</th>`).join("")}<th scope="col">Next, middle guess</th><th scope="col">Next, 90% band</th><th scope="col">No change</th></tr></thead><tbody>
+      ${rows.map(([name, s]) => `<tr><th scope="row" style="text-align:left;background:none;font-weight:600">${esc(name)}</th>${Array.from({ length: n }, (_, i) => `<td>${s.history[i] === null ? "n/a" : pct(s.history[i])}</td>`).join("")}<td>${pct(s.median[0])}</td><td>${pct(s.band90[0][0])} to ${pct(s.band90[0][1])}</td><td>${pct(s.no_change)}</td></tr>`).join("")}
+      </tbody></table></div><p class="muted small">Measured share per collection period; the last three columns are a forecast, not a measurement.</p></div></details>`;
+  }
+
+  // ------------------------------------------------------------ the page
+  function render() {
+    $("#body").innerHTML = [trustSection(), qualitySection(), forecastSection(), decksSection(), recordSection(), limitsSection()].join("");
+    drawFans(); drawTarget(); drawDecks();
+    document.addEventListener("click", onClick);
+    const sel = $("#fancard");
+    if (sel) sel.addEventListener("change", () => { extraCard = sel.value; drawFans(); });
+  }
+  function onClick(ev) {
+    const v = ev.target.closest("[data-fanview]"), d = ev.target.closest("[data-deckview]"), t = ev.target.closest("[data-target]");
+    if (v) { fanView = v.dataset.fanview; document.querySelectorAll("[data-fanview]").forEach((b) => b.setAttribute("aria-pressed", String(b === v))); drawFans(); }
+    if (d) { deckView = d.dataset.deckview; document.querySelectorAll("[data-deckview]").forEach((b) => b.setAttribute("aria-pressed", String(b === d))); drawDecks(); }
+    if (t) { targetView = t.dataset.target; document.querySelectorAll("[data-target]").forEach((b) => b.setAttribute("aria-pressed", String(b === t))); drawTarget(); }
+  }
+
+  // ------------------------------------------------------------ 1. can it be trusted?
+  function coverageState(c) {
+    if (c === undefined || c === null) return ["neutral", "Ranges not checked yet"];
+    if (c < 0.8) return ["bad", "Ranges too narrow"];
+    if (c > 0.97) return ["weak", "Ranges wider than needed"];
+    return ["good", "Ranges about right"];
+  }
+  function deckVerdictWord(v) { return { better: "picks clearly better", worse: "picks clearly worse", not_clear: "no clear difference", too_few: "too few games to judge" }[v]; }
+  function trustSection() {
+    const g = F.gate, s1 = F.forecast.cards.summary[0], mae = s1.mae;
+    const check = F.recommend.check_top.new_to_deck.lists, ff = check.future_field;
+    const [covClass, covWord] = coverageState(s1.coverage_90);
+    const simple = ["most_played", "last_record", "all_candidates"];
+    const beaten = simple.filter((k) => check[k].verdict === "better"), lost = simple.filter((k) => check[k].verdict === "worse");
+    const forecastHelps = check.current_field.verdict === "better";
+    const low = (k) => LISTS[k].charAt(0).toLowerCase() + LISTS[k].slice(1);
+    const headline = `${g.passed ? "The usage forecast beat assuming nothing changes." : "The usage forecast has not beaten assuming nothing changes."} ${
+      beaten.length ? `Among players new to each deck, the deck picks clearly beat ${list(beaten.map(low))}` : "Among players new to each deck, the deck picks have no clear edge over the simple rules"}${lost.length ? ` and did clearly worse than ${list(lost.map(low))}` : ""}. ${
+      forecastHelps ? "The forecast itself helped them." : "The forecast itself made no clear difference to them."} ${g.passed && forecastHelps ? "Still, this is only a few days of history." : "Treat the decks below as ideas to try, not predictions."}`;
+    const every = F.recommend.check_top.all_players.lists, beatenAll = simple.filter((k) => every[k].verdict === "better");
+    const pe = F.recommend.picks_estimate;
+    const rows = ["most_played", "last_record", "current_field", "all_candidates"].map((k) => `<li>${esc(LISTS[k])}: ${esc(deckVerdictWord(check[k].verdict))}${check[k].difference === null || check[k].verdict === "too_few" ? "" : ` (${pts(check[k].difference * 100)} points)`}</li>`).join("");
+    return `<section class="section" aria-labelledby="trust-h">
+      <header><h2 id="trust-h">Can you trust it?</h2><p>Each method was tested the fair way: stop the clock at the end of a period, predict the next one using only what was known then, and compare with what really happened. This repeats for every period collected so far.</p></header>
+      <div class="panel summary"><p><b>${esc(headline)}</b></p>
+        <p class="muted small">Forecast starts from ${esc(UI.when(F.data.live_from))}. Built from ${num(F.data.battles)} Ranked battles across ${F.data.periods.length} collection periods, written ${esc(F.written_at)}.</p>
+        ${F.data.events.map((e) => `<p class="small"><span class="pill bad">Just changed</span> ${esc(e.text)} The forecast has seen only ${e.hours_after} hours of this, and the picks were mostly learned before it, so both may be well off for now.</p>`).join("")}</div>
+      <div class="trust">
+        <article class="panel box"><h3>Usage forecast</h3><span class="pill ${g.passed ? "good" : "weak"}">${g.passed ? "Beat no change" : "Did not beat no change"}</span>
+          <p>One period ahead, TimesFM missed a card's usage by <b>${mae.timesfm_hourly.toFixed(3)} points</b> on average. Assuming no change missed by <b>${mae.no_change.toFixed(3)}</b>. It did better in <b>${g.wins} of ${g.periods}</b> periods. Passing takes both a smaller average miss and winning more than half the periods.</p></article>
+        <article class="panel box"><h3>Forecast ranges</h3><span class="pill ${covClass}">${esc(covWord)}</span>
+          <p>${s1.coverage_90 === undefined ? "Too few earlier forecasts to calibrate and check the ranges yet." : `A 90% range should hold the real share about 9 times in 10. After calibrating on earlier misses, it held <b>${pct(s1.coverage_90, 0)}</b> of the time over ${plural(s1.calibrated_periods, "period", "periods")}, and the 50% range held ${pct(s1.coverage_50, 0)}.`} ${s1.coverage_raw_80 !== undefined ? `Uncalibrated, TimesFM's own 80% range held ${pct(s1.coverage_raw_80, 0)}.` : ""} This says how far off a forecast may be. It doesn't make the forecast more accurate.</p></article>
+        <article class="panel box"><h3>Deck picks</h3><span class="pill ${lost.length ? "bad" : beaten.length ? "good" : "weak"}">${lost.length ? "Lost to a simple rule" : beaten.length ? `Clearly beat ${beaten.length} of ${simple.length} simple rules` : "No clear edge yet"}</span>
+          <p>Among players new to each deck, this page's picks had an adjusted win rate of <b>${ff.adjusted_win_rate === null ? "n/a" : pct(ff.adjusted_win_rate)}</b> over ${num(ff.games)} games. Compared with other ways of picking:</p>
+          <ul class="assume" style="padding-left:18px">${rows}</ul>
+          <p class="small">The third row is the real test of the forecast: picking with it against picking without it.</p>
+          ${every.future_field.adjusted_win_rate === null ? "" : `<p class="small">Across all players, including regulars who already play these decks, the picks had ${pct(every.future_field.adjusted_win_rate)} over ${num(every.future_field.games)} games${beatenAll.length ? ` and clearly beat ${esc(list(beatenAll.map(low)))}` : ", with no clear edge"}. Regulars may be winning because of who they are, which is why this isn't the lead check.</p>`}
+          ${pe.new_to_deck !== null && ff.adjusted_win_rate !== null ? `<p><b>Estimates ran high.</b> Past picks were estimated at ${pct(pe.new_to_deck)} on average and really won ${pct(ff.adjusted_win_rate)}.</p>` : ""}</article>
+      </div></section>`;
+  }
+
+  // ------------------------------------------------------------ 2. what makes a deck good
+  const holders = (t, sign) => t.signals.filter((s) => s.holds_up && Math.sign(s.coef) === sign).map((s) => signalName(s.signal));
+  function targetSentence(t, what, more, less) {
+    if (!t.predicts) return `On later battles, these signals did not predict ${what} better than guessing the average (out-of-time R² ${t.r2 === null ? "n/a" : t.r2.toFixed(3)}). The chart below describes the past, not what comes next.`;
+    const up = holders(t, 1), down = holders(t, -1);
+    const lead = t.r2 >= 0.1 ? "clearly better" : "a little better";
+    const low = (a) => list(a.map((x) => x.toLowerCase()));
+    const parts = [up.length ? `higher ${low(up)} went with ${more}` : "", down.length ? `higher ${low(down)} went with ${less}` : ""].filter(Boolean);
+    return `On later battles, these signals predicted ${what} ${lead} than guessing the average (out-of-time R² ${t.r2.toFixed(3)}; 0 is no better, 1 is perfect). ${parts.length ? `Under the stricter test, ${parts.join(", and ")}.` : "No single signal held up under the stricter test."}`;
+  }
+  function shortAnswer(e, u) {
+    const part = (t, title, strength, conv, unit) => {
+      const held = t.signals.filter((s) => s.holds_up).sort((a, b) => Math.abs(b.coef) - Math.abs(a.coef));
+      const rows = held.map((s) => { const key = s.signal.startsWith("style:") ? "style" : s.signal; return `<li><b>${esc(signalName(s.signal))}: ${pts(conv(s.coef))}${unit.startsWith("%") ? "" : " "}${esc(unit)}.</b> ${esc(SIGNALS[key] ? SIGNALS[key][1] : "")}</li>`; }).join("");
+      return `<div><h4>${esc(title)}</h4><p>${esc(strength(t))}</p>${t.predicts && held.length ? `<ul class="assume" style="padding-left:18px">${rows}</ul>` : ""}</div>`;
+    };
+    const say = (what) => (t) => (!t.predicts ? `Nothing here predicted ${what} on later battles.` : t.r2 >= 0.1 ? `These signals explain about ${pct(t.r2, 0)} of the next period's changes in ${what}, tested on later battles. The rest is out of reach of this data.` : `A weak signal: these explain only about ${pct(t.r2, 0)} of the differences in ${what}, tested on later battles. Most of what decides a game isn't here.`);
+    return `<div class="panel box"><h3>The short answer</h3><p>Each number is what one standard deviation more of that signal went with in the next period, with the other signals held equal.</p>
+      <div class="two">${part(e, "What goes with winning more", say("win rate"), (c) => c, "points of win rate")}${part(u, "What goes with being used more", say("usage"), (c) => 100 * (Math.exp(c) - 1), "% usage")}</div></div>`;
+  }
+  function qualitySection() {
+    const T = F.quality.targets, e = T.next_edge, u = T.next_growth;
+    return `<section class="section" aria-labelledby="good-h">
+      <header><h2 id="good-h">What makes a meta deck good?</h2>
+        <p>"Good" means two different things here, because a deck can be popular without winning more. The system looks at ${num(e.decks)} decks across ${plural(F.quality.transitions, "change", "changes")} between periods, measures ${e.signals.length} signals at the end of one period, and checks what followed in the next.</p></header>
+      ${shortAnswer(e, u)}
+      <div class="panel box">
+        <div class="controls" role="group" aria-label="Which kind of good"><span class="lab">Show</span>
+          <button class="chip" type="button" data-target="next_edge" aria-pressed="true">Winning more next period</button>
+          <button class="chip" type="button" data-target="next_growth" aria-pressed="false">Being used more next period</button></div>
+        <div id="target"></div>
+      </div>
+      <details class="more"><summary>What each signal means</summary><div class="body"><div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Signal</th><th scope="col" style="text-align:left">Meaning</th></tr></thead><tbody>
+        ${Object.values(SIGNALS).map(([n, d]) => `<tr><td>${esc(n)}</td><td style="text-align:left">${esc(d)}</td></tr>`).join("")}</tbody></table></div></details>
+      </section>`;
+  }
+  function drawTarget() {
+    const el = $("#target"); if (!el) return;
+    const t = F.quality.targets[targetView], edge = targetView === "next_edge";
+    const what = edge ? "a deck's win rate next period" : "a deck's usage next period";
+    const unit = edge ? "points of adjusted win rate" : "percent change in usage";
+    const conv = (c) => (edge ? c : 100 * (Math.exp(c) - 1));
+    const rows = t.signals.slice().sort((a, b) => Math.abs(b.coef) - Math.abs(a.coef)).slice(0, 12).map((s) => ({
+      label: signalName(s.signal), value: conv(s.coef), lo: conv(s.range[0]), hi: conv(s.range[1]), emph: s.holds_up,
+      lines: [`one standard deviation more goes with ${pts(conv(s.coef))} ${unit}`, `90% range ${pts(conv(s.range[0]))} to ${pts(conv(s.range[1]))}`, s.holds_up ? "holds up under the stricter test" : "does not hold up under the stricter test",
+        s.drop_r2 === null ? "no out-of-time check" : `removing it changes out-of-time R² by ${pts(-s.drop_r2, 4)}`] }));
+    const held = t.signals.filter((s) => s.holds_up);
+    el.innerHTML = `<h3>Which signals go with ${esc(what)}?</h3>
+      <p class="takeaway">${esc(targetSentence(t, what, edge ? "winning more" : "more use", edge ? "winning less" : "less use"))}</p>
+      ${forest(rows, { ref: 0, aria: `Signals and ${what}, each with its 90% range`, tick: (v, st) => UI.tickLabel(v, st), left: 170 })}
+      <div class="key"><span><i style="background:var(--elixir)"></i>Holds up under the stricter test</span><span><i style="background:var(--muted)"></i>Does not</span></div>
+      <p class="muted small">Each dot is what one standard deviation more of that signal goes with, in ${esc(unit)}, with the others held equal. To count as holding up, a signal needs its 99% range clear of zero, because ${t.signals.length} signals are tested at once, and removing it must make later predictions worse. ${held.length ? "" : "None passed. "}${held.some((s) => s.signal === "momentum" && s.coef < 0) ? "Negative momentum means decks that just jumped tended to fall back, and the reverse. " : ""}This is association, not proof of cause: it does not show that changing a deck this way would make it win.</p>
+      <p class="muted small">Fit on ${num(t.rows)} rows; ${num(t.forward_decks)} rows tested on later periods. A more flexible challenger (gradient boosting) scored ${t.challenger_r2 === null ? "n/a" : t.challenger_r2.toFixed(3)}, ${t.challenger_clearly_better ? "clearly better, so this straight-line explanation is missing something" : "not clearly better than the straight-line model"}.${edge && t.new_to_deck && t.new_to_deck.correlation !== null ? ` For players new to a deck, predictions correlated ${t.new_to_deck.correlation.toFixed(3)} with results over ${num(t.new_to_deck.games)} games.` : ""}</p>
+      <details class="more"><summary>All ${t.signals.length} signals as a table</summary><div class="body"><div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Signal</th><th scope="col">Per 1 SD (${edge ? "points" : "% usage"})</th><th scope="col">90% range</th><th scope="col">99% range</th><th scope="col">R² lost when removed</th><th scope="col">Holds up</th></tr></thead><tbody>
+      ${t.signals.map((s) => `<tr><td>${esc(signalName(s.signal))}</td><td>${pts(conv(s.coef))}</td><td>${pts(conv(s.range[0]))} to ${pts(conv(s.range[1]))}</td><td>${pts(conv(s.range99[0]))} to ${pts(conv(s.range99[1]))}</td><td>${s.drop_r2 === null ? "n/a" : pts(s.drop_r2, 4)}</td><td>${s.holds_up ? "yes" : "no"}</td></tr>`).join("")}</tbody></table></div></div></details>`;
+  }
+
+  // ------------------------------------------------------------ 3. the forecast
+  function forecastSection() {
+    const C = F.forecast.cards, s = C.series.slice().sort((a, b) => b.no_change - a.no_change), top = s[0], st = C.steps[0];
+    const widen = !st.calibrated ? "There are too few earlier forecasts to measure how far to adjust its range yet."
+      : st.gamma < 1 ? `Earlier forecasts missed by less than TimesFM's own range suggested, so its range is multiplied by ${st.gamma.toFixed(2)}, which narrows it.`
+      : `Earlier forecasts missed by more than TimesFM's own range suggested, so its range is multiplied by ${st.gamma.toFixed(2)}, which widens it.`;
+    const cards = s.map((x) => `<option value="${esc(x.key)}">${esc(keyName(x.key))}</option>`).join("");
+    const styles = F.forecast.styles.series.slice().sort((a, b) => b.no_change - a.no_change);
+    return `<section class="section" aria-labelledby="fc-h">
+      <header><h2 id="fc-h">What may be played next</h2><p>Each chart shows how often a card or style appeared in each collection period, then a forecast for the next ${C.steps.length} steps of ${F.settings.hours_per_step} hours. <span class="src model">forecast</span></p></header>
+      <details class="more" open><summary>How the forecast works, with ${esc(keyName(top.key))} as the example</summary><div class="body">
+        <ol class="steps">
+          <li><b>Count usage per hour.</b> ${esc(keyName(top.key))} was in ${pct(top.no_change)} of Ranked decks in the latest period.</li>
+          <li><b>Ask TimesFM.</b> TimesFM is Google's pre-trained forecasting model: it learned patterns from many unrelated time series, so it can read a short new one without training on this game. Its middle guess for the next ${F.settings.hours_per_step} hours is ${pct(top.timesfm_median[0])}.</li>
+          <li><b>Check its range against its past.</b> ${esc(widen)}</li>
+          <li><b>Run ${num(F.settings.runs)} possible futures (Monte Carlo).</b> Each run draws a value for every card inside its range, then rescales so each deck still holds 8 cards. Cards that missed together before tend to move together in a run. Half the runs put ${esc(keyName(top.key))} between ${pct(top.band50[0][0])} and ${pct(top.band50[0][1])}, and nine in ten between ${pct(top.band90[0][0])} and ${pct(top.band90[0][1])}.</li>
+          <li><b>Test decks in every future.</b> That is the next section. Monte Carlo doesn't predict anything by itself: it shows how far the uncertainty reaches.</li>
+        </ol></div></details>
+      <div class="controls" role="group" aria-label="Which cards to show"><span class="lab">Show</span>
+        <button class="chip" type="button" data-fanview="used" aria-pressed="true">Most used</button>
+        <button class="chip" type="button" data-fanview="moves" aria-pressed="false">Biggest predicted moves</button>
+        <label class="lab" for="fancard">Add a card</label><select id="fancard" class="sel"><option value="">None</option>${cards}</select></div>
+      <div class="key"><span><i style="background:var(--ink)"></i>Measured share, 90% bootstrap range</span><span><i style="background:var(--elixir)"></i>Forecast middle guess, 50% and 90% bands</span><span>dashed: no change</span>${F.data.events.length ? "<span>ring: share since the season started</span>" : ""}</div>
+      <div id="fans" class="multiples"></div>
+      ${fanTable(s.map((x) => [keyName(x.key), x]), "Every forecast card", "Measured usage per period and the next-step forecast, per card form")}
+      ${F.data.events.map(eventPanel).join("")}
+      <h3>Deck styles</h3>
+      <div class="multiples">${styles.map((x) => fan(x, styleName(x.key))).join("")}</div>
+      ${fanTable(styles.map((x) => [styleName(x.key), x]), "Deck styles", "Measured usage per period and the next-step forecast, per deck style")}
+      <p class="muted small">No season-level forecast is built: logs hold each player's last 30 battles, so past seasons can't be collected afterward. See <a href="seasons.html#ranked">Season readiness</a>.</p>
+      </section>`;
+  }
+  function eventPanel(e) {
+    const rows = e.movers.map((m) => ({ label: UI.shorten(keyName(m.key), 22), value: 100 * (m.after - m.before), lines: [`${pct(m.before)} before, ${pct(m.after)} since`, `equal spans of ${e.hours_after} hours on each side`] }));
+    const scale = e.typical_points ? e.mean_abs_points / e.typical_points : null;
+    const fresh = e.new_forms.map((n) => `${keyName(n.key)} (${pct(n.after)})`);
+    return `<div class="panel box"><h3>What changed when the season started?</h3>
+      <p class="takeaway">${scale && scale >= 1.25 ? `Cards moved about ${scale.toFixed(1)} times as much as usual` : "Cards moved"}: ${e.mean_abs_points.toFixed(2)} points on average across this moment${e.typical_points ? `, against ${e.typical_points.toFixed(2)} at this hour on a typical earlier day (${plural(e.typical_days, "day", "days")} compared)` : ""}.${fresh.length ? ` New in the hours since: ${esc(list(fresh))}.` : ""}</p>
+      ${bars(rows, { aria: "Biggest usage changes across the season start, in share points", left: 150 })}
+      ${e.sampled_players && e.sampled_players.before && e.sampled_players.after ? `<p><b>Win rates can't be trusted yet.</b> The sampled top players won ${pct(e.sampled_players.after.win_rate)} of their ${num(e.sampled_players.after.games)} games since (90% range ${pct(e.sampled_players.after.range[0])} to ${pct(e.sampled_players.after.range[1])}), against ${pct(e.sampled_players.before.win_rate)} of ${num(e.sampled_players.before.games)} in the same hours before. Their decks didn't suddenly improve: a reset changes who they meet, and with no ratings in the logs that can't be corrected. So those games count for usage here, but not for any win estimate.</p>` : ""}
+      <p class="muted small">Measured, not forecast: the ${e.hours_after} hours since ${esc(UI.when(e.time))} (${num(e.sides_after)} deck appearances) against the same number of hours before it (${num(e.sides_before)}). The latest period on the charts mixes both sides, so its point can sit far from where a card is now. The ring on each chart marks the share since the season started.</p></div>`;
+  }
+  function drawFans() {
+    const el = $("#fans"); if (!el) return;
+    const all = F.forecast.cards.series;
+    const pick = fanView === "moves" ? all.slice().sort((a, b) => Math.abs(b.median[0] - b.no_change) - Math.abs(a.median[0] - a.no_change)).slice(0, 6) : all.slice().sort((a, b) => b.no_change - a.no_change).slice(0, 6);
+    const extra = extraCard && !pick.some((s) => s.key === extraCard) ? all.filter((s) => s.key === extraCard) : [];
+    el.innerHTML = extra.concat(pick).map((s) => fan(s, keyName(s.key))).join("");
+  }
+
+  // ------------------------------------------------------------ 4. decks
+  function decksSection() {
+    const R = F.recommend, g = R.field_gap;
+    return `<section class="section" aria-labelledby="dk-h">
+      <header><h2 id="dk-h">Decks to consider</h2>
+        <p>Real decks played at least ${num(F.settings.min_games_candidate)} times in the last ${F.settings.candidate_periods} periods (${num(R.candidates)} qualify), each tested in all ${num(F.settings.runs)} possible futures at equal player rating. The list keeps decks at least ${F.settings.min_diff} cards apart, so it isn't ten versions of one deck. These are the highest estimates, and the highest of many noisy estimates tends to be too high. <span class="src model">estimate</span></p></header>
+      <div class="controls" role="group" aria-label="Which decks to show"><span class="lab">Show</span>
+        <button class="chip" type="button" data-deckview="consider" aria-pressed="true">Decks to consider</button>
+        <button class="chip" type="button" data-deckview="popular" aria-pressed="false">Most played now</button></div>
+      ${R.picks_estimate.new_to_deck !== null && R.check_top.new_to_deck.lists.future_field.adjusted_win_rate !== null ? `<div class="panel summary" role="note"><p><b>Expect less than these estimates.</b> In the past checks, picks like these were estimated at ${pct(R.picks_estimate.new_to_deck)} on average. Players new to those decks really won ${pct(R.check_top.new_to_deck.lists.future_field.adjusted_win_rate)}, after allowing for rating gaps. Listing the highest of many noisy estimates picks out the lucky ones, and the model also partly remembers the regulars who play these decks.</p></div>` : ""}
+      <div class="panel box" id="deckchart"></div>
+      <div id="decklist" class="decks"></div>
+      <details class="more"><summary>How a deck's estimate is calculated</summary><div class="body">
+        <p class="plain">For a deck A and a field of card shares s:</p>
+        <pre class="small" style="white-space:pre-wrap;margin:0">log-odds = sum of A's card weights − the field's average card weights + sum over A's cards and each opposing card of (matchup weight × that card's share) + A's own record
+win estimate = 1 / (1 + exp(−log-odds))</pre>
+        <p class="plain">Card and matchup weights are fitted on battles up to one period before the forecast starts, so the deck's own record comes from battles those weights never saw. Few games means the record barely counts: it is shrunk toward zero using how much decks really differ (spread ${R.tau.toFixed(3)} log-odds). Averaging log-odds before converting them is close to averaging win chances: on the latest real field the two differ by ${g.mean_abs_points.toFixed(3)} points on average and ${g.max_abs_points.toFixed(3)} at most.</p></div></details>
+      </section>`;
+  }
+  function deckTitle(d) {
+    const es = entries(d.deck), wins = es.filter((e) => E.card(e.id) && E.card(e.id).wincon).map((e) => E.name(e.id));
+    return `${styleName(d.style)}${wins.length ? `: ${wins.slice(0, 2).join(", ")}` : ""}`;
+  }
+  function usageFor(deck) { return F.forecast.decks.series.find((s) => s.key === deck); }
+  function deckCard(d, i, label) {
+    const es = entries(d.deck), chk = E.checkDeck(es), u = usageFor(d.deck), m = d.math;
+    const tiles = es.map((e) => (E.card(e.id) ? UI.tile(E, e, chk.slots, null, null) : `<div class="tile"><span class="tn">Card ${e.id}</span></div>`)).join("");
+    const rec = d.record;
+    const sideList = (rows, f) => (rows.length ? `<ul>${rows.map(f).join("")}</ul>` : `<p>None worth listing.</p>`);
+    const base = Math.min(0.99, Math.max(0.01, d.estimate));
+    const parts = d.explain ? Object.entries(d.explain.next_edge.parts).filter(([, v]) => v !== 0).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 5)
+      .map(([k, v]) => ({ label: (SIGNALS[k] ? SIGNALS[k][0] : k), value: v, lines: [`${pts(v)} points of predicted edge`, SIGNALS[k] ? SIGNALS[k][1] : ""] })) : [];
+    const field = 100 * (d.estimate - d.current_field);
+    return `<article class="panel deck" aria-label="${esc(label)} ${i + 1}">
+      <div class="deck-top"><div><span class="rank">#${i + 1} ${esc(label.toLowerCase())}</span><h3>${esc(deckTitle(d))}</h3></div>
+        <span class="pill neutral">${d.range[0] > 0.5 ? "Estimate range above 50%" : d.range[1] < 0.5 ? "Estimate range below 50%" : "Estimate range includes 50%"}</span></div>
+      <div class="grid8">${tiles}</div>
+      <div class="nums3">
+        <div><b>${pct(d.estimate)}</b><span>estimate at equal rating, ${pct(d.range[0])} to ${pct(d.range[1])}</span></div>
+        <div><b>${pct(d.chance_above_50, 0)}</b><span>of possible futures above 50%</span></div>
+        <div><b>${pct(d.chance_top, 0)}</b><span>of possible futures in the top ${F.settings.top}</span></div>
+      </div>
+      <p class="plain small"><span class="src measured">measured</span> ${num(d.games)} games in the last ${F.settings.candidate_periods} periods. ${rec ? `${num(rec.games)} of them have a known rating gap, adjusted win rate ${pct(rec.adjusted)}` : "None of them has a known rating gap, so it has no record yet and its estimate rests on its cards alone"}. ${num(d.played_last)} appearances in the latest period.${u ? ` Usage next: ${pct(u.median[0], 2)} of decks (${pct(u.band90[0][0], 2)} to ${pct(u.band90[0][1], 2)}), latest period ${pct(u.no_change, 2)}.` : ""}${d.since_event ? ` Since the season started: ${d.since_event.games ? `${plural(d.since_event.games, "game", "games")}, ${num(d.since_event.wins)} won, raw and not counted in the estimate` : "not played yet in the sample"}.` : ""}</p>
+      <details class="more"><summary>Why it ranks here</summary><div class="body why">
+        <table class="nums math"><caption class="sr">How the win estimate adds up, in log-odds</caption><tbody>
+          <tr><td>Its cards' weights</td><td>${pts(m.own, 3)}</td></tr><tr><td>Minus the field's average</td><td>${pts(-m.field_mean, 3)}</td></tr><tr><td>Matchups against the field</td><td>${pts(m.fit, 3)}</td></tr><tr><td>Own record (shrunk)</td><td>${pts(m.delta, 3)}</td></tr>
+          <tr><th scope="row">Log-odds in today's field</th><td><b>${pts(m.z_now, 3)}</b></td></tr><tr><th scope="row">Win estimate in today's field</th><td><b>${pct(m.estimate_now)}</b></td></tr></tbody></table>
+        <div class="two" style="gap:12px"><div><h4>Does well against</h4>${sideList(d.good_against, (x) => `<li>${esc(keyName(x.key))}, in ${pct(x.share, 0)} of decks (${pts(logOddsPoints(x.log_odds, base))} points)</li>`)}</div>
+          <div><h4>Struggles against</h4>${sideList(d.bad_against, (x) => `<li>${esc(keyName(x.key))}, in ${pct(x.share, 0)} of decks (${pts(logOddsPoints(x.log_odds, base))} points)</li>`)}</div></div>
+        <div><h4>What the forecast changes: ${pts(field, 3)} points</h4>${Math.abs(field) < 0.05 ? "<p>Almost nothing: the field is forecast to move too little to matter for this deck.</p>" : ""}
+          <div class="two" style="gap:12px"><div>${sideList(d.helped_by, (x) => `<li>${esc(keyName(x.key))}: ${pct(x.share_now)} to ${pct(x.share_next)} helps (${pts(logOddsPoints(x.log_odds, base), 3)})</li>`)}</div>
+          <div>${sideList(d.hurt_by, (x) => `<li>${esc(keyName(x.key))}: ${pct(x.share_now)} to ${pct(x.share_next)} hurts (${pts(logOddsPoints(x.log_odds, base), 3)})</li>`)}</div></div></div>
+        ${parts.length ? `<div><h4>What the signals say about next period: ${pts(d.explain.next_edge.prediction)} points of edge</h4>${bars(parts, { aria: "This deck's predicted edge split by signal", left: 110, compact: true })}<p class="small">The five largest parts of a straight-line model. See "What makes a meta deck good?" for how much that model can be trusted.</p></div>` : ""}
+      </div></details>
+      <a class="btn small" href="reason.html#${UI.token("ranked", es, [])}" style="justify-self:start">Explain this deck →</a>
+    </article>`;
+  }
+  function drawDecks() {
+    const R = F.recommend, rows = deckView === "popular" ? R.popular : R.consider, label = deckView === "popular" ? "Most played" : "To consider";
+    const chart = rows.map((d, i) => ({ label: `#${i + 1} ${deckTitle(d)}`, value: 100 * d.estimate, lo: 100 * d.range[0], hi: 100 * d.range[1], emph: d.range[0] > 0.5,
+      lines: [`estimate ${pct(d.estimate)} at equal rating`, `nine in ten possible futures: ${pct(d.range[0])} to ${pct(d.range[1])}`, `today's field: ${pct(d.current_field)}`] }));
+    const above = rows.filter((d) => d.range[0] > 0.5).length;
+    $("#deckchart").innerHTML = `<h3>How do these decks compare with an even match?</h3>
+      <p class="takeaway">${above === rows.length ? `All ${rows.length} estimates have a whole 90% range above 50%. Past picks came in below their estimates, so read these as a ranking, not as win rates to expect.`
+        : above ? `${plural(above, "deck has", "decks have")} a whole 90% range above 50%, and the rest can't be told apart from an even match or fall below it.` : "No deck here has a whole 90% range above 50%."}</p>
+      ${forest(chart, { ref: 50, aria: "Win estimate per deck with its 90% range", tick: (v) => `${v.toFixed(0)}%`, left: 230, width: 560, chars: 40 })}
+      <div class="key"><span><i style="background:var(--elixir)"></i>Estimate range above 50%</span><span><i style="background:var(--muted)"></i>Includes or below 50%</span></div>
+      <details class="more"><summary>These decks as a table</summary><div class="body"><div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Deck</th><th scope="col">Estimate</th><th scope="col">90% range</th><th scope="col">Today's field</th><th scope="col">Games</th></tr></thead><tbody>
+      ${rows.map((d, i) => `<tr><td>#${i + 1} ${esc(deckTitle(d))}</td><td>${pct(d.estimate)}</td><td>${pct(d.range[0])} to ${pct(d.range[1])}</td><td>${pct(d.current_field)}</td><td>${num(d.games)}</td></tr>`).join("")}</tbody></table></div></div></details>`;
+    $("#decklist").innerHTML = rows.map((d, i) => deckCard(d, i, label)).join("");
+  }
+
+  // ------------------------------------------------------------ 5. track record
+  function recordSection() {
+    const C = F.forecast.cards, ones = C.rows.filter((r) => r.horizon === 1), P = F.data.periods;
+    const barRows = ones.map((r) => ({ label: `P${r.period + 1}, ${day(P[r.period].end)}`, value: r.timesfm_hourly - r.no_change,
+      lines: [`TimesFM missed by ${r.timesfm_hourly.toFixed(3)} points`, `no change missed by ${r.no_change.toFixed(3)}`, `${num(r.scored)} card forms, ${num(P[r.period].battles)} battles`] }));
+    const methods = [["no_change", "No change"], ["last3_mean", "Last 3 periods' mean"], ["replicator_mc", "Replicator Monte Carlo (older)"], ["timesfm_periods", "TimesFM on periods"], ["timesfm_hourly", "TimesFM hourly (primary)"]];
+    const R = F.recommend, rc = R.range_check;
+    const checkChart = (pop, title) => {
+      const L = R.check_top[pop].lists, all = ["future_field", "current_field", "cards_only", "last_record", "most_played", "all_candidates"];
+      const names = all.filter((n) => L[n] && L[n].adjusted_win_rate !== null && (n === "future_field" || L[n].enough_games));
+      const few = all.filter((n) => L[n] && n !== "future_field" && !L[n].enough_games).map((n) => LISTS[n]);
+      const rows = names.map((n) => ({ label: LISTS[n], value: 100 * L[n].adjusted_win_rate, lo: 100 * L[n].range[0], hi: 100 * L[n].range[1], emph: n === "future_field",
+        lines: [`adjusted win rate ${pct(L[n].adjusted_win_rate)}`, `90% range ${pct(L[n].range[0])} to ${pct(L[n].range[1])}`, `${num(L[n].games)} games`] }));
+      return `<div class="box panel"><h4>${esc(title)}</h4>${forest(rows, { ref: 50, aria: title, tick: (v) => `${v.toFixed(0)}%`, left: 190, chars: 34 })}
+        ${few.length ? `<p class="small">Not drawn, under ${num(F.settings.min_games_judge)} games: ${esc(list(few))}. Their numbers are in the tables below.</p>` : ""}</div>`;
+    };
+    const verdictTable = (pop) => {
+      const L = R.check_top[pop].lists;
+      return `<table class="nums"><thead><tr><th scope="col">Compared with</th><th scope="col">Games</th><th scope="col">Adjusted win rate</th><th scope="col">This page's picks minus it (points)</th><th scope="col">90% range</th><th scope="col">Reading</th></tr></thead><tbody>
+      ${Object.entries(L).map(([n, x]) => `<tr><td>${esc(LISTS[n])}</td><td>${num(x.games)}</td><td>${x.adjusted_win_rate === null ? "n/a" : pct(x.adjusted_win_rate)}</td><td>${x.difference === null ? "n/a" : pts(100 * x.difference)}</td><td>${!x.difference_range || x.difference_range[0] === null ? "n/a" : `${pts(100 * x.difference_range[0])} to ${pts(100 * x.difference_range[1])}`}</td><td>${x.verdict === null ? "this list" : esc({ better: "clearly better", worse: "clearly worse", not_clear: "not clear", too_few: "too few games" }[x.verdict])}</td></tr>`).join("")}</tbody></table>`;
+    };
+    const corrKeys = [["future_field", "Future field"], ["current_field", "Current field"], ["cards_only", "Cards only"], ["last_record", "Last record"], ["most_played", "Most played"]];
+    const corrMean = (k) => { const v = R.rank_correlation.map((c) => c[k]).filter((x) => x !== null); return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(3) : "n/a"; };
+    return `<section class="section" aria-labelledby="rec-h">
+      <header><h2 id="rec-h">The full track record</h2><p>Every check, including the ones that went badly. The test design was written and committed before any of these numbers existed (docs/future-meta/DESIGN.md).</p></header>
+      <div class="two"><div class="panel box"><h3>Did TimesFM beat no change, period by period?</h3>
+        <p class="takeaway">${esc(F.gate.wins === 0 ? "It did not beat no change in any period." : `It beat no change in ${F.gate.wins} of ${F.gate.periods} periods.`)}</p>
+        ${bars(barRows, { aria: "TimesFM's error minus no change's error per period; below zero is better", goodIsNegative: true })}
+        <p class="muted small">TimesFM's average miss minus no change's, in share points. Left of zero means TimesFM was closer.</p></div>
+      <div class="panel box"><h3>Average miss by how far ahead</h3>
+        <div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Method</th>${C.summary.map((s) => `<th scope="col">${s.horizon} ahead${s.periods ? ` (${s.periods})` : ""}</th>`).join("")}</tr></thead><tbody>
+        ${methods.map(([k, n]) => `<tr><td>${esc(n)}</td>${C.summary.map((s) => `<td>${s.mae && s.mae[k] !== undefined ? s.mae[k].toFixed(3) : "n/a"}</td>`).join("")}</tr>`).join("")}
+        <tr><td>90% range held</td>${C.summary.map((s) => `<td>${s.coverage_90 === undefined ? "n/a" : pct(s.coverage_90, 0)}</td>`).join("")}</tr>
+        <tr><td>50% range held</td>${C.summary.map((s) => `<td>${s.coverage_50 === undefined ? "n/a" : pct(s.coverage_50, 0)}</td>`).join("")}</tr></tbody></table></div>
+        <p class="muted small">Share points, averaged over card forms and then over target periods (how many is in brackets). Periods are collections, so "1 ahead" is usually about a day but can be several.</p></div></div>
+      <div class="panel box"><h3>Does it do better on other things than cards?</h3>
+        <p>The pass or fail above is decided on card forms only, as fixed in the design. The same forecast also ran on deck styles and on the most-played single decks, one period ahead:</p>
+        <div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Forecast of</th><th scope="col">No change</th><th scope="col">Last 3 periods' mean</th><th scope="col">TimesFM hourly</th><th scope="col">Periods beating no change</th><th scope="col">90% range held</th></tr></thead><tbody>
+        ${[["Card forms", C], ["Deck styles", F.forecast.styles], ["Single decks", F.forecast.decks]].map(([n, x]) => { const s = x.summary[0]; return `<tr><td>${esc(n)}</td><td>${s.mae.no_change.toFixed(3)}</td><td>${s.mae.last3_mean.toFixed(3)}</td><td>${s.mae.timesfm_hourly.toFixed(3)}</td><td>${s.beats_no_change.timesfm_hourly} of ${s.periods}</td><td>${s.coverage_90 === undefined ? "n/a" : pct(s.coverage_90, 0)}</td></tr>`; }).join("")}</tbody></table></div></div>
+      ${F.data.skipped_origins.length ? `<p class="muted small">Not used as forecast times: ${list(F.data.skipped_origins.map((x) => `the end of P${x.origin} (only ${num(x.known_battles)} of its battles had been fetched by then)`))}. A real forecast wouldn't start from so little.</p>` : ""}
+      <h3>Did the picks win in the next period?</h3>
+      <p class="plain">At each past period, each rule picked ${F.settings.top} decks using only what was known then. Then their real games in the next period were counted. <b>Adjusted win rate</b> is 50% plus wins beyond what the players' rating gap predicts, so it needs no deck model at all. The lead check uses <b>players new to that deck</b>, because they are in the same position as someone taking this advice. ${R.origins.length ? `Checked over ${plural(R.origins.length, "period", "periods")}.` : ""}</p>
+      <div class="two">${checkChart("new_to_deck", "Players new to the deck")}${checkChart("all_players", "All players")}</div>
+      <details class="more"><summary>The same check as tables, with differences and the top ${F.settings.top_secondary} version</summary><div class="body">
+        <h4>Top ${F.settings.top}, players new to the deck</h4><div class="tblwrap">${verdictTable("new_to_deck")}</div>
+        <h4>Top ${F.settings.top}, all players</h4><div class="tblwrap">${verdictTable("all_players")}</div>
+        <p class="muted small">Ranges resample whole players, 2,000 times, keeping every player's games together. "Clearly" means the whole 90% range is on one side of zero. Below ${num(F.settings.min_games_judge)} games a list isn't judged.</p></div></details>
+      <div class="two"><div class="panel box"><h3>Did the win ranges hold?</h3>
+        ${rc.decks ? `<p>Of ${num(rc.decks)} deck results with enough games, the 90% range held the adjusted win rate <b>${pct(rc.coverage_90, 0)}</b> of the time, and the 50% range <b>${pct(rc.coverage_50, 0)}</b>.</p>` : "<p>Too few deck results to check.</p>"}</div>
+        <div class="panel box"><h3>Did the full ranking agree with results?</h3>
+          <p>Rank correlation with next-period adjusted win rate, averaged over ${plural(R.rank_correlation.length, "period", "periods")}, among decks with enough games (0 means no relation, 1 means the same order):</p>
+          <div class="tblwrap"><table class="nums"><tbody>${corrKeys.map(([k, n]) => `<tr><td>${esc(n)}</td><td>${corrMean(k)}</td></tr>`).join("")}</tbody></table></div></div></div>
+      </section>`;
+  }
+
+  // ------------------------------------------------------------ 6. limits
+  function limitsSection() {
+    const P = F.data.periods, ip = F.data.in_progress;
+    return `<section class="section" aria-labelledby="lim-h">
+      <header><h2 id="lim-h">Assumptions and limits</h2><p>What these results take for granted, and what would test it.</p></header>
+      <ul class="assume">${F.assumptions.map((a) => `<li>${esc(a.text)}<i>To test: ${esc(a.test)}</i></li>`).join("")}</ul>
+      <details class="more"><summary>The collection periods behind this</summary><div class="body"><div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Period</th><th scope="col">From</th><th scope="col">To</th><th scope="col">Hours</th><th scope="col">Battles</th><th scope="col">Fetched by its end</th><th scope="col">Collections merged</th></tr></thead><tbody>
+        ${P.map((p, i) => `<tr><td>P${i + 1}</td><td>${esc(UI.when(p.start))}</td><td>${esc(UI.when(p.end))}</td><td>${p.hours}</td><td>${num(p.battles)}</td><td>${num(p.known_at_end)}</td><td>${p.merged}</td></tr>`).join("")}</tbody></table></div>
+        ${ip ? `<p class="muted small">A newer collection with only ${num(ip.battles)} battles is still too small to use, so it waits to merge with the next one.</p>` : ""}
+        <p class="muted small">${esc(F.model.name)} (${esc(F.model.repo)}${F.model.revision ? `, revision ${esc(F.model.revision.slice(0, 7))}` : ""}), ${esc(F.model.weights_license)} weights, run offline on a CPU. Monte Carlo seed ${F.settings.seed}. The site itself only reads the saved results.</p></div></details>
+      </section>`;
+  }
+})();
+</script>
+</body>
+</html>
