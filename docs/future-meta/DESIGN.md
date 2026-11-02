@@ -190,3 +190,16 @@ with their explanation, track record, assumptions. Every chart has a question ti
 - Long gaps between collections fill older hours mostly with less active players.
 - New cards or balance changes have no history; no model here can see them coming.
 - Association in any signal is not proof of cause.
+
+## Corrections and additions
+
+**2026-11-02, before any result on real data.**
+
+- **Stricter "holds up" rule.** A test on constructed noise showed the rule above lets several signals pass by chance,
+  because about 20 are tested at once with 90% ranges. A signal now holds up only if its **99%** range excludes 0 AND removing
+  it lowers out-of-time R^2. Charts still draw the 90% range, and the page states the stricter rule.
+- **Two more forecast families, reported only.** The same forecast code also runs on deck styles and on single decks (the 60
+  most used at each origin, plus the listed decks at the live origin). Neither affects the gate, which stays on card forms.
+- **Season start.** The leaderboards answered with no players on 2026-11-02, as a new season began, so that day's logs were
+  fetched for the players on the newest non-empty lists (`scripts/collect_known_players.py`). The final period therefore crosses a
+  season start, with the same players. It stays in the backtest: a forecast should be tested on the hard case too.
