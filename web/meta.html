@@ -55,6 +55,7 @@
   "use strict";
   const { $, esc, pct, fmtPts, num } = UI;
   let E = null;
+  history.replaceState(null, "", "#ranked");   // this page always describes Ranked, whatever mode the link carried
   UI.start("meta.html", (c) => { E = c.E; UI.setHash(c.entry.slug); render(c.INDEX.meta); }, { failTarget: "#meta" });
 
   const keyName = (k) => { const e = CRDeck.parseKey(k); return E.card(e.id) ? E.describe(e) : k; };

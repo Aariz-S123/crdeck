@@ -137,9 +137,27 @@
     const saved = store("crdeck.mode");
     return ok(saved) ? saved : INDEX.default;
   }
+  // A host with a per-file size limit (the published Artifact allows 16 MB) can't hold the biggest model files
+  // whole. scripts/split_web_models.py then writes <name>.parts.json ({"parts": [...]}) next to text pieces that
+  // join back into the original file. Only tried when the whole file is missing, so a full copy never uses it.
+  async function getModelJSON(u) {
+    try { return await getJSON(u); } catch (e) {
+      if (!(e instanceof LoadError) || e.kind !== "missing") throw e;
+      let list;
+      try { list = await getJSON(u.replace(/\.json$/, ".parts.json")); } catch { throw e; }
+      const texts = await Promise.all(list.parts.map(async (p) => {
+        const href = u.replace(/[^/]*$/, "") + p;
+        let r;
+        try { r = await fetch(href); } catch (x) { throw new LoadError("network", href, `${href}: ${x.message}`); }
+        if (!r.ok) throw new LoadError(r.status === 404 ? "missing" : "network", href, `${href} answered HTTP ${r.status}`);
+        return r.text();
+      }));
+      try { return JSON.parse(texts.join("")); } catch (x) { throw new LoadError("bad_data", u, `${u} (joined from ${list.parts.length} parts) is not valid JSON: ${x.message}`); }
+    }
+  }
   async function loadMode(slug) {
     const entry = INDEX.modes.find((m) => m.slug === slug && m.status === "exported");
-    const m = await getJSON(entry.file);
+    const m = await getModelJSON(entry.file);
     store("crdeck.mode", slug);
     return { entry, m, E: new CRDeck.Engine(m) };
   }
