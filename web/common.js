@@ -292,6 +292,22 @@
     window.addEventListener("resize", later);
   }
 
+  // ------------------------------------------------------------ math (LaTeX, drawn by KaTeX)
+  // tex(source, plain, display) draws a LaTeX formula with KaTeX when the page loaded vendor/katex/katex.min.js.
+  // Without it (a copy of the site without the vendor folder, or the jsdom page checks) the plain-text version is
+  // shown instead, so every page still reads. KaTeX also writes MathML, which screen readers read out.
+  // texNum turns a number already formatted for the page into TeX: Unicode minus to "-", "%" escaped (it starts a
+  // comment in TeX), and thousands commas kept tight.
+  // hasTex: whether formulas are drawn, for text that only belongs next to the drawn version (a symbol key)
+  const hasTex = () => !!root.katex;
+  const texNum = (s) => String(s).replace(/−/g, "-").replace(/%/g, "\\%").replace(/,/g, "{,}");
+  function tex(source, plain, display = false) {
+    const K = root.katex;
+    if (!K) return esc(plain);
+    try { return K.renderToString(source, { displayMode: display, fleqn: true, throwOnError: true, output: "htmlAndMathml", strict: "ignore" }); }
+    catch (e) { if (typeof console !== "undefined") console.warn(`crdeck: formula not drawn (${e.message}): ${source}`); return esc(plain); }
+  }
+
   // ------------------------------------------------------------ chart helpers
   function niceStep(span, n) {
     const raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / mag;
@@ -497,5 +513,5 @@
 
   root.UI = { $, esc, pct, signed, fmtPts, shorten, num, when, toDate, entTok, parseEnts, token, readHash, setHash, store, cardHref,
     drop, typeName, FORM_WORD, archName, tile, SLOT_KEY, verdict, support, supportText, estimateBasis, STYLE_DEF, styleDef, rankParts, styleNote, LoadError, tipAttr,
-    scrollTo, labelScrollers, niceStep, ticks, tickLabel, barPath, meter, coefChart, lineChart, partsChart, fmtCell, recordsTable, kv, md, start, failed };
+    scrollTo, labelScrollers, tex, texNum, hasTex, niceStep, ticks, tickLabel, barPath, meter, coefChart, lineChart, partsChart, fmtCell, recordsTable, kv, md, start, failed };
 })(typeof self !== "undefined" ? self : this);

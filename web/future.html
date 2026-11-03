@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
 <style>
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 #main, #body { width: 100%; }
@@ -66,6 +67,7 @@
   </footer>
 </div>
 
+<script src="vendor/katex/katex.min.js"></script>
 <script src="engine.js"></script>
 <script src="learn.js"></script>
 <script src="common.js"></script>
@@ -73,6 +75,7 @@
 (() => {
   "use strict";
   const { $, esc, pct, num } = UI;
+  const tx = (t, plain = t) => UI.tex(t, plain); // inline math in a sentence (plain text without KaTeX)
   let E = null, F = null, fanView = "used", extraCard = "", deckView = "consider", targetView = "next_edge";
   history.replaceState(null, "", "#ranked");   // this page always describes Ranked
 
@@ -381,9 +384,13 @@
       <div class="panel box" id="deckchart"></div>
       <div id="decklist" class="decks"></div>
       <details class="more"><summary>How a deck's estimate is calculated</summary><div class="body">
-        <p class="plain">For a deck A and a field of card shares s:</p>
-        <pre class="small" style="white-space:pre-wrap;margin:0">log-odds = sum of A's card weights − the field's average card weights + sum over A's cards and each opposing card of (matchup weight × that card's share) + A's own record
-win estimate = 1 / (1 + exp(−log-odds))</pre>
+        <p class="plain">For a deck ${tx("A")} and a field of card shares ${tx("s")}:</p>
+        <pre class="formula" style="white-space:pre-wrap;margin:0;font-size:0.875rem">${UI.tex(String.raw`\begin{aligned}
+z_A &= \underbrace{\sum_{i \in A} w_i}_{\text{A's card weights}} - \underbrace{\sum_j s_j\, w_j}_{\text{the field's average}} + \underbrace{\sum_{i \in A} \sum_j K(i, j)\, s_j}_{\text{matchups against the field}} + \underbrace{\delta_A}_{\text{own record}} \\
+\text{win estimate} &= \frac{1}{1 + e^{-z_A}}
+\end{aligned}`, `log-odds = sum of A's card weights − the field's average card weights + sum over A's cards and each opposing card of (matchup weight × that card's share) + A's own record
+win estimate = 1 / (1 + exp(−log-odds))`, true)}</pre>
+        ${UI.hasTex() ? `<p class="plain small">${tx("z_A")} is the deck's log-odds at equal player rating. ${tx("w_i")} is card form ${tx("i")}'s weight, ${tx("s_j")} is card form ${tx("j")}'s share of the field, ${tx("K(i, j)")} is the matchup weight of ${tx("i")} against ${tx("j")}, and ${tx(String.raw`\delta_A`, "δ_A")} is the deck's own record, shrunk toward zero.</p>` : ""}
         <p class="plain">Card and matchup weights are fitted on battles up to one period before the forecast starts, so the deck's own record comes from battles those weights never saw. Few games means the record barely counts: it is shrunk toward zero using how much decks really differ (spread ${R.tau.toFixed(3)} log-odds). Averaging log-odds before converting them is close to averaging win chances: on the latest real field the two differ by ${g.mean_abs_points.toFixed(3)} points on average and ${g.max_abs_points.toFixed(3)} at most.</p></div></details>
       </section>`;
   }

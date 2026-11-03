@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
 <style>
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 .steps { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-4); counter-reset: s; max-width: 75ch; }
@@ -117,6 +118,7 @@ table.nums tr.top td { font-weight: 700; background: var(--elixir-soft); }
   </footer>
 </div>
 
+<script src="vendor/katex/katex.min.js"></script>
 <script src="engine.js"></script>
 <script src="observed.js"></script>
 <script src="learn.js"></script>
@@ -125,6 +127,8 @@ table.nums tr.top td { font-weight: 700; background: var(--elixir-soft); }
 (() => {
   "use strict";
   const { $, esc, pct, num, signed } = UI;
+  const tx = (t, plain = t) => UI.tex(t, plain); // inline math in a sentence (plain text without KaTeX)
+  const tn = UI.texNum;
   UI.start("model.html", (c) => { UI.setHash(c.entry.slug); steps(c); report(c); three(c); learn(c); notes(c); gloss(c); log(c); }, { failTarget: "#report" });
 
   // ------------------------------------------------------------------ sigmoid, softmax, Monte Carlo
@@ -140,25 +144,32 @@ table.nums tr.top td { font-weight: 700; background: var(--elixir-soft); }
     const sg = CRLearn.sigmoidExample(E, deck, 0), x = E.explain(deck);
     const sig = `<div class="panel box">
       <span class="q">Sigmoid · which side wins?</span>
-      <p>The strength model gives every card form and every common card pair a learned weight. Adding up a deck's weights gives its strength. For two decks, the difference in strength z (plus a player-rating term, set to zero here because the site assumes equal ratings) becomes a probability with the sigmoid, 1 / (1 + e<sup>−z</sup>): z = 0 gives 50%, and bigger gaps get closer to 0% or 100% without reaching them. A deck's “estimated wins” is this probability averaged over ${num(sg.n)} opponent decks sampled from ${esc(entry.label)} battles. It estimates results from recorded patterns; it doesn't simulate a battle.</p>
+      <p>The strength model gives every card form and every common card pair a learned weight. Adding up a deck's weights gives its strength. For two decks, the difference in strength ${tx("z")} (plus a player-rating term, set to zero here because the site assumes equal ratings) becomes a probability with the sigmoid, ${UI.tex(String.raw`\sigma(z) = \frac{1}{1 + e^{-z}}`, "") || `1 / (1 + e<sup>−z</sup>)`}: ${tx("z = 0")} gives 50%, and bigger gaps get closer to 0% or 100% without reaching them. A deck's “estimated wins” is this probability averaged over ${num(sg.n)} opponent decks sampled from ${esc(entry.label)} battles. It estimates results from recorded patterns; it doesn't simulate a battle.</p>
       <details class="more"><summary>Worked example with a real deck</summary><div class="body small">
         <p>Deck: ${deckName} (${src}).</p>
         <p>Opponent: sampled deck #1 of ${num(sg.n)}: ${sg.opponent.cards.map((e) => esc(E.describe(e))).join(", ")}.</p>
-        <div class="formula">deck strength u_A = ${f4(sg.u)}      opponent strength u_B = ${f4(sg.opponent.u)}
+        <div class="formula">${UI.tex(String.raw`\begin{aligned}
+&\text{deck strength } u_A = ${tn(f4(sg.u))} \\
+&\text{opponent strength } u_B = ${tn(f4(sg.opponent.u))} \\
+&z = u_A - u_B = ${tn(f4(sg.z))} \\
+&P(A \text{ wins}) = \frac{1}{1 + e^{-z}} = ${tn(pct(sg.p, 2))} \\
+&\text{average over all ${tn(num(sg.n))} sampled opponents} = ${tn(pct(sg.mean, 2))} \\
+&\text{(single matchups range ${tn(pct(sg.min, 1))} to ${tn(pct(sg.max, 1))})}
+\end{aligned}`, `deck strength u_A = ${f4(sg.u)}      opponent strength u_B = ${f4(sg.opponent.u)}
 z = u_A − u_B = ${f4(sg.z)}
 P(A wins) = 1 / (1 + e^(−z)) = ${pct(sg.p, 2)}
-average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single matchups range ${pct(sg.min, 1)} to ${pct(sg.max, 1)})</div>
+average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single matchups range ${pct(sg.min, 1)} to ${pct(sg.max, 1)})`, true)}</div>
         <p>That average is exactly the ${pct(x.score.meta_win_prob, 1)} shown for this deck. Its 90% model range (${pct(x.score.interval[0], 1)} to ${pct(x.score.interval[1], 1)}) combines two things: uncertainty in the learned weights, carried through with their covariance (the <a href="#g-delta-method">delta method</a>), and which opponent decks happened to be sampled. It is not a <a href="#g-bootstrap">bootstrap</a> range and not a <a href="#g-wilson-range">Wilson range</a> for a record. Weights are in log-odds: they are not percentage points, and they show association in the data, not cause.</p>
-        <p>The Counters page uses a related matchup model that also has card-against-card weights K(i, j). Those are different from the pair weights here, which are about two cards in the same deck.</p></div></details>
+        <p>The Counters page uses a related matchup model that also has card-against-card weights ${tx("K(i, j)")}. Those are different from the pair weights here, which are about two cards in the same deck.</p></div></details>
     </div>`;
     // softmax
     const sm = CRLearn.softmaxTable(E, deck), ae = (m.evaluation || {}).archetype || {};
     const smx = !sm ? `<div class="panel box"><span class="q">Softmax · which style?</span><p>This mode has no fitted style classifier.</p></div>` : `<div class="panel box">
       <span class="q">Softmax · which style?</span>
-      <p>A separate classifier describes a deck with ${num(sm.features.total)} numbers: ${num(sm.features.cards)} card indicators, ${num(sm.features.roles)} role counts, average elixir, number of win conditions and number of spells. Each of its ${sm.rows.length} styles gets a score, z = w · x + b. Softmax turns the scores into shares that add up to 100%: take e<sup>z</sup> of each (all positive), then divide by their total. Subtracting the largest score first keeps the numbers small without changing the result. The site shows the top style when its share reaches ${pct(sm.threshold, 0)}; otherwise it says “Mixed style”. These are the classifier's probabilities for its labels, not chances of winning or a measured certainty.</p>
+      <p>A separate classifier describes a deck with ${num(sm.features.total)} numbers: ${num(sm.features.cards)} card indicators, ${num(sm.features.roles)} role counts, average elixir, number of win conditions and number of spells. Each of its ${sm.rows.length} styles gets a score, ${UI.tex(String.raw`z_s = \mathbf{w}_s \cdot \mathbf{x} + b_s`, "") || "z = w · x + b"}. Softmax turns the scores into shares that add up to 100%: take ${UI.tex("e^{z}", "") || "e<sup>z</sup>"} of each (all positive), then divide by their total: ${tx(String.raw`p_s = \frac{e^{z_s - \max z}}{\sum_t e^{z_t - \max z}}`, "p_s = e^(z_s − max z) / Σ_t e^(z_t − max z)")}. Subtracting the largest score first keeps the numbers small without changing the result. The site shows the top style when its share reaches ${pct(sm.threshold, 0)}; otherwise it says “Mixed style”. These are the classifier's probabilities for its labels, not chances of winning or a measured certainty.</p>
       <details class="more"><summary>Worked example: how this deck got its style</summary><div class="body small">
         <p>Deck: ${deckName}. ${num(sm.active.length)} of its ${num(sm.features.total)} features are non-zero.</p>
-        <div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Style</th><th scope="col">Raw score z</th><th scope="col">e^(z − max z)</th><th scope="col">Probability</th></tr></thead><tbody>
+        <div class="tblwrap"><table class="nums"><thead><tr><th scope="col">Style</th><th scope="col">Raw score ${tx("z")}</th><th scope="col">${tx(String.raw`e^{z - \max z}`, "e^(z − max z)")}</th><th scope="col">Probability</th></tr></thead><tbody>
           ${sm.rows.slice().sort((a, b) => b.p - a.p).map((r) => `<tr${r === sm.top ? ' class="top"' : ""}><td>${esc(r.style)}</td><td>${f4(r.z)}</td><td>${r.weight.toFixed(4)}</td><td>${pct(r.p, 1)}</td></tr>`).join("")}
         </tbody></table></div>
         <p>Total ${pct(sm.sum, 1)}. Top: ${esc(sm.top.style)} at ${pct(sm.top.p, 1)}, ${sm.top.p >= sm.threshold ? `which reaches the ${pct(sm.threshold, 0)} threshold, so the site shows “${esc(sm.top.style)}”.` : `below the ${pct(sm.threshold, 0)} threshold, so the site shows “Mixed style”.`} “Hybrid” is a style the classifier was trained on; “Mixed style” is the site's fallback when no style reaches the threshold. They are different things.</p>
@@ -180,8 +191,8 @@ average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single m
       <details class="more"><summary>The steps and the formula</summary><div class="body small">
         <ol class="contrast">
           <li>Bootstrap: resample whole battles within each past period (${num(F.settings.bootstrap_resamples)} resamples) for plausible shares and win rates.</li>
-          <li>Refit the drift on those draws: <code>logit(s_next) = logit(s_now) + alpha + beta × (win_rate_now − 0.5)</code>. logit turns a share into an unbounded number, the sigmoid turns it back. alpha is a shift shared by all cards; beta links winning more than half the games to later usage change. It is a fitted association, not a rule that winners must get popular.</li>
-          <li>The least-squares fit multiplies each row by √games, so each card's squared error counts in proportion to its games.</li>
+          <li>Refit the drift on those draws: ${UI.tex(String.raw`\operatorname{logit}(s_{\text{next}}) = \operatorname{logit}(s_{\text{now}}) + \alpha + \beta \times (\text{win rate}_{\text{now}} - 0.5)`, "") || "<code>logit(s_next) = logit(s_now) + alpha + beta × (win_rate_now − 0.5)</code>"}. logit turns a share into an unbounded number, the sigmoid turns it back. ${tx(String.raw`\alpha`, "alpha")} is a shift shared by all cards; ${tx(String.raw`\beta`, "beta")} links winning more than half the games to later usage change. It is a fitted association, not a rule that winners must get popular.</li>
+          <li>The least-squares fit multiplies each row by ${tx(String.raw`\sqrt{\text{games}}`, "√games")}, so each card's squared error counts in proportion to its games.</li>
           <li>Convert back with the sigmoid, then draw the next period's observed share from a binomial with the period's size. Backtests use the real size of the period being predicted; the live forecast assumes the latest period's size.</li>
           <li>Repeat, then report the median and the central 50% and 90% of the runs. Forecasts are only made for card forms with at least ${num(F.settings.min_games)} games in the latest period.</li>
           <li>Check on later periods: error against “no change” and how often the 90% band held the real share. The gate only asks that the average error be no worse than “no change”; it is not a significance test and doesn't check the bands.</li>
@@ -216,12 +227,16 @@ average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single m
         <div class="panel box" style="min-width:0">
           <h3>What you're looking at</h3>
           <p>The surface is the model's real training loss over the ${num(sl.n_train)} Ranked battles it was fitted on (training and validation windows), as two card weights change: <b>a = ${esc(A)}</b> and <b>b = ${esc(B)}</b>. Every other weight stays exactly as trained, so this is a two-parameter slice through the full ${num(E.m.strength.coef.length)}-weight landscape, not the whole landscape.</p>
-          <div class="formula">J(a, b) = mean log loss + ‖w‖² / (2 C N)
+          <div class="formula">${UI.tex(String.raw`\begin{aligned}
+J(a, b) &= \text{mean log loss} + \frac{\lVert w \rVert^2}{2CN} \\
+\frac{\partial J}{\partial a} &= \operatorname{mean}\big((p - y)\, x_a\big) + \frac{a}{CN} \\
+\frac{\partial J}{\partial b} &= \operatorname{mean}\big((p - y)\, x_b\big) + \frac{b}{CN}
+\end{aligned}`, `J(a, b) = mean log loss + ‖w‖² / (2 C N)
 ∂J/∂a = mean((p − y) · x_a) + a / (C N)
-∂J/∂b = mean((p − y) · x_b) + b / (C N)</div>
-          <p class="small">Symbols: J is the training loss (lower is better). The mean log loss averages −[y log p + (1 − y) log(1 − p)] over the N = ${num(sl.n_train)} training battles, where p is the model's win probability for deck A and y is 1 if A won, else 0. x_a is +1 when only deck A holds card a, −1 when only deck B does, and 0 otherwise. w is the list of all weights and ‖w‖² the sum of their squares: the regularization penalty, whose strength C = ${sl.C} was chosen on validation battles. ∂J/∂a is the slope of J along a.</p>
-          <p><b>The dot f(a, b)</b> is where training ended: a = ${signed(sl.fitted[0], 4)}, b = ${signed(sl.fitted[1], 4)}, at the bottom of the bowl, where both slopes are zero.</p>
-          <p><b>White arrows</b> point downhill, along −∇J. They shrink toward the bottom because the slope does.</p>
+∂J/∂b = mean((p − y) · x_b) + b / (C N)`, true)}</div>
+          <p class="small">Symbols: ${tx("J")} is the training loss (lower is better). The mean log loss averages ${tx(String.raw`-\big[y \log p + (1 - y) \log(1 - p)\big]`, "−[y log p + (1 − y) log(1 − p)]")} over the ${tx(`N = ${tn(num(sl.n_train))}`, `N = ${num(sl.n_train)}`)} training battles, where ${tx("p")} is the model's win probability for deck ${tx("A")} and ${tx("y")} is 1 if ${tx("A")} won, else 0. ${tx("x_a")} is +1 when only deck ${tx("A")} holds card ${tx("a")}, −1 when only deck ${tx("B")} does, and 0 otherwise. ${tx("w")} is the list of all weights and ${tx(String.raw`\lVert w \rVert^2`, "‖w‖²")} the sum of their squares: the regularization penalty, whose strength ${tx(`C = ${tn(sl.C)}`, `C = ${sl.C}`)} was chosen on validation battles. ${tx(String.raw`\partial J / \partial a`, "∂J/∂a")} is the slope of ${tx("J")} along ${tx("a")}.</p>
+          <p><b>The dot ${tx("f(a, b)")}</b> is where training ended: ${tx(`a = ${tn(signed(sl.fitted[0], 4))}`, `a = ${signed(sl.fitted[0], 4)}`)}, ${tx(`b = ${tn(signed(sl.fitted[1], 4))}`, `b = ${signed(sl.fitted[1], 4)}`)}, at the bottom of the bowl, where both slopes are zero.</p>
+          <p><b>White arrows</b> point downhill, along ${tx(String.raw`-\nabla J`, "−∇J")}. They shrink toward the bottom because the slope does.</p>
           <p><b>The pink path is an illustration.</b> It starts in a corner and repeatedly takes a step against the gradient (step size ${sl.learning_rate.toFixed(1)}, set by the surface's steepest curvature), reaching the bottom in about ${sl.path.findIndex((q) => Math.abs(q[2] - sl.path[sl.path.length - 1][2]) < 1e-7) + 1} of ${sl.path.length - 1} steps. The real fit doesn't walk like this: it uses L-BFGS and then exact Newton steps on all weights at once.</p>
           <p class="muted small">Ranges shown: each weight ± ${(sl.a[sl.a.length - 1] - sl.fitted[0]).toFixed(3)} (about 4 standard errors). ${esc(A)} was in ${num(sl.games[0])} training decks, ${esc(B)} in ${num(sl.games[1])}.</p>
         </div>
@@ -317,7 +332,7 @@ average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single m
       <li><div><b>Recorded battles.</b><span>${num(entry.ok_battles)} recorded ${esc(entry.label)} battles, fetched from the official Clash Royale API from the players the collector sampled (not from everyone). A battle is only used once, even when both players were collected.</span></div></li>
       <li><div><b>Learned relationships.</b><span>The battles are split by time: the oldest train the model (${num(part("train").battles || 0)}), the next ones tune its settings (${num(part("valid").battles || 0)}), and the newest are held back to test it (${num(part("test").battles || 0)}). A logistic regression then learns a weight for every card form and common card pair: how strongly decks with them went with winning, after accounting for the two players' ratings. That is the “card weight” on the other pages. It describes association, not cause.</span></div></li>
       <li><div><b>Candidate decks.</b><span>Observed decks, the default, are real decks from this mode's pool${pool ? ` (${num(pool)} decks, each played at least ${num(minB)} times in the training battles)` : ""} that hold your picks. Generated decks, experimental, are built card by card by a beam search that keeps the ${num(sc.beam_width)} best partial decks at each step, so they may never have been played.</span></div></li>
-      <li><div><b>Scores and recommendations.</b><span>Every candidate gets the same score: estimated wins + ${E.weight} × pair synergy + ${E.coWeight} × how often the cards are played together. The ${sc.n_results} shown differ by at least ${sc.min_diff_cards} cards. Each also gets deck checks (win condition, air defense, spells, elixir cost; advice, never a block) and a predicted style.</span></div></li>
+      <li><div><b>Scores and recommendations.</b><span>Every candidate gets the same score: ${tx(String.raw`\text{score} = \text{estimated wins} + ${tn(E.weight)} \times \text{pair synergy} + ${tn(E.coWeight)} \times \text{how often the cards are played together}`, `estimated wins + ${E.weight} × pair synergy + ${E.coWeight} × how often the cards are played together`)}. The ${sc.n_results} shown differ by at least ${sc.min_diff_cards} cards. Each also gets deck checks (win condition, air defense, spells, elixir cost; advice, never a block) and a predicted style.</span></div></li>
       <li><div><b>Tests on later battles.</b><span>Last, the model is checked on the held-out battles it never saw while training, against simple baselines: the next section.</span></div></li>`;
   }
 
@@ -392,7 +407,8 @@ average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single m
       ["Bootstrap", "Re-draw the data with replacement many times and recompute the number each time; the spread of the results gives a range. It treats the re-drawn units (battles) as independent."],
       ["Delta method", "Carries the uncertainty of the learned weights, through their covariance, to a deck's win estimate. Together with opponent sampling it gives each deck's 90% model range."],
       ["Wilson range", "A 90% range for a record such as 12 wins in 20 games that stays sensible for small counts."],
-      ["Logit and sigmoid", "logit turns a share or probability into an unbounded number (log-odds); the sigmoid, 1 / (1 + e^(−z)), turns it back."],
+      ["Logit and sigmoid", "logit turns a share or probability into an unbounded number (log-odds); the sigmoid, 1 / (1 + e^(−z)), turns it back.",
+        `${tx(String.raw`\operatorname{logit}`, "logit")} turns a share or probability into an unbounded number (log-odds); the sigmoid, ${tx(String.raw`\sigma(z) = \frac{1}{1 + e^{-z}}`, "1 / (1 + e^(−z))")}, turns it back.`],
       ["Selection optimism", "Picking the highest of many noisy estimates tends to pick a lucky one, so the top estimate runs high. The 90% ranges don't cover this."],
       ["Evolution, Hero and Wild slots", "A deck has one slot for an Evolution, one for a Hero or Champion, and a Wild slot that takes any of them."],
       ["Held-out battles", "The newest battles, kept away from training so the test is fair."],
@@ -400,7 +416,8 @@ average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single m
       ["Score points", "What decks and swaps are ranked by: 100 × the ranking score. Its win part counts in percentage points; the synergy and played-together parts are added on the same scale. It is not a probability."],
     ];
     const id = (t) => "g-" + t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    $("#gloss").innerHTML = words.map(([t, d]) => `<div id="${id(t)}"><dt>${esc(t)}</dt><dd>${esc(d)}</dd></div>`).join("");
+    // an optional third item is the same definition as HTML with its math drawn
+    $("#gloss").innerHTML = words.map(([t, d, h]) => `<div id="${id(t)}"><dt>${esc(t)}</dt><dd>${h || esc(d)}</dd></div>`).join("");
   }
 
   function log({ INDEX, entry }) {

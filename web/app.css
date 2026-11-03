@@ -231,6 +231,10 @@ details.more > .body { display: grid; gap: var(--space-3); margin-top: var(--spa
 .modeinfo .groupbar { flex-basis: auto; }
 /* explanatory text keeps a readable line length */
 .measure { max-width: 75ch; }
+/* formulas drawn by KaTeX (common.js UI.tex): left-aligned blocks that scroll sideways on a narrow screen */
+.formula .katex-display, .math .katex-display { margin: 0; overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+.formula .katex { font-size: 1.08em; }
+p .katex, dd .katex, li .katex, th .katex { font-size: 1.05em; }
 /* plain-language style description next to a predicted style */
 .style-def { color: var(--muted); max-width: 75ch; }
 /* the "Show as a table" alternative under a chart */

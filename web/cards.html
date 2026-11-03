@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
 <style>
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 .bar { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
@@ -84,6 +85,7 @@ table.cards .csvv { color: var(--hero); }
   </footer>
 </div>
 
+<script src="vendor/katex/katex.min.js"></script>
 <script src="engine.js"></script>
 <script src="common.js"></script>
 <script>
@@ -146,7 +148,7 @@ table.cards .csvv { color: var(--hero); }
     const tw = E.m.meta.train_window || [], span = tw.length === 2 ? `${UI.when(tw[0]).split(",")[0]} to ${UI.when(tw[1]).split(",")[0]}` : "the training window";
     return {
       obs: `<b>Games</b> and <b>real win rate</b>: how often the card form was in a deck in the training battles of ${esc(ctx.entry.label)} (${esc(span)}), and how often those decks won. Counted from battles, no model involved. <b>Role</b> comes from the project's hand-made card labels. <span class="src measured">measured</span> <span class="src rule">labels</span>`,
-      model: `<b>Card weight</b>: the strength model's learned weight for the card form, in log-odds, fitted on the training battles (${esc(span)}). It says how strongly decks with the card went with winning once the other cards and player rating are accounted for: not the card's own win rate, and not proof that it causes wins. The 90% model range is ± 1.645 standard errors. <span class="src model">model</span>`,
+      model: `<b>Card weight</b>: the strength model's learned weight for the card form, in log-odds, fitted on the training battles (${esc(span)}). It says how strongly decks with the card went with winning once the other cards and player rating are accounted for: not the card's own win rate, and not proof that it causes wins. The 90% model range is ${UI.tex(String.raw`w \pm 1.645\,\mathrm{SE}`, "w ± 1.645 SE")}: the weight plus or minus 1.645 standard errors. <span class="src model">model</span>`,
       csv: `<b>Your CSV</b>: rating, usage and win rate from your own card list (data/labels/source/cards_meta.csv). The model does not use them, and the file records no dates or sources, so they can't be compared with the battle numbers or the weights. <span class="src csv">your CSV</span>`,
     }[view.cols];
   }

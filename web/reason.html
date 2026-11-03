@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
 <style>
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 .back { font-weight: 600; text-decoration: none; display: inline-flex; min-height: 44px; align-items: center; }
@@ -95,12 +96,14 @@ details.layer > .body { display: grid; gap: var(--space-6); margin-top: var(--sp
   </footer>
 </div>
 
+<script src="vendor/katex/katex.min.js"></script>
 <script src="engine.js"></script>
 <script src="common.js"></script>
 <script>
 (() => {
   "use strict";
   const { $, esc, pct, signed, fmtPts, num } = UI;
+  const tx = (t, plain = t) => UI.tex(t, plain), tn = UI.texNum; // inline math in a sentence (plain text without KaTeX)
   const DQ_HELP = {
     UNSEEN_DECK: "Nobody in the collected battles played these exact 8 cards, so the estimate comes from the cards and their pairs.",
     INSUFFICIENT_SAMPLE: "Some card pairs were played together too rarely to get a synergy score.",
@@ -227,7 +230,7 @@ details.layer > .body { display: grid; gap: var(--space-6); margin-top: var(--sp
             <details class="more alt"><summary>Show as a table</summary><div class="body"><div class="tblwrap"><table class="nums"><caption class="sr">Card weights of this deck</caption>
               <thead><tr><th scope="col">Card</th><th scope="col">Weight (log-odds)</th><th scope="col">90% model range</th><th scope="col">Games to learn from</th></tr></thead><tbody>
               ${ws.map((w) => `<tr><td><a href="${UI.cardHref(slug(), w.entry)}">${esc(w.name)}</a></td><td>${w.known ? r4(w.weight) : "n/a"}</td><td>${w.known ? `${r4(w.weight - 1.6448536269514722 * w.se)} to ${r4(w.weight + 1.6448536269514722 * w.se)}` : "too few games"}</td><td>${num(w.games)}</td></tr>`).join("")}
-              </tbody></table></div><p class="muted">The 90% model range is the weight ± 1.645 standard errors from the fit's covariance (a normal approximation). Card names open the All cards page.</p></div></details>
+              </tbody></table></div><p class="muted">The 90% model range is ${tx(String.raw`w \pm 1.645\,\mathrm{SE}`, "w ± 1.645 SE")}: the weight ${tx("w")} plus or minus 1.645 standard errors (SE) from the fit's covariance (a normal approximation). Card names open the All cards page.</p></div></details>
             <details class="more"><summary>Show the math</summary><div class="body small muted">
               <p>The model is a logistic regression. Each card form and each tracked card pair has a learned weight in log-odds. The 8 card weights here add up to ${signed(cardSum, 3)} and the tracked pairs add ${signed(pairSum, 3)}. Played against the sampled opponent decks at equal player rating, that gives the ${pct(x.score.meta_win_prob)} estimate.</p></div></details>
           </div>
@@ -272,7 +275,10 @@ details.layer > .body { display: grid; gap: var(--space-6); margin-top: var(--sp
         <header><h2 id="raw-h">Raw numbers</h2></header>
         <div class="panel chartbox">
           <p>Decks are ranked by a score that adds the win estimate, card-pair synergy and how often people play these cards together:</p>
-          <div class="formula">${x.objective.objective.toFixed(4)} = win ${x.objective.meta_win_prob.toFixed(4)} + ${E.weight} × synergy ${signed(x.objective.mean_pair_synergy, 4)} + ${E.coWeight} × played-together ${x.objective.mean_log_lift.toFixed(3)}</div>
+          <div class="formula">${UI.tex(String.raw`\begin{aligned}
+\text{score} &= \text{win} + ${tn(E.weight)} \times \text{synergy} + ${tn(E.coWeight)} \times \text{played-together} \\
+${tn(x.objective.objective.toFixed(4))} &= ${tn(x.objective.meta_win_prob.toFixed(4))} + ${tn(E.weight)} \times (${tn(signed(x.objective.mean_pair_synergy, 4))}) + ${tn(E.coWeight)} \times ${tn(x.objective.mean_log_lift.toFixed(3))}
+\end{aligned}`, `${x.objective.objective.toFixed(4)} = win ${x.objective.meta_win_prob.toFixed(4)} + ${E.weight} × synergy ${signed(x.objective.mean_pair_synergy, 4)} + ${E.coWeight} × played-together ${x.objective.mean_log_lift.toFixed(3)}`, true)}</div>
           <p class="small">The weights ${E.weight} and ${E.coWeight} come from the project's config and were checked on validation battles. The score is a ranking number, not a probability. The full selection record is on <a href="model.html#${esc(slug())}">How it works</a>.</p>
         </div>
       </section>`;
@@ -312,9 +318,13 @@ details.layer > .body { display: grid; gap: var(--space-6); margin-top: var(--sp
               <td><button class="btn small" data-emb="${i}">Swap</button></td></tr>`).join("")}</tbody></table></div>`
             : `<p class="muted">None of the closest cards raises the estimated win rate for this deck.</p>`}
           <details class="more"><summary>Show the math</summary><div class="body small">
-            <div class="formula">center c = average of the other 7 cards' vectors
+            <div class="formula">${UI.tex(String.raw`\begin{aligned}
+c &= \text{average of the other 7 cards' vectors} \\
+\text{distance}(\text{card}) &= 1 - \frac{v \cdot c}{\lVert c \rVert} \qquad (\lVert v \rVert = 1;\ 0 = \text{same direction},\ 2 = \text{opposite}) \\
+\Delta\text{win} &= \text{estimated win rate after the swap} - \text{before}
+\end{aligned}`, `center c = average of the other 7 cards' vectors
 distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same direction, 2 = opposite)
-Δwin = estimated win rate after the swap − before</div>
+Δwin = estimated win rate after the swap − before`, true)}</div>
             <p class="muted">Vectors: the positive part of each pair's log-lift (how much more often two card forms share a training deck than chance), factorized with an SVD and scaled to length 1. The size ${em.dim} was picked on the validation battles (${em.choice.map((c) => `${c.dim}: ${pct(c.valid_recall, 0)}`).join(", ")}).</p>
             <p class="muted">Held-out check: hiding 2 cards of ${num(ev.decks)} frequent test decks, the 10 cards closest to the rest of the deck included them ${pct(ev.recall, 1)} of the time (90%: ${pct(ev.recall_ci90[0], 1)} to ${pct(ev.recall_ci90[1], 1)}); the 10 most popular cards did ${pct(ev.recall_popular, 1)}. <span class="src measured">measured</span></p>
           </div></details>
@@ -468,9 +478,14 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
     const b = E.evaluate(deck), a = E.evaluate(CRDeck.parseDeckKey(newKey));
     const tw = (a.win_prob - b.win_prob) * 100, ts = E.weight * (a.mean_synergy - b.mean_synergy) * 100, tc = E.coWeight * (a.mean_log_lift - b.mean_log_lift) * 100;
     const f = (v) => (Math.abs(v) < 0.0005 ? "0.000" : (v > 0 ? "+" : "−") + Math.abs(v).toFixed(3));
-    return `<span class="math" aria-label="Score change worked out">Δscore = Δwin + ${E.weight} × Δsynergy + ${E.coWeight} × Δplayed-together
+    const t = UI.tex(String.raw`\begin{aligned}
+\Delta\text{score} &= \Delta\text{win} + ${tn(E.weight)} \times \Delta\text{synergy} + ${tn(E.coWeight)} \times \Delta\text{played-together} \\
+&= (${tn(pct(b.win_prob, 3))} \to ${tn(pct(a.win_prob, 3))}) + ${tn(E.weight)} \times (${tn(signed(b.mean_synergy, 4))} \to ${tn(signed(a.mean_synergy, 4))}) + ${tn(E.coWeight)} \times (${tn(b.mean_log_lift.toFixed(3))} \to ${tn(a.mean_log_lift.toFixed(3))}) \\
+&= (${tn(f(tw))}) + (${tn(f(ts))}) + (${tn(f(tc))}) = \boldsymbol{${tn(f(tw + ts + tc))}}\ \textbf{score points}
+\end{aligned}`, "", true);
+    return `<span class="math" aria-label="Score change worked out">${t || `Δscore = Δwin + ${E.weight} × Δsynergy + ${E.coWeight} × Δplayed-together
 = (${pct(b.win_prob, 3)} → ${pct(a.win_prob, 3)}) + ${E.weight} × (${signed(b.mean_synergy, 4)} → ${signed(a.mean_synergy, 4)}) + ${E.coWeight} × (${b.mean_log_lift.toFixed(3)} → ${a.mean_log_lift.toFixed(3)})
-= (${f(tw)}) + (${f(ts)}) + (${f(tc)}) = <b>${f(tw + ts + tc)} score points</b></span>`;
+= (${f(tw)}) + (${f(ts)}) + (${f(tc)}) = <b>${f(tw + ts + tc)} score points</b>`}</span>`;
   }
 
   function renderSwaps() {

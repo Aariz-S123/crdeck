@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
 <style>
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 .box { padding: var(--space-4) var(--space-5); display: grid; gap: var(--space-3); min-width: 0; grid-template-columns: minmax(0, 1fr); }
@@ -74,12 +75,14 @@
   </footer>
 </div>
 
+<script src="vendor/katex/katex.min.js"></script>
 <script src="engine.js"></script>
 <script src="common.js"></script>
 <script>
 (() => {
   "use strict";
   const { $, esc, pct, num, signed } = UI;
+  const m = (t, plain = t) => UI.tex(t, plain); // inline math in a sentence (plain text without KaTeX)
   let ctx = null, E = null, first = true;
   const sel = { tab: "style", style: null, cards: [], q: "" };
   const styleName = (s) => (s === CRDeck.UNCERTAIN ? "Mixed style" : s);
@@ -282,7 +285,7 @@
           </section>
           <section class="section" aria-labelledby="cd-h">
             <header><h2 id="cd-h" style="font-size:1.25rem">3. Counter decks</h2>
-              <p>Real decks only: each was played at least ${num(mu.pool_min_battles)} times in the training battles${E.m.availability ? " and uses only cards unlocked here" : ""}. They are ranked the way the deck builder ranks decks, with its win term replaced by the estimated win rate against ${esc(what)}: win rate against them + ${E.weight} × synergy + ${E.coWeight} × how often the cards are played together.${sel.tab === "style" ? " Each shows how it really did against this style in the later battles (a style-wide record, not a record against one exact deck)." : " Pick a deck style to see each deck's real record against a style."}</p></header>
+              <p>Real decks only: each was played at least ${num(mu.pool_min_battles)} times in the training battles${E.m.availability ? " and uses only cards unlocked here" : ""}. They are ranked the way the deck builder ranks decks, with its win term replaced by the estimated win rate against ${esc(what)}: ${m(String.raw`\text{win rate against them} + ${UI.texNum(E.weight)} \times \text{synergy} + ${UI.texNum(E.coWeight)} \times \text{how often the cards are played together}`, `win rate against them + ${E.weight} × synergy + ${E.coWeight} × how often the cards are played together`)}.${sel.tab === "style" ? " Each shows how it really did against this style in the later battles (a style-wide record, not a record against one exact deck)." : " Pick a deck style to see each deck's real record against a style."}</p></header>
             <div class="decks">${decks.map((d, i) => {
               const x = E.explain(d.entries, E.objectiveDict(E.evaluate(d.entries)));
               const r = sel.tab === "style" ? d.rec[sel.style] : null, w = d.swap;
@@ -307,12 +310,19 @@
           <p class="muted small">${num(opps.length)} deck${opps.length === 1 ? "" : "s"}, weighted by ${num(nOpp)} appearances in this mode's latest battles. Ranking took ${Math.round(performance.now() - t0)} ms.</p>
           <details class="more"><summary>Show them</summary><div class="body opps">${opps.slice(0, 40).map(([dk, n]) => `<div class="row"><span>${esc(dk.split("|").map(name).join(", "))}</span><span>${num(n)}×</span></div>`).join("")}</div></details>
           <details class="more"><summary>Show the math</summary><div class="body small">
-            <div class="formula">z(A, B) = Σ_{i∈A} w_i − Σ_{j∈B} w_j + Σ_{i∈A, j∈B} K(i, j)        (equal player skill)
+            <div class="formula">${UI.tex(String.raw`\begin{aligned}
+z(A, B) &= \sum_{i \in A} w_i - \sum_{j \in B} w_j + \sum_{i \in A,\, j \in B} K(i, j) \qquad \text{(equal player skill)} \\
+P(A \text{ beats } B) &= \sigma\big(z(A, B)\big) \\
+\text{win rate vs the opponents} &= \frac{\sum_o n_o \, \sigma\big(z(A, o)\big)}{\sum_o n_o} \\
+\text{card effect}(i) &= w_i + \frac{\sum_o n_o \sum_{j \in o} K(i, j)}{\sum_o n_o} \\
+\text{deck score}(A) &= \text{win rate vs the opponents} + ${UI.texNum(E.weight)} \times \text{mean pair synergy} \\
+&\qquad + ${UI.texNum(E.coWeight)} \times \text{mean log-lift} \qquad (A \text{ a real deck})
+\end{aligned}`, `z(A, B) = Σ_{i∈A} w_i − Σ_{j∈B} w_j + Σ_{i∈A, j∈B} K(i, j)        (equal player skill)
 P(A beats B) = σ(z(A, B))
 win rate vs the opponents = Σ_o n_o · σ(z(A, o)) / Σ_o n_o
 card effect(i) = w_i + Σ_o n_o Σ_{j∈o} K(i, j) / Σ_o n_o
-deck score(A) = win rate vs the opponents + ${E.weight} × mean pair synergy + ${E.coWeight} × mean log-lift     (A a real deck)</div>
-            <p class="muted">A is your deck and B or o an opponent deck; i is a card form in A and j one in B. n_o is how many times opponent deck o appears in the set, so common decks count more. σ is the sigmoid, 1 / (1 + e^(−z)). w is a card's overall strength, K(i, j) how much better a deck with i did against decks with j than both cards' strengths predict (K(i, j) = −K(j, i)); all are in log-odds. ${num(mu.pairs.length)} card pairings with at least ${num(mu.min_pair_battles)} battles have a K. Ranges shown for single matchups are exact 90% ranges for that weight; no range is shown for a card's total effect, because its parts move together.</p>
+deck score(A) = win rate vs the opponents + ${E.weight} × mean pair synergy + ${E.coWeight} × mean log-lift     (A a real deck)`, true)}</div>
+            <p class="muted">${m("A")} is your deck and ${m("B")} or ${m("o")} an opponent deck; ${m("i")} is a card form in ${m("A")} and ${m("j")} one in ${m("B")}. ${m("n_o")} is how many times opponent deck ${m("o")} appears in the set, so common decks count more. ${m(String.raw`\sigma`, "σ")} is the sigmoid, ${m(String.raw`\sigma(z) = \frac{1}{1 + e^{-z}}`, "1 / (1 + e^(−z))")}. ${m("w")} is a card's overall strength, ${m("K(i, j)")} how much better a deck with ${m("i")} did against decks with ${m("j")} than both cards' strengths predict (${m("K(i, j) = -K(j, i)", "K(i, j) = −K(j, i)")}); all are in log-odds. ${num(mu.pairs.length)} card pairings with at least ${num(mu.min_pair_battles)} battles have a ${m("K")}. Ranges shown for single matchups are exact 90% ranges for that weight; no range is shown for a card's total effect, because its parts move together.</p>
             <p class="muted">Why only real decks: searching every card combination for the highest estimate produced decks nobody plays (four tanks and no spell, with estimates of 85 to 93%). The model adds up card effects and was only ever checked on decks people play, so it is only trusted there. A tech swap changes one card for one of the same type and win-condition role, only if it raises both the estimate against these decks and the deck score and adds no deck warning.</p>
           </div></details>
         </section>`;
