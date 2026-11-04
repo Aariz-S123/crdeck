@@ -41,13 +41,14 @@
 .types { display: flex; flex-wrap: wrap; gap: 4px; }
 .pickact { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .pickact:empty { display: none; }
-.cardlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); align-content: start; gap: 6px; max-height: 50vh; overflow-y: auto; padding: 2px; margin: -2px; }
+/* min-content rows: each row grows to fit its wrapped card names (plain auto rows stayed at 48px in Edge) */
+.cardlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); grid-auto-rows: min-content; align-content: start; gap: 6px; max-height: 50vh; overflow-y: auto; padding: 2px; margin: -2px; }
 @media (max-width: 920px) { .cardlist { max-height: 46vh; } }
 .pick.locked { opacity: 0.5; cursor: not-allowed; border-style: dashed; }
 .pick.locked:hover { border-color: var(--line); }
 .lockhead { grid-column: 1 / -1; margin: 6px 0 0; font-size: 0.8125rem; font-weight: 600; color: var(--muted); }
 .early { color: var(--hero); font-weight: 700; }
-.pick .pt { display: block; font-size: 0.75rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pick .pt { display: block; font-size: 0.75rem; color: var(--muted); overflow-wrap: break-word; }
 .results { display: grid; gap: var(--space-4); min-width: 0; }
 .results-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-2) var(--space-4); }
 .status { font-size: 0.875rem; color: var(--muted); }
@@ -252,11 +253,13 @@
       .sort((a, b) => a.c.name.localeCompare(b.c.name) || FORM_ORDER[a.form] - FORM_ORDER[b.form]);
     // in a single Trophy Road arena, forms not unlocked there are listed apart and can't be picked
     const av = E.m.availability, open = list.filter((f) => E.isAvailable({ id: f.card_id, form: f.form })), shut = list.filter((f) => !open.includes(f));
+    // short counts ("22.8K") so the type and games fit beside each other in a narrow card button
+    const short = (n) => Number(n).toLocaleString(undefined, { notation: "compact", maximumFractionDigits: 1 });
     const early = (f) => (av && String(f.card_id) in av.seen_early ? ` · <span class="early" title="The wiki unlocks it at ${esc(av.unlock_name[String(f.card_id)])}; ${num(av.seen_early[String(f.card_id)])} decks in this arena already use it">early</span>` : "");
     const btn = (f, locked) => `
       <button class="pick${locked ? " locked" : ""}" data-key="${f.key}" aria-pressed="${picked.has(f.key)}"${locked ? ` aria-disabled="true" data-why="${esc(E.whyNot({ id: f.card_id, form: f.form }))}"` : ""} title="${esc(locked ? E.whyNot({ id: f.card_id, form: f.form }) : E.describe({ id: f.card_id, form: f.form }))}">
         ${UI.drop(f.c)}<span style="min-width:0"><span class="pn">${esc(f.c.name)}${f.form !== "base" ? ` <span class="fbadge ${f.form}">${f.form === "evo" ? "EVO" : "HERO"}</span>` : ""}</span>
-        <span class="pt">${locked ? esc(E.whyNot({ id: f.card_id, form: f.form }).replace(/^.*? unlocks? at /, "Unlocks at ")) : `${UI.typeName(f.c)} · ${f.games ? num(f.games) + " games" : "not played here"}${early(f)}`}</span></span>
+        <span class="pt">${locked ? esc(E.whyNot({ id: f.card_id, form: f.form }).replace(/^.*? unlocks? at /, "Unlocks at ")) : `${UI.typeName(f.c)} · ${f.games ? `<span title="${num(f.games)} games">${short(f.games)} games</span>` : "not played here"}${early(f)}`}</span></span>
       </button>`;
     const anyEarly = av && open.some((f) => String(f.card_id) in av.seen_early);
     $("#cardlist").innerHTML = !list.length ? `<p class="muted small">No card matches “${esc(view.q)}”. Check the spelling or clear the search. <button class="btn small" type="button" data-clearq>Clear the search</button></p>`

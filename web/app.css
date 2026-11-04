@@ -161,14 +161,16 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .pick { display: flex; align-items: center; gap: var(--space-2); text-align: left; min-height: 48px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); min-width: 0; }
 .pick:hover { border-color: var(--elixir); }
 .pick[aria-pressed="true"] { border-color: var(--elixir); background: var(--elixir-soft); }
-.pick .pn { display: block; font-size: 0.875rem; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* names wrap instead of being cut off: a cut-off "Baby Dragon E…" hides which form the button picks */
+.pick .pn { display: block; font-size: 0.875rem; font-weight: 600; line-height: 1.2; overflow-wrap: break-word; hyphens: auto; }
 
 /* deck tiles */
 .grid8 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .tile { position: relative; display: grid; gap: 4px; align-content: start; padding: 8px 7px; min-height: 78px; border-radius: 8px; border: 1px solid var(--line); background: var(--sunken); min-width: 0; }
 .tile .drop { width: 20px; height: 20px; }
 .tile .drop span { font-size: 11px; }
-.tile .tn { font-size: 0.8125rem; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+/* a long name is hyphenated ("Earth-quake") rather than split at any letter ("Earthquak e") */
+.tile .tn { font-size: 0.8125rem; font-weight: 600; line-height: 1.2; overflow-wrap: break-word; hyphens: auto; }
 .tile .fn { font-size: 0.6875rem; font-weight: 700; }
 .tile.s-evo { background: var(--evo-soft); border-color: color-mix(in srgb, var(--evo) 40%, transparent); }
 .tile.s-hero { background: var(--hero-soft); border-color: color-mix(in srgb, var(--hero) 40%, transparent); }

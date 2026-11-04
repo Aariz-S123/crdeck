@@ -23,7 +23,7 @@
 .oppcards { display: flex; flex-wrap: wrap; gap: 6px; }
 .oppcard { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunken); font-size: 0.875rem; font-weight: 600; }
 .oppcard button { border: 0; background: transparent; color: var(--muted); width: 44px; height: 44px; border-radius: 6px; font-size: 18px; }
-.cardlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); gap: 6px; max-height: 300px; overflow-y: auto; padding: 2px; }
+.cardlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); grid-auto-rows: min-content; gap: 6px; max-height: 300px; overflow-y: auto; padding: 2px; }
 .pick { min-height: 44px; }
 .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: var(--space-4); align-items: start; }
 @media (max-width: 960px) { .two { grid-template-columns: minmax(0, 1fr); } }
@@ -40,6 +40,8 @@
 .wins div { display: grid; }
 .wins b { font-family: var(--display); font-size: 1.5rem; line-height: 1.1; }
 .wins span { font-size: 0.8125rem; color: var(--muted); }
+/* a missing record reads as a quiet note, not as a headline number */
+.wins b.none { font-family: var(--body); font-size: 1rem; color: var(--muted); }
 .formula { white-space: pre-wrap; font: 0.8125rem/1.6 ui-monospace, "Cascadia Mono", Consolas, monospace; background: var(--sunken); padding: 10px 12px; border-radius: 8px; overflow-x: auto; }
 .opps { display: grid; gap: 6px; }
 .realtag { font-size: 0.75rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--sunken); color: var(--ink); white-space: nowrap; }
@@ -285,12 +287,12 @@
           </section>
           <section class="section" aria-labelledby="cd-h">
             <header><h2 id="cd-h" style="font-size:1.25rem">3. Counter decks</h2>
-              <p>Real decks only: each was played at least ${num(mu.pool_min_battles)} times in the training battles${E.m.availability ? " and uses only cards unlocked here" : ""}. They are ranked the way the deck builder ranks decks, with its win term replaced by the estimated win rate against ${esc(what)}: ${m(String.raw`\text{win rate against them} + ${UI.texNum(E.weight)} \times \text{synergy} + ${UI.texNum(E.coWeight)} \times \text{how often the cards are played together}`, `win rate against them + ${E.weight} × synergy + ${E.coWeight} × how often the cards are played together`)}.${sel.tab === "style" ? " Each shows how it really did against this style in the later battles (a style-wide record, not a record against one exact deck)." : " Pick a deck style to see each deck's real record against a style."}</p></header>
+              <p>Real decks only: each was played at least ${num(mu.pool_min_battles)} times in the training battles${E.m.availability ? " and uses only cards unlocked here" : ""}. They are ranked the way the deck builder ranks decks, with its win term replaced by the estimated win rate against ${esc(what)}: win rate against them + ${E.weight} × synergy + ${E.coWeight} × how often the cards are played together.${sel.tab === "style" ? " Each shows how it really did against this style in the later battles (a style-wide record, not a record against one exact deck)." : " Pick a deck style to see each deck's real record against a style."}</p></header>
             <div class="decks">${decks.map((d, i) => {
               const x = E.explain(d.entries, E.objectiveDict(E.evaluate(d.entries)));
               const r = sel.tab === "style" ? d.rec[sel.style] : null, w = d.swap;
               const rec = sel.tab !== "style" ? "" : r ? `<div><b>${pct(r[1] / r[0])}</b><span>won ${num(r[1])} of ${num(r[0])} vs ${esc(styleName(sel.style))} decks in the later battles${r[0] < 30 ? " (few games)" : ""} <span class="src measured">measured</span></span></div>`
-                : `<div><b>n/a</b><span>no games vs ${esc(styleName(sel.style))} decks in the later battles (no record, not zero wins)</span></div>`;
+                : `<div><b class="none">No record yet</b><span>no games vs ${esc(styleName(sel.style))} decks in the later battles (no record, not zero wins)</span></div>`;
               return `<article class="panel deck" aria-label="Counter deck ${i + 1}">
                 <div class="deck-top"><b>Counter deck ${i + 1} · ${esc(UI.archName(x.archetype))}</b><span class="realtag">Real deck · played ${num(d.played)} times</span></div>
                 <div class="grid8">${x.entries.map((e) => UI.tile(E, e, x.legality.slots, null, null)).join("")}</div>

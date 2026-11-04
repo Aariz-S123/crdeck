@@ -58,13 +58,13 @@
   const { $, esc, pct, num } = UI;
   let E = null;
   history.replaceState(null, "", "#ranked");   // this page always describes Ranked, whatever mode the link carried
-  UI.start("seasons.html", (c) => { E = c.E; UI.setHash(c.entry.slug); render(c.INDEX.seasons); }, { failTarget: "#body" });
+  UI.start("seasons.html", (c) => { E = c.E; UI.setHash(c.entry.slug); render(c.INDEX.seasons, c.INDEX.meta); }, { failTarget: "#body" });
 
   const entries = (k) => k.split("|").filter(Boolean).map((x) => { const [id, form] = x.split(":"); return { id: Number(id), form }; });
 
-  function trend(d, periods) {
-    // usage share per collection period with 90% ranges, own scale per deck
-    const h = d.history, W = 300, H = 86, L = 38, R = 8, T = 8, B = 20;
+  function trend(d, periods, upTo) {
+    // usage share per collection period with 90% ranges, own scale per deck; upTo leaves out a tiny latest period
+    const h = d.history.slice(0, upTo), W = 300, H = 86, L = 38, R = 8, T = 8, B = 20;
     const vals = h.flatMap((x) => x.share_ci90 || []);
     let y0 = Math.min(...vals), y1 = Math.max(...vals); const pad = (y1 - y0) * 0.15 || 0.002; y0 = Math.max(0, y0 - pad); y1 += pad;
     const X = (i) => L + (W - L - R) * (h.length === 1 ? 0.5 : i / (h.length - 1)), Y = (v) => T + (H - T - B) * (1 - (v - y0) / (y1 - y0));
@@ -82,17 +82,23 @@
     });
     return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="group" aria-label="Usage share per collection period">${g}</svg>`;
   }
-  function changePill(c) {
+  function changePill(c, tiny) {
     if (!c) return `<span class="pill neutral">One period only</span>`;
+    if (tiny) return `<span class="pill neutral">No call: latest period too small</span>`;
     const pts = `${c.points >= 0 ? "+" : "−"}${Math.abs(c.points * 100).toFixed(2)} pts`;
     if (c.ci90[0] > 0) return `<span class="pill good">Rising ${pts}</span>`;
     if (c.ci90[1] < 0) return `<span class="pill bad">Falling ${pts}</span>`;
     return `<span class="pill neutral">No clear change (${pts})</span>`;
   }
 
-  function render(S) {
+  function render(S, M) {
     if (!S) { $("#body").innerHTML = `<div class="panel empty"><b>No season data in this export.</b><span>Run the export again after a collection.</span></div>`; return; }
     const st = S.status, md = S.meta_decks, cards = S.cards;
+    // A latest period with fewer deck appearances than the usage forecast's own minimum (Card usage trends uses the
+    // same rule) is too small to call a deck rising or falling: a handful of players can move every share.
+    const lastI = md.periods.length - 1, lastH = md.decks.length ? md.decks[0].history[lastI] : null;
+    const tiny = !!(M && M.settings && lastH && lastI > 0 && lastH.appearances < M.settings.min_games);
+    const upTo = tiny ? lastI : md.periods.length, shareAt = tiny ? lastI - 1 : lastI;
     const boxes = st.seasons.filter((s) => s.covered).map((s) => `<span class="have"><b>${esc(s.season)}</b>${num(s.battles)} battles</span>`).join("") +
       Array.from({ length: Math.max(0, st.needed - st.covered) }, (_, i) => `<span class="need"><b>needed</b>season ${st.covered + i + 1}</span>`).join("");
     const short = st.seasons.filter((s) => !s.covered);
@@ -114,17 +120,18 @@
       <section class="section" aria-labelledby="md-h">
         <header><h2 id="md-h">Most-played decks${asOf ? `, as of ${esc(asOf)}` : ""}</h2>
           <p>The ${md.decks.length} most-played exact decks among the sampled top ranked players across ${md.periods.length} collection periods (each with at least ${num(md.min_games)} games), up to the latest collection${asOf ? ` (${esc(asOf)})` : ""}. Rising or falling compares the last two periods and counts only when the 90% bootstrap range is clear of zero. <span class="src measured">measured</span></p></header>
+        ${tiny ? `<p class="notice"><b>The latest period is tiny:</b> P${lastI + 1} holds only ${num(lastH.appearances)} deck appearances (${esc(UI.when(md.periods[lastI].start))} to ${esc(UI.when(md.periods[lastI].end))}), most likely an interrupted collection. So no deck is called rising or falling, shares are from P${lastI}, the last full period, and the charts stop there. The tables still list P${lastI + 1}.</p>` : ""}
         <div class="decks">${md.decks.map((d, i) => {
           const es = entries(d.deck_key), chk = E.checkDeck(es);
           return `<article class="panel deck" aria-label="Meta deck ${i + 1}">
-            <div class="deck-top"><div><span class="rank">#${i + 1} by games</span><h3 style="font-size:1.0625rem">${esc(d.archetype ? (d.archetype === CRDeck.UNCERTAIN ? "Mixed style" : d.archetype) : "Deck")}</h3></div>${changePill(d.change)}</div>
+            <div class="deck-top"><div><span class="rank">#${i + 1} by games</span><h3 style="font-size:1.0625rem">${esc(d.archetype ? (d.archetype === CRDeck.UNCERTAIN ? "Mixed style" : d.archetype) : "Deck")}</h3></div>${changePill(d.change, tiny)}</div>
             <div class="grid8">${es.map((e) => E.card(e.id) ? UI.tile(E, e, chk.slots, null, null) : `<div class="tile"><span class="tn">Card ${e.id}</span></div>`).join("")}</div>
             <div class="nums3">
               <div><b>${num(d.games)}</b><span>games</span></div>
               <div><b>${pct(d.win_rate)}</b><span>won (90%: ${pct(d.win_ci90[0])} to ${pct(d.win_ci90[1])})</span></div>
-              <div><b>${d.history[d.history.length - 1].share !== null ? pct(d.history[d.history.length - 1].share, 2) : "n/a"}</b><span>of decks in the last period</span></div>
+              <div><b>${d.history[shareAt].share !== null ? pct(d.history[shareAt].share, 2) : "n/a"}</b><span>${tiny ? `of decks in P${shareAt + 1}, the last full period` : "of decks in the last period"}</span></div>
             </div>
-            <div class="trend">${trend(d, md.periods)}</div>
+            <div class="trend">${trend(d, md.periods, upTo)}</div>
             <details class="more alt"><summary>Show as a table</summary><div class="body"><div class="tblwrap"><table class="nums"><caption class="sr">Usage share of meta deck ${i + 1} per period</caption>
               <thead><tr><th scope="col">Period</th><th scope="col">Dates</th><th scope="col">Share of decks</th><th scope="col">90% bootstrap range</th><th scope="col">Games</th></tr></thead><tbody>
               ${d.history.map((x, k) => `<tr><td>P${k + 1}</td><td>${md.periods[k] ? `${esc(UI.when(md.periods[k].start))} to ${esc(UI.when(md.periods[k].end))}` : ""}</td><td>${x.share !== null ? pct(x.share, 2) : "n/a"}</td><td>${x.share_ci90 ? `${pct(x.share_ci90[0], 2)} to ${pct(x.share_ci90[1], 2)}` : "n/a"}</td><td>${num(x.games || 0)}</td></tr>`).join("")}

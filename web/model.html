@@ -332,13 +332,15 @@ J(a, b) &= \text{mean log loss} + \frac{\lVert w \rVert^2}{2CN} \\
       <li><div><b>Recorded battles.</b><span>${num(entry.ok_battles)} recorded ${esc(entry.label)} battles, fetched from the official Clash Royale API from the players the collector sampled (not from everyone). A battle is only used once, even when both players were collected.</span></div></li>
       <li><div><b>Learned relationships.</b><span>The battles are split by time: the oldest train the model (${num(part("train").battles || 0)}), the next ones tune its settings (${num(part("valid").battles || 0)}), and the newest are held back to test it (${num(part("test").battles || 0)}). A logistic regression then learns a weight for every card form and common card pair: how strongly decks with them went with winning, after accounting for the two players' ratings. That is the “card weight” on the other pages. It describes association, not cause.</span></div></li>
       <li><div><b>Candidate decks.</b><span>Observed decks, the default, are real decks from this mode's pool${pool ? ` (${num(pool)} decks, each played at least ${num(minB)} times in the training battles)` : ""} that hold your picks. Generated decks, experimental, are built card by card by a beam search that keeps the ${num(sc.beam_width)} best partial decks at each step, so they may never have been played.</span></div></li>
-      <li><div><b>Scores and recommendations.</b><span>Every candidate gets the same score: ${tx(String.raw`\text{score} = \text{estimated wins} + ${tn(E.weight)} \times \text{pair synergy} + ${tn(E.coWeight)} \times \text{how often the cards are played together}`, `estimated wins + ${E.weight} × pair synergy + ${E.coWeight} × how often the cards are played together`)}. The ${sc.n_results} shown differ by at least ${sc.min_diff_cards} cards. Each also gets deck checks (win condition, air defense, spells, elixir cost; advice, never a block) and a predicted style.</span></div></li>
+      <li><div><b>Scores and recommendations.</b><span>Every candidate gets the same score: estimated wins + ${E.weight} × pair synergy + ${E.coWeight} × how often the cards are played together. The ${sc.n_results} shown differ by at least ${sc.min_diff_cards} cards. Each also gets deck checks (win condition, air defense, spells, elixir cost; advice, never a block) and a predicted style.</span></div></li>
       <li><div><b>Tests on later battles.</b><span>Last, the model is checked on the held-out battles it never saw while training, against simple baselines: the next section.</span></div></li>`;
   }
 
   function report({ m }) {
     const ev = m.evaluation || {}, st = ev.strength || [], sig = ev.strength_significance || [];
     const r1 = (a) => (a && a.length === 2 ? `${pct(a[0])} to ${pct(a[1])}` : "n/a");
+    // the export's baseline ids, in the words used in the same cell
+    const vsName = (v) => ({ "constant_0.5": "coin flip", popularity: "card popularity", rating_only: "rating alone" }[v] || v.replace(/_/g, " "));
     const test = (name) => st.find((r) => r.part === "test" && r.model === name) || {};
     const chosen = (st.find((r) => r.selected) || {}).model, mt = test(chosen), si = (ev.strength_intervals || []).find((r) => r.selected) || {};
     const comp = ev.completion || {}, ar = ev.archetype || {}, syn = ev.synergy || [];
@@ -353,7 +355,7 @@ J(a, b) &= \text{mean log loss} + \frac{\lVert w \rVert^2}{2CN} \\
     $("#report").innerHTML = `<thead><tr><th scope="col">Check</th><th scope="col">The question</th><th scope="col">Result</th><th scope="col">Compared with</th><th scope="col">Verdict</th></tr></thead><tbody>
       <tr><td>Picking winners</td><td>Given two decks, does the model know which one won?</td>
         <td><span class="big"><a href="#g-auc">AUC</a> ${(mt.auc || 0).toFixed(3)}</span><span class="vs">90% bootstrap range ${si.auc_ci90 ? si.auc_ci90.map((v) => v.toFixed(3)).join(" to ") : "n/a"}. 0.5 is a coin flip.</span></td>
-        <td>Coin flip, card popularity, player rating alone.<span class="vs"><a href="#g-log-loss">Log loss</a> ${(mt.log_loss || 0).toFixed(5)}; lower is better. ${sig.map((x) => `vs ${esc(x.vs)}: ${x.delta_log_loss.toFixed(5)} (90% ${x.ci90_lo.toFixed(5)} to ${x.ci90_hi.toFixed(5)})`).join("; ")}</span></td>
+        <td>Coin flip, card popularity, player rating alone.<span class="vs"><a href="#g-log-loss">Log loss</a> ${(mt.log_loss || 0).toFixed(5)}; lower is better. ${sig.map((x) => `vs ${esc(vsName(x.vs))}: ${x.delta_log_loss.toFixed(5)} (90% ${x.ci90_lo.toFixed(5)} to ${x.ci90_hi.toFixed(5)})`).join("; ")}</span></td>
         <td>${pill(vStr, "Beats every baseline")}</td></tr>
       <tr><td>Finishing decks</td><td>Hide 2 cards of a real deck. Are they in the builder's top 10 guesses?</td>
         <td><span class="big">${pct(comp.recall_model || 0, 0)}</span><span class="vs">90% range ${r1(comp.recall_model_ci90)}, on ${num(comp.decks_evaluated || 0)} decks</span></td>
