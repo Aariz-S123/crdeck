@@ -55,6 +55,25 @@ const text = (el) => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
     }
   }
   expect(out.softmax.some((r) => r[1] === UNCERTAIN) && out.softmax.some((r) => r[1] !== UNCERTAIN), "R4.1 cases should cover both a threshold fallback and a confident label");
+  // strict suggestions: every suggested deck passes Engine.suggestionRule, no tank is added to the picks' own, and a
+  // full set of picks is never filtered
+  out.strict = {};
+  for (const slug of ["ranked", "trophy_road"]) {
+    const E = new Engine(load(slug)), id = (n) => E.m.cards.find((c) => c.name === n).id;
+    const tanks = (es) => es.filter((e) => E.card(e.id).roles.includes("tank")).length;
+    const cases = { none: [], golem: [{ id: id("Golem"), form: "base" }], two: [{ id: id("Golem"), form: "base" }, { id: id("Electro Giant"), form: "base" }], mk: [{ id: id("Mega Knight"), form: "base" }] };
+    for (const [name, seeds] of Object.entries(cases)) {
+      if (!seeds.every((s) => E.isAvailable(s))) continue;
+      const rule = E.suggestionRule(seeds), gen = E.complete(seeds, { strict: true }), ob = CRObserved.observedDecks(E, seeds, { strict: true });
+      out.strict[`${slug}/${name}`] = { generated: gen.length, generated_strict: gen.strict, observed: ob.decks.length, observed_strict: ob.strict, dropped: ob.dropped };
+      for (const d of gen.concat(ob.decks)) {
+        expect(tanks(d.entries) <= Math.max(1, tanks(seeds)), `strict ${slug}/${name}: ${tanks(d.entries)} tanks suggested`);
+        if (gen.strict !== false && ob.strict !== false) expect(rule.full(d.entries), `strict ${slug}/${name}: a suggestion fails the basic checks`);
+      }
+    }
+  }
+  const full = new Engine(load("ranked")), eight = CRObserved.observedDecks(full, []).decks[0].entries;
+  expect(full.complete(eight, { strict: true }).length === 1 && full.complete(eight, { strict: true }).strict === null, "strict: a full deck was filtered");
   // stability: adding 1000 to every intercept changes nothing (the max is subtracted before exp)
   const big = load("ranked"); big.archetype.intercept = big.archetype.intercept.map((b) => b + 1000);
   const Eb = new Engine(big), Er = new Engine(load("ranked")), dk = Er.complete([])[0].entries;

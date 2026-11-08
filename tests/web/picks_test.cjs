@@ -140,7 +140,7 @@ const linkDeck = (href) => deckKey(ents(decodeURIComponent(href).split("#")[1].s
   for (let n = 4; n <= 7; n++) {
     const seeds = own.slice(0, n);
     p = await open("index.html", `ranked~~${tok(seeds)}~g`); d = p.d;
-    const want = Er.complete(seeds).map((x) => x.key);
+    const want = Er.complete(seeds, { strict: true }).map((x) => x.key);
     await until(() => settled(d) && d.querySelectorAll(".deck h3").length === want.length, 90000);
     const got = [...d.querySelectorAll(".deck a.btn.primary")].map((a) => linkDeck(a.getAttribute("href")));
     out.partial[`generated_${n}`] = got.length;
@@ -152,7 +152,7 @@ const linkDeck = (href) => deckKey(ents(decodeURIComponent(href).split("#")[1].s
     clean(`${n} picks generated`, p);
     if (n === 5) {
       p = await open("index.html", `ranked~~${tok(seeds)}`); d = p.d;
-      const ob = observedDecks(Er, seeds).decks.map((x) => x.key);
+      const ob = observedDecks(Er, seeds, { strict: true }).decks.map((x) => x.key);
       await until(() => settled(d) && d.querySelectorAll(".deck h3").length === ob.length, 90000);
       const gotObs = [...d.querySelectorAll(".deck a.btn.primary")].map((a) => linkDeck(a.getAttribute("href")));
       out.partial.observed_5 = gotObs.length;

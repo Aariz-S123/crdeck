@@ -106,7 +106,7 @@
         <label class="lab" for="groupsel">${esc(word)}</label>
         <select id="groupsel" class="sel">${top ? `<option value="${esc(top.slug)}"${!cur.group ? " selected" : ""}>Every ${esc(wl)} · ${num(top.ok_battles)} battles</option>` : ""}${sorted.map(opt).join("")}</select>
       </div>` : ""}
-      <p class="muted small modenote">This picks which recorded battles the numbers come from${groups.length && word === "Arena" ? " and which cards count as unlocked" : ""}. It doesn't look at your account or your skill.</p>
+      <p class="muted small modenote">The numbers come from battles recorded in this mode${groups.length && word === "Arena" ? ", and the arena sets which cards you can use" : ""}. Nothing here reads your own account.</p>
       <details class="more modeinfo" id="modeinfo"${modeInfoOpen ? " open" : ""}><summary>About these battles</summary><div class="body small">
         <p>${esc(cur.label || "This mode")}: ${num(cur.ok_battles || 0)} usable battles from the players the collector sampled, not from every player.${cur.train_window ? ` Training battles ${span(cur.train_window)}; test battles ${span(cur.test_window)}.` : ""}</p>
         <p>Every mode${groups.length ? ` and ${esc(wl)}` : ""} has its own model, trained only on its own battles${fr ? `: the oldest ${Math.round(100 * fr.train_frac)}% train it, the next ${Math.round(100 * fr.valid_frac)}% tune its settings and the newest ${Math.round(100 * (1 - fr.train_frac - fr.valid_frac))}% test it` : ""}.</p>

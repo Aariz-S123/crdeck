@@ -60,7 +60,7 @@ const decksShown = (d) => d.querySelectorAll(".deck h3").length;
   // default; "~g" asks for the generated decks, which must still equal Engine.complete.
   let p = await open("index.html", "ranked~~~g"), d = p.d;
   await until(() => decksShown(d) === 3 && settled(d));
-  const want = ranked.complete([]);
+  const want = ranked.complete([], { strict: true });
   const shownKeys = [...d.querySelectorAll(".deck a.btn.primary")].map((a) => {
     const t = a.getAttribute("href").split("#")[1].split("~")[1];
     return deckKey(t.split("-").map((x) => ({ id: Number(x.slice(0, -1)), form: { b: "base", e: "evo", h: "hero" }[x.slice(-1)] })));
@@ -71,7 +71,7 @@ const decksShown = (d) => d.querySelectorAll(".deck h3").length;
   expect(!/% sure|style guess/.test(page), "R1.5 style probability still shown as 'sure'");
   expect(!/Wins more than it loses|Loses more than it wins|About even/.test(page), "R1.5 unconditional verdict wording remains");
   expect(!/strongest decks it can find/.test(page), "R1.5 'strongest decks' wording remains");
-  expect(/highest-scoring options under this model/.test(page), "R1.5 neutral no-pick wording missing");
+  expect(d.querySelector("#seed-hint").hidden, "R1.5 the no-pick hint under the slots is back");
   const decks = [...d.querySelectorAll(".deck")];
   decks.forEach((el, i) => {
     const x = ranked.explain(want[i].entries);
@@ -143,7 +143,7 @@ const decksShown = (d) => d.querySelectorAll(".deck h3").length;
   expect(/Ranked/.test(out.rapid.facts) && !/Trophy Road/.test(out.rapid.facts), "R1.3 slow earlier mode load drew over the newer choice");
   expect(/^#ranked~~28000015b~g$/.test(out.rapid.hash), "R1.3 valid pick lost across mode switches");
   const keyOfHref = (a) => deckKey(a.getAttribute("href").split("#")[1].split("~")[1].split("-").map((x) => ({ id: Number(x.slice(0, -1)), form: { b: "base", e: "evo", h: "hero" }[x.slice(-1)] })));
-  const wantR = ranked.complete([{ id: 28000015, form: "base" }]).map((x) => x.key);
+  const wantR = ranked.complete([{ id: 28000015, form: "base" }], { strict: true }).map((x) => x.key);
   expect(JSON.stringify([...d.querySelectorAll(".deck a.btn.primary")].map(keyOfHref)) === JSON.stringify(wantR), "R1.3 shown decks are not Ranked's decks for the kept pick");
 
   // R1.3 removal announced when a pick isn't available in the new mode

@@ -86,11 +86,12 @@ function clean(name, p) {
   expect(d.querySelector("#groupsel") && !d.querySelector("#groupsel").closest("details"), "modebar: league list hidden in the disclosure");
 
   // ------------------------------------------------------------ builder picker: definitions, example, clear
-  expect(/Troops|troops/.test(text(d.querySelector("#typedef"))), "picker: no type definition");
+  expect(d.querySelector("#typedef").hidden, "picker: 'All' shows a type definition");
   d.querySelector('[data-type="spell"]').click(); await wait(20);
-  expect(/^Spells /.test(text(d.querySelector("#typedef"))), "picker: type definition doesn't follow the filter");
+  expect(/^Spells /.test(text(d.querySelector("#typedef"))) && !d.querySelector("#typedef").hidden, "picker: type definition doesn't follow the filter");
   d.querySelector('[data-type="all"]').click(); await wait(20);
-  expect(/Evolution slot takes an Evolution/.test(text(d.querySelector("#formdef"))) && /Wild slot takes/.test(text(d.querySelector("#formdef"))), "picker: form definition not from the rules");
+  expect(d.querySelector("#formdef").hidden, "picker: form explanation shown where every form is unlocked");
+  expect(!/A Clash Royale deck contains eight cards/.test(text(d.body)), "picker: removed intro is back");
   // the example: the most-played usable card form, computed from the export
   const mcg = Number(load("ranked").config.search.min_card_games), fg = load("ranked").strength.feature_games;
   let want = null;

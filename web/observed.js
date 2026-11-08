@@ -35,10 +35,11 @@
   //   no_match           no pool deck contains every pick
   //   few                fewer diverse decks than asked for (never padded)
   //   ok
-  function observedDecks(E, seeds) {
+  // opts.strict: only decks passing E.suggestionRule count; if none does, the unfiltered ones with out.strict = false
+  function observedDecks(E, seeds, opts = {}) {
     const sc = E.cfg.search, n = Number(sc.n_results), minDiff = Number(sc.min_diff_cards);
     const pool = E.counterPool();
-    const out = { state: "ok", decks: [], poolSize: pool.length, matching: 0, minBattles: E.m.matchup ? E.m.matchup.pool_min_battles : null, wanted: n };
+    const out = { state: "ok", decks: [], poolSize: pool.length, matching: 0, minBattles: E.m.matchup ? E.m.matchup.pool_min_battles : null, wanted: n, strict: null };
     if (!pool.length) { out.state = "no_pool"; return out; }
     if (!E.m.hero_observable && seeds.some((s) => s.form === "hero")) { out.state = "hero_unobservable"; return out; }
     const seedKeys = seeds.map(CRDeck.keyOf);
@@ -47,7 +48,12 @@
       E._obsRows = pool.filter((p) => E.checkDeck(p.entries).legal && p.entries.every((e) => E.isAvailable(e)))
         .map((p) => ({ key: p.key, played: p.played, entries: p.entries, objective: null }));
     }
-    const cand = E._obsRows.filter((r) => { const ks = new Set(r.key.split("|")); return seedKeys.every((k) => ks.has(k)); });
+    let cand = E._obsRows.filter((r) => { const ks = new Set(r.key.split("|")); return seedKeys.every((k) => ks.has(k)); });
+    if (opts.strict && seeds.length < E.m.rules.deck_size && cand.length) {
+      const rule = E.suggestionRule(seeds), ok = cand.filter((r) => rule.full(r.entries));
+      out.strict = ok.length > 0; out.dropped = cand.length - ok.length;
+      if (ok.length) cand = ok;
+    }
     for (const r of cand) if (r.objective === null) { r.ev = E.evaluate(r.entries); r.objective = r.ev.objective; }
     const res = select(cand, seedKeys, n, minDiff);
     out.matching = res.matching;

@@ -20,6 +20,9 @@
   const tie = (x) => Math.floor(x * 1e10 + 0.5); // crdeck.embedding.tie
   const UNCERTAIN = "HYBRID / UNCERTAIN";
   const NO_LABELS = "NO_LABELS";
+  // warnings a suggested deck may not carry in strict mode (Engine.suggestionRule); the rest stay warnings. Two tanks is
+  // judged by suggestionRule's own count, so picking two tanks yourself still gets suggestions
+  const STRICT_CODES = new Set(["NO_WIN_CONDITION", "NO_AIR_DEFENSE", "NO_SPELL", "NO_TANK_ANSWER", "ELIXIR_HIGH", "ELIXIR_LOW"]);
   const GROUP_TITLES = {
     win_condition: "No way to pressure towers",
     air: "Weak against air (Balloon, Lava Hound, air swarms)",
@@ -265,6 +268,19 @@
       return { objective: d.objective, formula: `meta_win_prob + ${this.weight} * mean_pair_synergy + ${this.coWeight} * mean_log_lift`,
                meta_win_prob: d.win_prob, mean_pair_synergy: d.mean_synergy, scored_pairs: d.n_scored_pairs, mean_log_lift: d.mean_log_lift };
     }
+    // Web only, stricter than the warnings: what a suggested deck must pass (the Python search has no such filter).
+    // At most one tank (or as many as the picks already hold), a win condition, a spell, air defense, an answer to
+    // tanks, and an average elixir inside the warning limits. `partial` prunes the search early; `full` judges a deck.
+    suggestionRule(seeds) {
+      const tanks = (es) => es.filter((e) => { const c = this.card(e.id); return c && c.roles.includes("tank"); }).length;
+      const maxTanks = Math.max(1, tanks(seeds));
+      return {
+        maxTanks,
+        partial: (es) => tanks(es) <= maxTanks,
+        full: (es) => tanks(es) <= maxTanks && !this.structuralWarnings(es).some((w) => STRICT_CODES.has(w.code)),
+      };
+    }
+    // opts.strict: suggestions must pass suggestionRule; if none can, the unfiltered ones come back with .strict = false
     complete(seeds, opts = {}) {
       const sc = this.cfg.search, nResults = opts.n_results || Number(sc.n_results), width = opts.beam_width || Number(sc.beam_width);
       const size = this.m.rules.deck_size;
@@ -276,6 +292,7 @@
       if (locked.length) throw new SeedError(`not unlocked in ${this.m.availability.arena}: ${locked.join("; ")}`);
       const res = this.checkPartial(seeds);
       if (!res.legal) throw new SeedError("seed cards cannot form a legal deck: " + res.details.join("; "));
+      const rule = opts.strict && seeds.length < size ? this.suggestionRule(seeds) : null;
       const perParent = Math.max(2, Math.floor(width / Number(sc.beam_parents_min || 10)));
       let beam = seeds.length ? [this.evaluate(seeds)] : [{ entries: [], key: "", objective: 0, win_prob: 0, mean_synergy: 0, n_scored_pairs: 0, mean_log_lift: 0 }];
       let nxt = seeds.length === size ? beam.slice() : [];
@@ -290,6 +307,7 @@
             if (seen.has(k)) continue;
             seen.add(k);
             if (!this.checkPartial(ne).legal) continue;
+            if (rule && !rule.partial(ne)) continue;
             children.push([pi, this.evaluate(ne)]);
           }
         });
@@ -305,6 +323,8 @@
       let final = nxt.filter((d) => this.checkDeck(d.entries).legal);
       if (sc.require_win_condition) final = final.filter((d) => this.hasWinCondition(d.entries));
       if (!final.length) throw new SeedError("search produced no legal deck satisfying the hard filters");
+      let strict = rule ? true : null;
+      if (rule) { const ok = final.filter((d) => rule.full(d.entries)); if (ok.length) final = ok; else strict = false; }
       const chosen = [], minDiff = Number(sc.min_diff_cards);
       for (const d of final) {
         const ids = new Set(d.entries.map((e) => e.id));
@@ -312,6 +332,7 @@
         if (chosen.length === nResults) break;
       }
       for (const d of chosen) if (!this.checkDeck(d.entries).legal) throw new Error("search produced an illegal deck");
+      chosen.strict = strict;
       return chosen;
     }
     swaps(entries, opts = {}) {

@@ -86,6 +86,7 @@
 .compare table.nums td, .compare table.nums th { text-align: left; vertical-align: top; }
 .compare table.nums td { min-width: 150px; }
 .resnote { max-width: 75ch; }
+.strictline { grid-column: 1 / -1; max-width: 75ch; margin: 0; }
 </style>
 </head>
 <body>
@@ -95,8 +96,7 @@
   <main id="main" class="wrap">
     <div class="pagehead">
       <h1>Build a Clash Royale deck</h1>
-      <p class="lede">A Clash Royale deck contains eight cards. Choose the ones you want to keep, up to all eight, and crdeck suggests the rest using patterns from recorded battles. Pick all eight to check a deck you already play. Each suggestion shows what supports it, what to watch out for, and links to the full reasoning.</p>
-      <details class="more newbie" id="newbie"><summary>New to Clash Royale? Six terms in one minute</summary><div class="body" id="newbie-body"></div></details>
+      <details class="more newbie" id="newbie"><summary>New to Clash Royale? The basic terms</summary><div class="body" id="newbie-body"></div></details>
       <div class="modebar" id="modebar"></div>
       <div class="facts" id="facts"><span class="skel" style="width:320px"></span></div>
     </div>
@@ -105,7 +105,7 @@
       <section class="panel picker" aria-labelledby="pick-h">
         <h2 class="stephead" id="pick-h"><span class="n">1</span> Pick your cards</h2>
         <div class="seeds" id="seeds"></div>
-        <p class="muted small" id="seed-hint">Optional. With no cards picked, it shows the highest-scoring options under this model.</p>
+        <p class="muted small" id="seed-hint" hidden></p>
         <div class="pickact" id="pickact"></div>
         <p class="notice" id="seed-note" role="status" hidden></p>
         <a class="btn viewres" href="#res-h">See the suggested decks ↓</a>
@@ -113,8 +113,8 @@
           <label class="sr" for="q">Search cards</label>
           <input class="search" id="q" type="search" placeholder="Search cards" autocomplete="off">
           <div class="types" role="group" aria-label="Card type" id="types"></div>
-          <p class="muted small" id="typedef"></p>
-          <p class="muted small" id="formdef"></p>
+          <p class="muted small" id="typedef" hidden></p>
+          <p class="muted small" id="formdef" hidden></p>
         </div>
         <div class="cardlist" id="cardlist" aria-label="Cards to pick"></div>
       </section>
@@ -151,14 +151,13 @@
   const TYPES = [["all", "All"], ["troop", "Troops"], ["spell", "Spells"], ["building", "Buildings"]];
   // short definitions shown under the type filter (visible text, not a hover)
   const TYPE_DEF = {
-    all: "All card types. Troops move and fight, spells take effect where you cast them, buildings stay where you place them.",
     troop: "Troops are units that move and fight on their own after you place them. Champions are troops too.",
     spell: "Spells are cast on a spot of the arena and take effect there, often as area damage.",
     building: "Buildings are placed on your own side and stay there: they defend, produce troops or attack towers from range.",
   };
   const FORM_ORDER = { base: 0, evo: 1, hero: 2 };
   // source: "observed" (real decks from the mode's pool, the default) or "generated" (the beam search, experimental)
-  let ctx = null, E = null, seeds = null, decks = [], loaded = false, source = null, obs = null;
+  let ctx = null, E = null, seeds = null, decks = [], loaded = false, source = null, obs = null, strictInfo = null;
   const view = { type: "all", q: "" };
   const RESNOTE = $("#resnote").textContent;
   let timer = 0;
@@ -231,15 +230,14 @@
   // ------------------------------------------------------------ picker
   function renderTypes() {
     $("#types").innerHTML = TYPES.map(([k, l]) => `<button class="chip" data-type="${k}" aria-pressed="${view.type === k}">${l}</button>`).join("");
-    $("#typedef").textContent = TYPE_DEF[view.type];
+    $("#typedef").textContent = TYPE_DEF[view.type] || "";
+    $("#typedef").hidden = !TYPE_DEF[view.type];
   }
-  // what Base, EVO and HERO mean here, with the special slots read from this mode's rules and unlocks
+  // only said when it limits the list: an arena where Evolutions and Heroes aren't unlocked yet
   function renderFormDef() {
-    const r = E.m.rules, av = E.m.availability, word = { evo: "Evolution", hero: "Hero", wild: "Wild" }, kind = { evo: "an Evolution", hero: "a Hero", champion: "a Champion" };
-    const slots = r.special_slots.filter((s) => !av || av.slots.includes(s.name));
-    $("#formdef").textContent = slots.length
-      ? `Base is a card's normal form. EVO (Evolution) and HERO mark stronger forms of some cards, listed as their own entries; each needs a special slot: ${slots.map((s) => `the ${word[s.name]} slot takes ${s.accepts.map((k) => kind[k]).join(" or ")}`).join("; ")}.`
-      : `Only base forms here: Evolutions and Heroes aren't unlocked in ${av ? av.arena : "this mode"}.`;
+    const av = E.m.availability, slots = E.m.rules.special_slots.filter((s) => !av || av.slots.includes(s.name));
+    $("#formdef").textContent = slots.length ? "" : `Only base forms here: Evolutions and Heroes aren't unlocked in ${av ? av.arena : "this mode"}.`;
+    $("#formdef").hidden = !!slots.length;
   }
   $("#types").onclick = (ev) => { const b = ev.target.closest("[data-type]"); if (!b) return; view.type = b.dataset.type; renderTypes(); renderCards(); };
   $("#q").addEventListener("input", (ev) => { view.q = ev.target.value; renderCards(); });
@@ -298,7 +296,8 @@
     const free = maxPicks() - seeds.length;
     if (free > 0) rows.push(`<div class="seed"><span class="emp">${seeds.length ? `${free} of ${maxPicks()} slots free` : `No cards picked. You can pick up to ${maxPicks()}.`}</span></div>`);
     $("#seeds").innerHTML = rows.join("");
-    $("#seed-hint").textContent = !seeds.length ? "Optional. With no cards picked, it shows the highest-scoring options under this model."
+    $("#seed-hint").hidden = !seeds.length;
+    $("#seed-hint").textContent = !seeds.length ? ""
       : `${isFull() ? `All ${maxPicks()} slots used: that is a full deck, so it is scored as it is. ` : ""}Press × to remove a card, or switch its form.`;
     // Clear picks once something is picked; with nothing picked, an example pick to see how picking works
     $("#pickact").innerHTML = seeds.length ? `<button class="btn small" type="button" data-clear>Clear picks</button>`
@@ -348,21 +347,24 @@
         if (picks.length === eng.m.rules.deck_size) {
           // a full deck: nothing to add, so either source shows the picked deck itself (the search returns a full
           // set of picks as its own single result, with the same refusals), plus whether it is an observed deck
-          obs = null;
+          obs = null; strictInfo = null;
           const own = eng.complete(picks)[0], inPool = CRObserved.observedDecks(eng, picks).decks[0];
           decks = [{ entries: own.entries, source: "mine", played: inPool ? inPool.played : 0 }];
           renderDecks();
           $("#status").textContent = `Your ${picks.length} picks, scored as one deck.`;
         } else if (source === "generated") {
           obs = null;
-          decks = eng.complete(picks).map((d) => ({ entries: d.entries, source: "generated" }));
+          const got = eng.complete(picks, { strict: true });
+          strictInfo = { strict: got.strict, dropped: null };
+          decks = got.map((d) => ({ entries: d.entries, source: "generated" }));
           renderDecks();
           $("#status").textContent = `${decks.length} generated option${decks.length === 1 ? "" : "s"}${names ? " with " + names : ""}.`;
         } else {
           // the picks must be able to share a legal deck before the pool is searched (same refusal as the search)
           const chk = eng.checkPartial(picks);
           if (!chk.legal) throw new CRDeck.SeedError("seed cards cannot form a legal deck: " + chk.details.join("; "));
-          obs = CRObserved.observedDecks(eng, picks);
+          obs = CRObserved.observedDecks(eng, picks, { strict: true });
+          strictInfo = { strict: obs.strict, dropped: obs.dropped || 0 };
           decks = obs.decks.map((d) => ({ entries: d.entries, source: "observed", played: d.played }));
           renderDecks();
           $("#status").textContent = `${decks.length} observed deck${decks.length === 1 ? "" : "s"}${names ? " with " + names : ""}.`;
@@ -442,9 +444,16 @@
     </div></details>`;
   }
 
+  // suggestions pass Engine.suggestionRule; say what that rules out, or that nothing could pass it
+  function strictNote() {
+    if (!strictInfo || strictInfo.strict === null || !decks.length) return "";
+    const w = E.cfg.warnings, rules = `at most one tank, a win condition, a spell, air defense, an answer to tanks, and ${w.elixir_min} to ${w.elixir_max} average elixir`;
+    if (strictInfo.strict === false) return `<div class="panel obsnote" role="status"><b>No option with these picks passes every basic check.</b><span>Suggestions normally need ${rules}. None can with these cards, so the closest are shown with their warnings.</span></div>`;
+    return `<p class="muted small strictline">Every suggestion passes the basic checks: ${rules}.${strictInfo.dropped ? ` ${num(strictInfo.dropped)} real deck${strictInfo.dropped === 1 ? "" : "s"}${seeds.length ? " with your picks" : ""} failed them and ${strictInfo.dropped === 1 ? "is" : "are"} left out.` : ""}</p>`;
+  }
   function renderDecks() {
     const seedIds = new Set(seeds.map((s) => s.id)), rows = [];
-    $("#decks").innerHTML = observedNote() + generatedNote() + decks.map((dk, i) => {
+    $("#decks").innerHTML = strictNote() + observedNote() + generatedNote() + decks.map((dk, i) => {
       const entries = dk.entries;
       const x = E.explain(entries, E.objectiveDict(E.evaluate(entries)));
       const v = UI.verdict(x.score), a = x.archetype, label = ctx.entry.label;

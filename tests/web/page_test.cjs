@@ -84,7 +84,7 @@ function clean(name, d, errors) {
   // pick a 2nd and 3rd card, fill the deck to 8 (the user raised the limit from 3 to a full deck, 2026-10-29),
   // then a 9th (refused)
   const clickPick = (name) => [...d.querySelectorAll("#cardlist .pick")].find((b) => b.querySelector(".pn").textContent.trim() === name).click();
-  expect(/no cards picked/.test(out.index.hint), "index: starts with no picks");
+  expect(out.index.hint === "", "index: starts with no picks and no hint under the empty slots");
   clickPick("Hog Rider"); clickPick("Fireball"); clickPick("The Log");
   await until(() => !/Building/.test(d.querySelector("#status").textContent) && d.querySelectorAll(".deck h3").length === 3);
   out.index.hash3 = p.w.location.hash;
