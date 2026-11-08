@@ -91,9 +91,9 @@ const tok = (e) => `${e.id}${e.form[0]}`;
 
   // ---------------- builder UI
   const ranked = new Engine(load("ranked"));
-  const obs0 = CRObserved.observedDecks(ranked, [], { strict: true }).decks.map((x) => x.key);
+  const obs0 = CRObserved.observedDecks(ranked, [], { strict: true, n: 10 }).decks.map((x) => x.key);
   let p = await open("index.html", "ranked~~"), d = p.d;
-  await until(() => settled(d) && d.querySelectorAll(".deck .grid8").length === 3);
+  await until(() => settled(d) && d.querySelectorAll(".deck .grid8").length === obs0.length);
   out.defaultObserved = { keys: shownKeys(d), tags: [...d.querySelectorAll(".deck .tag")].map(text), pressed: text(d.querySelector('[data-src][aria-pressed="true"]')) };
   expect(JSON.stringify(out.defaultObserved.keys) === JSON.stringify(obs0), "R2.1 default builder doesn't show the observed selector's decks");
   expect(out.defaultObserved.tags.every((t) => t === "Observed deck") && out.defaultObserved.pressed === "Observed decks", "R2.4 default decks not labelled observed");
@@ -132,14 +132,14 @@ const tok = (e) => `${e.id}${e.form[0]}`;
   let fewSeed = null, fewSlug = null;
   for (const slug of ["ranked__master_iii", "ranked__champion", "trophy_road__goblin_stadium"]) {
     const eng = new Engine(load(slug));
-    for (const c of eng.candidates) { if (CRObserved.observedDecks(eng, [c], { strict: true }).state === "few") { fewSeed = c; fewSlug = slug; break; } }
+    for (const c of eng.candidates) { if (CRObserved.observedDecks(eng, [c], { strict: true, n: 10 }).state === "few") { fewSeed = c; fewSlug = slug; break; } }
     if (fewSeed) break;
   }
   if (fewSeed) {
     p = await open("index.html", `${fewSlug}~~${tok(fewSeed)}`); d = p.d;
     await until(() => settled(d) && !!d.querySelector(".obsnote"));
     out.few = { slug: fewSlug, seed: keyOf(fewSeed), note: text(d.querySelector(".obsnote")), decks: d.querySelectorAll(".deck .grid8").length };
-    expect(/Nothing was added/.test(out.few.note) && out.few.decks > 0 && out.few.decks < 3, "R2.3 'few' state not explained or padded");
+    expect(/Nothing was added/.test(out.few.note) && out.few.decks > 0 && out.few.decks < 10, "R2.3 'few' state not explained or padded");
   } else fails.push("R2.3 no single pick gives a 'few' state in the small-pool modes searched");
 
   // R2.3 / R2.5 a mode export without a pool: observed says so, generated still works

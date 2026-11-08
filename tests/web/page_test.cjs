@@ -10,6 +10,12 @@ const engine = fs.readFileSync(path.join(WEB, "engine.js"), "utf8");
 const common = fs.readFileSync(path.join(WEB, "common.js"), "utf8");
 const observed = fs.readFileSync(path.join(WEB, "observed.js"), "utf8"); // the builder's observed decks (Run 2)
 const learn = fs.readFileSync(path.join(WEB, "learn.js"), "utf8"); // worked examples on How it works and Usage trends (Run 4)
+// how many real decks the builder lists for these picks (it asks the observed selector for 10)
+const realCount = (slug, seeds) => {
+  const { Engine } = require(path.join(WEB, "engine.js")), CRObs = require(path.join(WEB, "observed.js"));
+  const E = new Engine(JSON.parse(fs.readFileSync(path.join(WEB, "models", slug + ".json"), "utf8")));
+  return CRObs.observedDecks(E, seeds, { strict: true, n: 10 }).decks.length;
+};
 const { deckKey } = require(path.join(WEB, "engine.js"));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const fails = [], out = {};
@@ -62,7 +68,7 @@ function clean(name, d, errors) {
   // ---------------- build page
   let p = await open("index.html");
   let { d } = p;
-  await until(() => d.querySelectorAll(".deck h3").length === 3 && !/Building|Loading/.test(d.querySelector("#status").textContent));
+  await until(() => d.querySelectorAll(".deck h3").length === realCount("ranked", []) && !/Building|Loading/.test(d.querySelector("#status").textContent));
   out.index = {
     title: d.title, modes: [...d.querySelectorAll("#modebar [data-slug]")].length, facts: d.querySelector("#facts").textContent.replace(/\s+/g, " ").trim(),
     decks: d.querySelectorAll(".deck h3").length, picks: d.querySelectorAll("#cardlist .pick").length, hint: d.querySelector("#seed-hint").textContent,
@@ -80,13 +86,14 @@ function clean(name, d, errors) {
   d.querySelector("#groupsort").value = "order"; d.querySelector("#groupsort").dispatchEvent(new p.w.Event("change"));
   expect(out.index.picks === 184, "index: 184 card forms in picker");
   expect([...d.querySelectorAll("#cardlist .pick")].filter((b) => /^Knight(\s|$)/.test(b.querySelector(".pn").textContent.trim())).length === 3, "index: Knight listed 3 times");
-  expect(out.index.links.length === 3 && out.index.links.every((h) => /^reason\.html#ranked~\d+[beh](-\d+[beh]){7}~$/.test(h)), "index: deck links carry the deck");
+  expect(out.index.links.length === realCount("ranked", []) && out.index.links.every((h) => /^reason\.html#ranked~\d+[beh](-\d+[beh]){7}~$/.test(h)), "index: deck links carry the deck");
   // pick a 2nd and 3rd card, fill the deck to 8 (the user raised the limit from 3 to a full deck, 2026-10-29),
   // then a 9th (refused)
   const clickPick = (name) => [...d.querySelectorAll("#cardlist .pick")].find((b) => b.querySelector(".pn").textContent.trim() === name).click();
   expect(out.index.hint === "", "index: starts with no picks and no hint under the empty slots");
   clickPick("Hog Rider"); clickPick("Fireball"); clickPick("The Log");
-  await until(() => !/Building/.test(d.querySelector("#status").textContent) && d.querySelectorAll(".deck h3").length === 3);
+  const three = [26000021, 28000000, 28000011].map((id) => ({ id, form: "base" }));
+  await until(() => !/Building/.test(d.querySelector("#status").textContent) && d.querySelectorAll(".deck h3").length === realCount("ranked", three));
   out.index.hash3 = p.w.location.hash;
   expect(/~26000021b-\d+b-\d+b$/.test(out.index.hash3), "index: picks saved in the link");
   ["Zap", "Musketeer", "Ice Spirit", "Skeletons", "Cannon"].forEach(clickPick); await wait(50); clickPick("Valkyrie");
@@ -97,7 +104,7 @@ function clean(name, d, errors) {
   expect(/~26000021b(-\d+b){7}$/.test(out.index.hash8), "index: all 8 picks saved in the link");
   // remove all picks
   while (d.querySelector("[data-rm]")) { d.querySelector("[data-rm]").click(); await wait(20); }
-  await until(() => !/Building/.test(d.querySelector("#status").textContent) && d.querySelectorAll(".deck h3").length === 3);
+  await until(() => !/Building/.test(d.querySelector("#status").textContent) && d.querySelectorAll(".deck h3").length === realCount("ranked", []));
   out.index.hashEmpty = p.w.location.hash;
   expect(out.index.hashEmpty === "#ranked~~", "index: empty picks saved");
   // three champions -> refused
@@ -205,7 +212,7 @@ function clean(name, d, errors) {
 
   // ---------------- a low arena: locked cards can't be picked, decks never use them
   p = await open("index.html", "trophy_road__bone_pit~~26000000e"); d = p.d;
-  await until(() => d.querySelectorAll(".deck h3").length === 3 && !/Building|Loading/.test(d.querySelector("#status").textContent));
+  await until(() => d.querySelectorAll(".deck h3").length === realCount("trophy_road__bone_pit", []) && !/Building|Loading/.test(d.querySelector("#status").textContent));
   const lockedBtns = [...d.querySelectorAll("#cardlist .pick.locked")], openBtns = [...d.querySelectorAll("#cardlist .pick:not(.locked)")];
   out.arena = { open: openBtns.length, locked: lockedBtns.length, head: (d.querySelector(".lockhead") || {}).textContent,
     linkNote: d.querySelector("#seed-note").textContent, firstLockedText: lockedBtns[0] && lockedBtns[0].querySelector(".pt").textContent };

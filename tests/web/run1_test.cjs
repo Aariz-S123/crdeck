@@ -43,6 +43,7 @@ async function until(fn, ms = 60000) { for (let t = 0; t < ms / 50; t++) { if (f
 const text = (el) => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
 const settled = (d) => !/Building|Loading/.test(text(d.querySelector("#status")));
 const decksShown = (d) => d.querySelectorAll(".deck h3").length;
+const REAL = 10; // real decks the builder lists with no picks (generated lists keep the search's 3)
 
 (async () => {
   const ranked = new Engine(JSON.parse(fs.readFileSync(path.join(WEB, "models", "ranked.json"), "utf8")));
@@ -97,7 +98,7 @@ const decksShown = (d) => d.querySelectorAll(".deck h3").length;
     return form === "base" ? n === name : n.startsWith(name) && n.includes(form === "evo" ? "EVO" : "HERO");
   });
   pickBtn("Hog Rider").click();
-  await until(() => settled(d) && decksShown(d) === 3);
+  await until(() => settled(d) && decksShown(d) === REAL);
   out.onePick = text(d.querySelector("#status"));
   expect(/Hog Rider/.test(out.onePick), "R1.2 one pick not reflected");
   ["Fireball", "The Log", "Zap", "Musketeer", "Ice Spirit", "Skeletons", "Cannon"].forEach((n) => pickBtn(n).click()); await wait(20);
@@ -124,7 +125,7 @@ const decksShown = (d) => d.querySelectorAll(".deck h3").length;
   const low = JSON.parse(fs.readFileSync(path.join(WEB, "modes.json"), "utf8")).modes.find((m) => m.slug === "trophy_road__bone_pit");
   if (low && low.status === "exported") {
     p = await open("index.html", "trophy_road__bone_pit~~"); d = p.d;
-    await until(() => settled(d) && decksShown(d) === 3, 90000);
+    await until(() => settled(d) && decksShown(d) === REAL, 90000);
     const lockedBtn = d.querySelector("#cardlist .pick.locked");
     lockedBtn.click();
     out.locked = text(d.querySelector("#seed-note"));
@@ -148,20 +149,20 @@ const decksShown = (d) => d.querySelectorAll(".deck h3").length;
 
   // R1.3 removal announced when a pick isn't available in the new mode
   p = await open("index.html", "trophy_road__bone_pit~~26000000e"); d = p.d;
-  await until(() => settled(d) && decksShown(d) === 3, 90000);
+  await until(() => settled(d) && decksShown(d) === REAL, 90000);
   out.removed = text(d.querySelector("#seed-note"));
   expect(/Left out because/.test(out.removed), "R1.3 removed pick not announced");
 
   // R1.4 malformed percent-encoding and junk card codes
   p = await open("index.html", "ranked~~26000021b-zz-%E0%A4%A"); d = p.d;
-  await until(() => settled(d) && decksShown(d) === 3);
+  await until(() => settled(d) && decksShown(d) === REAL);
   out.malformed = { note: text(d.querySelector("#link-note")), picks: d.querySelectorAll(".seed.filled").length };
   expect(/couldn't be read/.test(out.malformed.note) && out.malformed.picks === 1, "R1.4 malformed link crashed, lost the readable pick, or was not reported");
   expect(!p.errors.length, "R1.4 script errors on malformed link: " + p.errors.join(" | ").slice(0, 300));
 
   // R1.4 unknown mode vs missing model file
   p = await open("index.html", "no_such_mode~~"); d = p.d;
-  await until(() => settled(d) && decksShown(d) === 3);
+  await until(() => settled(d) && decksShown(d) === REAL);
   out.unknown = text(d.querySelector("#fallback-note"));
   expect(/wasn't recognized/.test(out.unknown), "R1.4 unknown mode not reported");
   p = await open("index.html", "trophy_road~~", { missing: ["models/trophy_road.json"] }); d = p.d;
@@ -171,12 +172,12 @@ const decksShown = (d) => d.querySelectorAll(".deck h3").length;
   expect(out.missing.chips === 3, "R1.4 configured modes hidden after a missing file");
   expect(/Technical details/.test(out.missing.msg), "R1.4 raw error not kept under technical details");
   d.querySelector('#modebar [data-slug="ranked"]').click();
-  await until(() => settled(d) && decksShown(d) === 3);
-  expect(decksShown(d) === 3, "R1.4 could not recover by picking another mode");
+  await until(() => settled(d) && decksShown(d) === REAL);
+  expect(decksShown(d) === REAL, "R1.4 could not recover by picking another mode");
 
   // R1.6 clipboard blocked: the list is shown selected
   p = await open("index.html", "ranked~~", { clipboard: false }); d = p.d;
-  await until(() => settled(d) && decksShown(d) === 3);
+  await until(() => settled(d) && decksShown(d) === REAL);
   d.querySelector("[data-copy]").click(); await wait(50);
   const fall = d.querySelector('[data-fall="0"] input');
   out.clipboard = fall ? fall.value : null;

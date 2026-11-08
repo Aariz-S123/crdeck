@@ -9,6 +9,12 @@ const WEB = path.join(__dirname, "..", "..", "web");
 const engine = fs.readFileSync(path.join(WEB, "engine.js"), "utf8");
 const common = fs.readFileSync(path.join(WEB, "common.js"), "utf8");
 const observed = fs.readFileSync(path.join(WEB, "observed.js"), "utf8"); // the builder's observed decks (Run 2)
+// how many real decks the builder lists with no picks in a mode (it asks the observed selector for 10)
+const realDecks = (slug) => {
+  const { Engine } = require(path.join(WEB, "engine.js")), CRObs = require(path.join(WEB, "observed.js"));
+  const E = new Engine(JSON.parse(fs.readFileSync(path.join(WEB, "models", slug + ".json"), "utf8")));
+  return CRObs.observedDecks(E, [], { strict: true, n: 10 }).decks.length;
+};
 const learn = fs.readFileSync(path.join(WEB, "learn.js"), "utf8"); // worked examples on How it works and Usage trends (Run 4)
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const problems = [];
@@ -77,7 +83,8 @@ function sanity(label, p) {
     let p = await open("index.html", m.slug);
     const ok = await until(() => p.d.querySelectorAll(".deck h3").length >= 1 && !/Building|Loading/.test(p.d.querySelector("#status").textContent));
     const decks = p.d.querySelectorAll(".deck h3").length, status = p.d.querySelector("#status").textContent;
-    if (!ok || decks !== 3) bad(`${m.slug}: build page shows ${decks} decks (${status || p.d.querySelector("#decks").textContent.trim().slice(0, 120)})`);
+    const want = realDecks(m.slug);
+    if (!ok || !want || decks !== want) bad(`${m.slug}: build page shows ${decks} decks, the observed selector lists ${want} (${status || p.d.querySelector("#decks").textContent.trim().slice(0, 120)})`);
     if (!p.d.querySelector("#facts").textContent.includes(m.label.split(": ").pop())) bad(`${m.slug}: facts do not name the mode`);
     const sel = p.d.querySelector("#groupsel");
     if (m.group && sel && sel.value !== m.slug) bad(`${m.slug}: picker does not show the current group (shows ${sel.value})`);

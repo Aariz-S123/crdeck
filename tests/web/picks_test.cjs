@@ -71,7 +71,7 @@ const linkDeck = (href) => deckKey(ents(decodeURIComponent(href).split("#")[1].s
 
   // ------------------------------------------------------------ picker: no picks, then one
   let p = await open("index.html", "ranked~~"), d = p.d;
-  await until(() => d.querySelectorAll(".deck h3").length === 3 && settled(d));
+  await until(() => d.querySelectorAll(".deck h3").length === observedDecks(Er, [], { strict: true, n: 10 }).decks.length && settled(d));
   out.empty = text(d.querySelector("#seeds"));
   expect(d.querySelectorAll("#seeds .seed.filled").length === 0 && d.querySelectorAll("#seeds .seed").length === 1 && /No cards picked\. You can pick up to 8\./.test(out.empty), `picker: empty state is not one line naming the limit: ${out.empty}`);
   const card = (key) => d.querySelector(`#cardlist [data-key="${key}"]`);
@@ -152,7 +152,7 @@ const linkDeck = (href) => deckKey(ents(decodeURIComponent(href).split("#")[1].s
     clean(`${n} picks generated`, p);
     if (n === 5) {
       p = await open("index.html", `ranked~~${tok(seeds)}`); d = p.d;
-      const ob = observedDecks(Er, seeds, { strict: true }).decks.map((x) => x.key);
+      const ob = observedDecks(Er, seeds, { strict: true, n: 10 }).decks.map((x) => x.key);
       await until(() => settled(d) && d.querySelectorAll(".deck h3").length === ob.length, 90000);
       const gotObs = [...d.querySelectorAll(".deck a.btn.primary")].map((a) => linkDeck(a.getAttribute("href")));
       out.partial.observed_5 = gotObs.length;

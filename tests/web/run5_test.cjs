@@ -8,6 +8,7 @@ const { JSDOM, VirtualConsole } = require("jsdom");
 const WEB = path.join(__dirname, "..", "..", "web");
 const src = Object.fromEntries(["engine.js", "observed.js", "learn.js", "common.js"].map((f) => [f, fs.readFileSync(path.join(WEB, f), "utf8")]));
 const { Engine, deckKey, keyOf, parseKey, UNCERTAIN } = require(path.join(WEB, "engine.js"));
+const CRObserved = require(path.join(WEB, "observed.js"));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const fails = [], out = {};
 const expect = (c, m) => { if (!c) fails.push(m); };
@@ -116,7 +117,8 @@ function clean(name, p) {
   expect(q.value === "" && d.querySelectorAll("#cardlist .pick").length === 184, "picker: Clear the search didn't restore the list");
 
   // ------------------------------------------------------------ deck cards: style description, why it ranks here, compare
-  await until(() => d.querySelectorAll(".deck h3").length === 3 && settled(d));
+  const realTop = CRObserved.observedDecks(Er, [], { strict: true, n: 10 }).decks;
+  await until(() => d.querySelectorAll(".deck h3").length === realTop.length && settled(d));
   const decks = [...d.querySelectorAll(".deck")];
   const keys = decks.map((dk) => ents(dk.querySelector("a.btn.primary").getAttribute("href").split("#")[1].split("~")[1]));
   decks.forEach((dk, i) => {
@@ -139,13 +141,40 @@ function clean(name, p) {
   expect(cmp && cmp.tagName === "DETAILS" && !cmp.closest(".deck"), "compare: no comparison view");
   if (cmp) {
     const sets = keys.map((k) => new Set(k.map(keyOf))), shared = [...sets[0]].filter((k) => sets.every((s) => s.has(k)));
-    const row = [...cmp.querySelectorAll("tbody tr")].find((r) => /In every option/.test(text(r.querySelector("th"))));
     const want = shared.length ? shared.map((k) => Er.describe(parseKey(k))).join(", ") : "no card is in all of them";
-    expect(row && text(row.querySelector("td")) === want, `compare: shared cards wrong (${row && text(row.querySelector("td"))} vs ${want})`);
-    const est = [...cmp.querySelectorAll("tbody tr")].find((r) => /Estimated wins/.test(text(r.querySelector("th"))));
-    keys.forEach((k, i) => expect(est && text(est.querySelectorAll("td")[i]).startsWith((100 * Er.score(k).win_prob).toFixed(1) + "%"), `compare: option ${i + 1} estimate differs`));
+    expect(text(cmp.querySelector("#cmp-shared")) === want, `compare: shared cards wrong (${text(cmp.querySelector("#cmp-shared"))} vs ${want})`);
+    const rows = [...cmp.querySelectorAll("tbody tr")];
+    expect(rows.length === keys.length, `compare: ${rows.length} rows for ${keys.length} options`);
+    keys.forEach((k, i) => expect(rows[i] && text(rows[i].querySelector("th")) === `Option ${i + 1}` && text(rows[i].querySelector("td.est")).startsWith((100 * Er.score(k).win_prob).toFixed(1) + "%"), `compare: option ${i + 1} estimate differs`));
     expect(/No option is called the best/.test(text(cmp)) && !/\bwinner\b|\bbest option\b/i.test(text(cmp).replace("No option is called the best", "")), "compare: declares a winner");
   }
+
+  // ------------------------------------------------------------ ten real decks: six shown, the rest on request
+  const visible = () => [...d.querySelectorAll(".deck")].filter((el) => !el.hidden).length;
+  expect(realTop.length === 10 && visible() === 6, `more decks: ${visible()} of ${realTop.length} shown at first, expected 6 of 10`);
+  const moreBtn = d.querySelector("[data-more]");
+  expect(moreBtn && text(moreBtn) === "Show 4 more decks", `more decks: button reads '${text(moreBtn)}'`);
+  if (moreBtn) {
+    moreBtn.click(); await wait(20);
+    expect(visible() === 10 && !d.querySelector("[data-more]"), "more decks: the button didn't show the rest");
+    expect(d.activeElement === d.querySelectorAll(".deck h3")[6], "more decks: focus didn't move to the first new deck");
+  }
+  // the held-out line: the same top 10 and pool, pooled test-window records
+  await until(() => d.querySelector("#heldout") && !d.querySelector("#heldout").hidden);
+  const rec = load("ranked").test_deck_records, recOf = (es) => rec[deckKey(es)] || [0, 0];
+  const sumOf = (list) => list.reduce((a, x) => { const r = recOf(x.entries); return [a[0] + r[0], a[1] + r[1]]; }, [0, 0]);
+  const [hoGames, hoWins] = sumOf(realTop);
+  const poolAll = Er.counterPool().filter((x) => Er.checkDeck(x.entries).legal && x.entries.every((e) => Er.isAvailable(e)));
+  const [poolGames, poolWins] = sumOf(poolAll);
+  const ho = text(d.querySelector("#heldout"));
+  out.heldOut = ho;
+  expect(ho.includes(`won ${(100 * hoWins / hoGames).toFixed(1)}% of their ${hoGames.toLocaleString()} games`) && ho.includes(`together won ${(100 * poolWins / poolGames).toFixed(1)}%`) && /never trained on/.test(ho) && /Raw wins/.test(ho), `held-out line doesn't match the export: ${ho}`);
+  // generated decks: the search's own count, no show-more, no held-out line
+  d.querySelector('[data-src="generated"]').click();
+  await until(() => settled(d) && d.querySelectorAll(".deck h3").length === 3);
+  expect(!d.querySelector("[data-more]") && !d.querySelector("#heldout"), "generated decks: show-more or held-out line shown");
+  d.querySelector('[data-src="observed"]').click();
+  await until(() => settled(d) && d.querySelectorAll(".deck h3").length === realTop.length);
   expect(/top of many estimates/.test(text(d.querySelector("#resnote"))), "results: no selection-optimism note for both sources");
   clean("builder", p);
 

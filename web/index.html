@@ -84,9 +84,12 @@
 .rankwhy .body p { max-width: 75ch; }
 .compare { grid-column: 1 / -1; padding: var(--space-3) var(--space-4); }
 .compare table.nums td, .compare table.nums th { text-align: left; vertical-align: top; }
-.compare table.nums td { min-width: 150px; }
+.compare table.nums td { min-width: 84px; }
+.compare table.nums td.est { min-width: 120px; }
+.compare table.nums td.wide { min-width: 190px; }
 .resnote { max-width: 75ch; }
 .strictline { grid-column: 1 / -1; max-width: 75ch; margin: 0; }
+.moredecks { grid-column: 1 / -1; display: flex; justify-content: center; }
 </style>
 </head>
 <body>
@@ -156,8 +159,12 @@
     building: "Buildings are placed on your own side and stay there: they defend, produce troops or attack towers from range.",
   };
   const FORM_ORDER = { base: 0, evo: 1, hero: 2 };
+  // real decks listed: a held-out check backs this depth (heldOutLine says how it did in each mode); generated decks
+  // keep the search's own count, since nobody has played most of them. The first SHOW_FIRST show, the rest on request.
+  const REAL_RESULTS = 10, SHOW_FIRST = 6, MIN_CHECK_GAMES = 200, Z90 = 1.6448536269514722;
+  const heldOutCache = new WeakMap();
   // source: "observed" (real decks from the mode's pool, the default) or "generated" (the beam search, experimental)
-  let ctx = null, E = null, seeds = null, decks = [], loaded = false, source = null, obs = null, strictInfo = null;
+  let ctx = null, E = null, seeds = null, decks = [], loaded = false, source = null, obs = null, strictInfo = null, showAll = false;
   const view = { type: "all", q: "" };
   const RESNOTE = $("#resnote").textContent;
   let timer = 0;
@@ -340,6 +347,7 @@
     clearTimeout(timer);
     const mine = ++buildNo, eng = E, picks = seeds.slice();
     $("#status").textContent = "Building decks…";
+    showAll = false;
     setTimeout(() => {
       if (mine !== buildNo || eng !== E) return;
       try {
@@ -363,7 +371,7 @@
           // the picks must be able to share a legal deck before the pool is searched (same refusal as the search)
           const chk = eng.checkPartial(picks);
           if (!chk.legal) throw new CRDeck.SeedError("seed cards cannot form a legal deck: " + chk.details.join("; "));
-          obs = CRObserved.observedDecks(eng, picks, { strict: true });
+          obs = CRObserved.observedDecks(eng, picks, { strict: true, n: REAL_RESULTS });
           strictInfo = { strict: obs.strict, dropped: obs.dropped || 0 };
           decks = obs.decks.map((d) => ({ entries: d.entries, source: "observed", played: d.played }));
           renderDecks();
@@ -400,7 +408,7 @@
     const gen = `<button class="btn" type="button" data-gen>Show generated decks · experimental</button>`;
     const picks = seeds.map((s) => E.describe(s)).join(", ");
     const pool = `The pool holds ${num(obs.poolSize)} decks, each played at least ${num(obs.minBattles)} times in this mode's training battles and legal here; big modes keep only the most played. A deck missing from it may still have been played.`;
-    if (obs.state === "few") return `<div class="panel obsnote" role="status"><b>Only ${obs.decks.length} observed deck${obs.decks.length === 1 ? "" : "s"} fit.</b>
+    if (obs.state === "few") return `<div class="panel obsnote" role="status"><b>${obs.decks.length < 3 ? "Only " : ""}${obs.decks.length} observed deck${obs.decks.length === 1 ? "" : "s"} fit.</b>
       <span>${obs.matching === obs.decks.length ? `Only ${num(obs.matching)} pool deck${obs.matching === 1 ? " holds" : "s hold"} ${esc(picks || "your picks")}.`
         : `${num(obs.matching)} pool decks hold ${esc(picks || "your picks")}, but only ${obs.decks.length} differ from each other by at least ${num(E.cfg.search.min_diff_cards)} cards.`} Nothing was added to fill the space.</span>${gen}</div>`;
     const [head, body] = obs.state === "no_pool" ? ["No observed decks in this mode.", "This mode's export has no real-deck pool, so there are no observed options here."]
@@ -418,8 +426,9 @@
     return `<div class="panel obsnote" role="status"><b>Only one generated option.</b><span>Options must differ from each other by at least ${num(minDiff)} cards. With ${free} free slot${free === 1 ? "" : "s"}, any two completions of your picks differ by at most ${free}, so only the highest-scoring one is shown.</span></div>`;
   }
 
-  // Side-by-side view of the options: shared and different cards, elixir, warnings, support and estimates.
-  // It never names a winner: the estimates share one model, and overlapping ranges are not a clear difference.
+  // Side-by-side view of the options, one row each: source, style, the cards not in every option, elixir, warnings,
+  // test record and estimate. It never names a winner: the estimates share one model, and overlapping ranges are not
+  // a clear difference.
   function compareHtml(xs) {
     if (xs.length < 2) return "";
     const keySets = xs.map(({ x }) => new Set(x.entries.map(CRDeck.keyOf)));
@@ -427,21 +436,59 @@
     const nm = (k) => esc(E.describe(CRDeck.parseKey(k)));
     const ranges = xs.map(({ x }) => x.score.interval);
     const overlapAll = ranges.every((a, i) => ranges.every((b, j) => i === j || (a[0] <= b[1] && b[0] <= a[1])));
-    const row = (head, cells) => `<tr><th scope="row">${head}</th>${cells.map((c) => `<td>${c}</td>`).join("")}</tr>`;
     return `<details class="panel more compare" id="compare"><summary>Compare the ${xs.length} options side by side</summary><div class="body">
-      <div class="tblwrap"><table class="nums"><caption class="sr">The options compared</caption>
-        <thead><tr><th scope="col"><span class="sr">Measure</span></th>${xs.map((_, i) => `<th scope="col">Option ${i + 1}</th>`).join("")}</tr></thead><tbody>
-        ${row("Source", xs.map(({ dk }) => (dk.source === "observed" ? `Observed deck (${num(dk.played)} training uses)` : "Generated · experimental")))}
-        ${row("Predicted style", xs.map(({ x }) => esc(x.archetype.label === CRDeck.NO_LABELS ? "n/a" : UI.archName(x.archetype))))}
-        <tr><th scope="row">In every option</th><td colspan="${xs.length}">${shared.length ? shared.map(nm).join(", ") : "no card is in all of them"}</td></tr>
-        ${row("Its other cards", keySets.map((s) => [...s].filter((k) => !shared.includes(k)).map(nm).join(", ")))}
-        ${row("Average elixir", xs.map(({ x }) => (x.avg_elixir === null ? "n/a" : x.avg_elixir.toFixed(1))))}
-        ${row("Warnings", xs.map(({ x }) => (x.warnings.length ? x.warnings.map((g) => esc(g.root_cause)).join("; ") : "none")))}
-        ${row("Exact-deck test record", xs.map(({ s }) => (s.games ? `won ${num(s.wins)} of ${num(s.games)}` : "no records (not zero wins)")))}
-        ${row("Estimated wins, 90% model range", xs.map(({ x }) => `${pct(x.score.meta_win_prob)} (${pct(x.score.interval[0])} to ${pct(x.score.interval[1])})`))}
+      <p class="plain small"><b>In every option:</b> <span id="cmp-shared">${shared.length ? shared.map(nm).join(", ") : "no card is in all of them"}</span></p>
+      <div class="tblwrap"><table class="nums"><caption class="sr">The options compared, one row each</caption>
+        <thead><tr><th scope="col">Option</th><th scope="col">Estimated wins, 90% model range</th><th scope="col">Exact-deck test record</th><th scope="col">Warnings</th><th scope="col">Average elixir</th><th scope="col">Predicted style</th><th scope="col">Source</th><th scope="col">Its other cards</th></tr></thead>
+        <tbody>${xs.map(({ dk, x, s }, i) => `<tr><th scope="row">Option ${i + 1}</th>
+          <td class="est">${pct(x.score.meta_win_prob)} (${pct(x.score.interval[0])} to ${pct(x.score.interval[1])})</td>
+          <td>${s.games ? `won ${num(s.wins)} of ${num(s.games)}` : "no records (not zero wins)"}</td>
+          <td class="wide">${x.warnings.length ? x.warnings.map((g) => esc(g.root_cause)).join("; ") : "none"}</td>
+          <td>${x.avg_elixir === null ? "n/a" : x.avg_elixir.toFixed(1)}</td>
+          <td>${esc(x.archetype.label === CRDeck.NO_LABELS ? "n/a" : UI.archName(x.archetype))}</td>
+          <td>${dk.source === "observed" ? `Observed, ${num(dk.played)} training uses` : "Generated · experimental"}</td>
+          <td class="wide">${[...keySets[i]].filter((k) => !shared.includes(k)).map(nm).join(", ")}</td></tr>`).join("")}
       </tbody></table></div>
       <p class="muted small measure">No option is called the best. ${overlapAll ? "All the 90% model ranges overlap, so the estimates don't separate these decks clearly." : "Some 90% model ranges don't overlap, but every estimate comes from the same model, and picking the top of many estimates flatters all of them."} Warnings and the exact-deck records are often the more useful differences.</p>
     </div></details>`;
+  }
+
+  // How the real-deck ranking did on later battles the model never trained on: its top REAL_RESULTS with no picks,
+  // pooled, against every deck in the pool. Raw wins from the export's test-window records, once per mode.
+  function heldOut(eng) {
+    if (heldOutCache.has(eng)) return heldOutCache.get(eng);
+    const rec = eng.m.test_deck_records;
+    const key = (es) => CRDeck.deckKey(eng.m.hero_observable ? es : es.map((e) => (e.form === "hero" ? { id: e.id, form: "base" } : e)));
+    const sum = (list) => list.reduce((a, d) => { const r = rec[key(d.entries)] || [0, 0]; return [a[0] + r[0], a[1] + r[1]]; }, [0, 0]);
+    const top = CRObserved.observedDecks(eng, [], { strict: true, n: REAL_RESULTS }).decks;
+    const pool = eng.counterPool().filter((p) => eng.checkDeck(p.entries).legal && p.entries.every((e) => eng.isAvailable(e)));
+    const [games, wins] = sum(top), [allGames, allWins] = sum(pool);
+    const h = top.length ? { decks: top.length, games, wins, allGames, allWins } : null;
+    heldOutCache.set(eng, h);
+    return h;
+  }
+  // 90% Wilson range of a win share, as in Engine.calibration
+  function wilson(w, n) {
+    const p = w / n, den = 1 + Z90 * Z90 / n, c = (p + Z90 * Z90 / (2 * n)) / den, h = Z90 * Math.sqrt(p * (1 - p) / n + Z90 * Z90 / (4 * n * n)) / den;
+    return [Math.max(0, Math.min(c - h, p)), Math.min(1, Math.max(c + h, p))];
+  }
+  function heldOutHtml(h) {
+    if (!h) return "";
+    const tw = E.m.meta.test_window || [], span = tw.length === 2 ? `from ${UI.when(tw[0]).split(",")[0]} to ${UI.when(tw[1]).split(",")[0]}` : "in the test window";
+    if (h.games < MIN_CHECK_GAMES) return `<p class="muted small strictline" id="heldout">Too few later battles to check this ranking here: with no cards picked, its top ${num(h.decks)} real decks played ${num(h.games)} games ${span}, the battles the model never trained on (at least ${num(MIN_CHECK_GAMES)} are needed).</p>`;
+    const [lo, hi] = wilson(h.wins, h.games);
+    return `<p class="muted small strictline" id="heldout"><b>Checked against later battles:</b> with no cards picked, this ranking's top ${num(h.decks)} real decks won ${pct(h.wins / h.games)} of their ${num(h.games)} games ${span}, battles the model never trained on (90% range ${pct(lo)} to ${pct(hi)}). All the decks in the pool together won ${pct(h.allWins / h.allGames)}. Raw wins, not adjusted for player skill.</p>`;
+  }
+  // real-deck lists only; the first time in a mode it is worked out after the decks are drawn, so they never wait for it
+  function heldOutLine() {
+    if (source !== "observed" || !obs || !decks.length || isFull()) return "";
+    if (heldOutCache.has(E)) return heldOutHtml(heldOutCache.get(E));
+    const eng = E;
+    setTimeout(() => {
+      const h = heldOut(eng), el = $("#heldout");
+      if (eng === E && el) el.outerHTML = heldOutHtml(h) || "<span hidden></span>";
+    }, 0);
+    return `<p class="muted small strictline" id="heldout" hidden></p>`;
   }
 
   // suggestions pass Engine.suggestionRule; say what that rules out, or that nothing could pass it
@@ -453,7 +500,7 @@
   }
   function renderDecks() {
     const seedIds = new Set(seeds.map((s) => s.id)), rows = [];
-    $("#decks").innerHTML = strictNote() + observedNote() + generatedNote() + decks.map((dk, i) => {
+    const cards = decks.map((dk, i) => {
       const entries = dk.entries;
       const x = E.explain(entries, E.objectiveDict(E.evaluate(entries)));
       const v = UI.verdict(x.score), a = x.archetype, label = ctx.entry.label;
@@ -476,7 +523,7 @@
       const why = `<details class="more rankwhy"><summary>${mine ? "How its score is made" : "Why it ranks here"}</summary><div class="body small">
           <p>${mine ? `The builder's score for this deck, in score points: ${parts}. Suggested decks are ordered by this score.` : `Options are ordered by the builder's score, in score points: ${parts}.`} It is a ranking number, not a probability.</p>
           <p>${bp ? `Strongest card pair: ${esc(bp.pair)}, which won ${pct(bp.shrunk_wr)} of ${num(bp.games)} games together, ${bp.synergy > 0 ? "more" : "less"} than each card on its own predicts. That is a pattern in the battles, not proof that the pair causes wins.` : "No card pair here was played together often enough for a synergy score."}</p></div></details>`;
-      return `<article class="panel deck" aria-labelledby="dk${i}">
+      return `<article class="panel deck" aria-labelledby="dk${i}"${i >= SHOW_FIRST && !showAll ? " hidden" : ""}>
         <div class="deck-top"><span class="k">${mine ? "Your deck" : `Option ${i + 1}`}</span><div class="prov">${prov}</div>
           <h3 id="dk${i}">${a.label === CRDeck.NO_LABELS ? "Suggested deck" : `Predicted style: ${esc(UI.archName(a))}`}</h3>
           ${sd ? `<p class="small style-def">${esc(sd)} <span class="src rule">plain-language description, not model output</span></p>` : ""}
@@ -500,7 +547,10 @@
         </div>
         <div class="copyfall" data-fall="${i}" hidden></div>
       </article>`;
-    }).join("") + compareHtml(rows);
+    });
+    const rest = decks.length - SHOW_FIRST;
+    if (rest > 0 && !showAll) cards.splice(SHOW_FIRST, 0, `<div class="moredecks"><button class="btn" type="button" data-more>Show ${rest} more deck${rest === 1 ? "" : "s"}</button></div>`);
+    $("#decks").innerHTML = strictNote() + heldOutLine() + observedNote() + generatedNote() + cards.join("") + compareHtml(rows);
     // a deck the reader picked whole was not chosen as the top of many estimates, so that caution doesn't apply
     $("#resnote").textContent = decks.length === 1 && decks[0].source === "mine"
       ? "How to read the numbers: the estimate comes from a model that learns from recorded battle results; it doesn't play the game. The 90% range covers the model's own uncertainty. Your deck wasn't chosen as the top of many estimates, so it doesn't carry the optimism that suggested decks do. Its warnings and its exact-deck record matter as much as the estimate."
@@ -508,6 +558,16 @@
   }
   $("#decks").onclick = async (ev) => {
     if (ev.target.closest("[data-gen]")) { source = "generated"; renderSource(); saveLink(); build(); return; }
+    const more = ev.target.closest("[data-more]");
+    if (more) {
+      showAll = true;
+      const shown = [...$("#decks").querySelectorAll(".deck[hidden]")];
+      shown.forEach((el) => { el.hidden = false; });
+      more.parentElement.remove();
+      // keyboard and screen-reader users land on the first deck that just appeared
+      if (shown.length) { const h = shown[0].querySelector("h3"); h.tabIndex = -1; h.focus(); }
+      return;
+    }
     const t = ev.target.closest("[data-copy]"); if (!t) return;
     const text = decks[Number(t.dataset.copy)].entries.map((e) => E.describe(e)).join(", ");
     try {

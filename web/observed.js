@@ -35,9 +35,10 @@
   //   no_match           no pool deck contains every pick
   //   few                fewer diverse decks than asked for (never padded)
   //   ok
-  // opts.strict: only decks passing E.suggestionRule count; if none does, the unfiltered ones with out.strict = false
+  // opts.strict: only decks passing E.suggestionRule count; if none does, the unfiltered ones with out.strict = false.
+  // opts.n: how many decks to list (default: the search's n_results)
   function observedDecks(E, seeds, opts = {}) {
-    const sc = E.cfg.search, n = Number(sc.n_results), minDiff = Number(sc.min_diff_cards);
+    const sc = E.cfg.search, n = Number(opts.n || sc.n_results), minDiff = Number(sc.min_diff_cards);
     const pool = E.counterPool();
     const out = { state: "ok", decks: [], poolSize: pool.length, matching: 0, minBattles: E.m.matchup ? E.m.matchup.pool_min_battles : null, wanted: n, strict: null };
     if (!pool.length) { out.state = "no_pool"; return out; }
