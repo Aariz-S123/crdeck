@@ -1,5 +1,5 @@
 """Builds web/future_meta.json: what makes a deck good, the usage forecast (TimesFM and Monte Carlo) and the decks to consider,
-each with its forward check. Design, fixed before any result: docs/future-meta/DESIGN.md.
+each with its forward check. Also web/future_paths.json: a sample of the live Monte Carlo runs, for the page's chart of single runs. Design, fixed before any result: docs/future-meta/DESIGN.md.
 
 It never touches data/interim, the exported models or their caches. Its own work is cached in data/processed/future_meta/, so a
 rerun after a new collection only computes what changed.
@@ -35,6 +35,8 @@ from crdeck.futuremeta import timesfm_runner as tf  # noqa: E402
 from crdeck.rules import parse_deck_key  # noqa: E402
 
 WEB = ROOT / "web"
+PATHS_SHOWN = 200   # live Monte Carlo runs kept per series and step for the page's chart of single runs
+PATHS_UNIT = 1e-4
 LOG_T0 = time.time()
 
 
@@ -99,7 +101,7 @@ def recommender(data, res_cards, models, styles, cfg, facts):
     by_origin = {org.index: org for org in res_cards["origins"]}
     quality_rows, frames, members_10, members_30, checks, correlations, picks = [], [], [], [], [], [], []
     live_rows, live_scored, gap = None, None, None
-    origins_used = []
+    origins_used, unrated = [], []
     for o in range(2, P + 1):
         if not by_origin[o].forecast:   # too few battles known at this origin: not a forecast time
             continue
@@ -121,6 +123,10 @@ def recommender(data, res_cards, models, styles, cfg, facts):
             opp = data.membership[np.argsort(-np.bincount(data.deck[data.period == o - 1], minlength=len(data.decks)), kind="stable")[:2000]]
             gap = dk.exact_field_gap(s.members[top], opp, W)
             continue
+        if side.empty:   # the next period has no battle with a known rating gap: no deck's games can be counted there
+            unrated.append(o)
+            log(f"origin {o}: its next period has no rated battles, so it is left out of the deck check")
+            continue
         origins_used.append(o)
         adj = dk.adjusted(side)
         lists10, lists30 = dk.lists_at(s, int(dc["top"]), int(dc["min_diff"])), dk.lists_at(s, int(dc["top_secondary"]), int(dc["min_diff"]))
@@ -134,7 +140,7 @@ def recommender(data, res_cards, models, styles, cfg, facts):
                                                                  "most_played": s.played_last.astype(float)}, s, adj, int(dc["min_games_range_check"]))})
         log(f"origin {o}: {len(s.decks)} candidates, tau {np.sqrt(s.tau2):.3f}, largest forecast effect {np.abs(s.mean - s.current).max() * 100:.3f} points")
     return {"quality_rows": pd.concat(quality_rows, ignore_index=True), "live_rows": live_rows, "live": live_scored, "frames": frames, "members_10": members_10,
-            "members_30": members_30, "checks": checks, "correlations": correlations, "gap": gap, "picks": picks, "origins": origins_used}
+            "members_30": members_30, "checks": checks, "correlations": correlations, "gap": gap, "picks": picks, "origins": origins_used, "unrated": unrated}
 
 
 def range_summary(checks: list[tuple]) -> dict:
@@ -160,9 +166,9 @@ def main() -> None:
     log("replicator statistics done")
     events = [e for e in cfg.get("events", []) if rp.event_shift(data, e) is not None]
     after = rp.after_event_mask(data, events)
-    res_cards = fc.run_family(data, card_family(data, cfg), cfg, forecaster, replicator, keep_sims=True)
+    res_cards = fc.run_family(data, card_family(data, cfg), cfg, forecaster, replicator, keep_sims=True, keep_paths=PATHS_SHOWN)
     log("card forecast done:", json.dumps(fc.gate(res_cards["rows"])))
-    res_styles = fc.run_family(data, style_family(data, styles, cfg), cfg, forecaster)
+    res_styles = fc.run_family(data, style_family(data, styles, cfg), cfg, forecaster, keep_paths=PATHS_SHOWN)
     log("style forecast done")
     models = {}
     for o in range(2, data.n_periods + 1):
@@ -210,12 +216,18 @@ def main() -> None:
         "forecast": {"cards": rp.family_json(res_cards, rp.since_event_shares(data, res_cards["family"].membership, after), history_range),
                      "styles": rp.family_json(res_styles, rp.since_event_shares(data, res_styles["family"].membership, after)), "decks": rp.family_json(res_decks)},
         "quality": {"targets": analyses, "transitions": int(rec["quality_rows"]["origin"].nunique())},
-        "recommend": {"check_top": check_10, "check_secondary": check_30, "origins": rec["origins"], "range_check": range_summary(rec["checks"]),
+        "recommend": {"check_top": check_10, "check_secondary": check_30, "origins": rec["origins"], "unrated_origins": rec["unrated"], "range_check": range_summary(rec["checks"]),
                       "rank_correlation": rec["correlations"], "field_gap": rec["gap"], "picks_estimate": dk.picks_estimate(rec["picks"]), "tau": float(np.sqrt(s.tau2)), "candidates": len(s.decks), "consider": consider, "popular": popular},
         "assumptions": [{"text": a, "test": b} for a, b in rp.ASSUMPTIONS],
     }
     target = WEB / "future_meta.json"
     target.write_text(json.dumps(rp.r(out), separators=(",", ":"), allow_nan=False), encoding="utf-8")
+    log("wrote", target, f"{target.stat().st_size // 1024} KB")
+    # written after, and stamped with, the main file: the page draws these runs only when both come from the same run
+    shown = {"written_at": out["written_at"], "shown": min(PATHS_SHOWN, int(cfg["forecast"]["runs"])), "runs": int(cfg["forecast"]["runs"]), "unit": PATHS_UNIT,
+             "cards": rp.paths_json(res_cards, PATHS_UNIT), "styles": rp.paths_json(res_styles, PATHS_UNIT)}
+    target = WEB / "future_paths.json"
+    target.write_text(json.dumps(shown, separators=(",", ":"), allow_nan=False), encoding="utf-8")
     log("wrote", target, f"{target.stat().st_size // 1024} KB")
 
 

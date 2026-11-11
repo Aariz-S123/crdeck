@@ -148,6 +148,17 @@ def family_json(res: dict, since_event: np.ndarray | None = None, history_range:
     return {"rows": rows, "summary": [summarize(rows, h) for h in (1, 2, 3)], "steps": steps, "series": series}
 
 
+def paths_json(res: dict, unit: float = 1e-4) -> dict:
+    """The kept sample of the live Monte Carlo runs, per forecast series: runs[series][step][run], in whole numbers of `unit`
+    (1e-4 is a hundredth of a share point). Each step's runs are drawn separately, so run 7 of step 1 and run 7 of step 2
+    are unrelated draws; the page says so wherever it joins them into a line."""
+    fam, live = res["family"], res["origins"][-1]
+    steps = sorted(live.forecast)
+    scored = np.flatnonzero(live.scored)
+    return {"keys": [fam.labels[k] for k in scored],
+            "runs": [[np.rint(live.forecast[h]["paths"][:, k] / unit).astype(int).tolist() for h in steps] for k in scored]}
+
+
 def deck_row(s: Scored, i: int, top_share: np.ndarray, styles: dict[str, str], sims: np.ndarray, models: dict, signal_row, keys: list[str], top_cards: int = 3) -> dict:
     """Everything the page shows for one deck: its estimate, why, and its record. All numbers come from this origin's data."""
     from .quality import explain

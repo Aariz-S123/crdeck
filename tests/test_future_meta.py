@@ -559,3 +559,34 @@ def test_the_exported_file_holds_no_player_tags():
     assert "#" not in text
     assert "player_tag" not in text
     json.loads(text)
+
+
+def test_kept_runs_are_the_first_runs_of_the_live_forecast_and_change_nothing_else():
+    data = built(periods=7)
+    plain = fc.run_family(data, family(data), CFG, persistence, keep_sims=True)
+    kept = fc.run_family(data, family(data), CFG, persistence, keep_sims=True, keep_paths=25)
+    assert plain["rows"] == kept["rows"]
+    live, before = kept["origins"][-1], kept["origins"][-2]
+    assert live.live and sorted(live.forecast) == [1, 2, 3]
+    assert all(f["paths"] is None for f in before.forecast.values())           # only the live forecast is drawn
+    assert all(f["paths"] is None for f in plain["origins"][-1].forecast.values())
+    assert np.array_equal(live.forecast[1]["paths"], live.forecast[1]["sims"][:25])
+    assert np.array_equal(plain["origins"][-1].forecast[1]["sims"], live.forecast[1]["sims"])
+    out = rp.paths_json(kept)
+    scored = np.flatnonzero(live.scored)
+    assert out["keys"] == [kept["family"].labels[k] for k in scored]
+    assert len(out["runs"]) == len(scored) and all(len(steps) == 3 and all(len(r) == 25 for r in steps) for steps in out["runs"])
+    assert np.allclose(np.array(out["runs"][0][1]) * 1e-4, live.forecast[2]["paths"][:, scored[0]], atol=5.1e-5)
+    json.dumps(out, allow_nan=False)
+
+
+def test_a_period_with_no_rated_battles_gives_no_target_rows_instead_of_failing():
+    data = built(periods=6)
+    b = data.battles
+    inside = (b["t"] > data.periods["start"].iloc[3]) & (b["t"] <= data.periods["end"].iloc[3])
+    assert inside.any()
+    b.loc[inside, "rating_diff"] = np.nan
+    side = dk.target_rows(data, 3)
+    assert side.empty and list(side.columns) == ["deck", "player", "y", "exp", "new"] and side["new"].dtype == bool
+    assert dk.adjusted(side).empty
+    assert not dk.target_rows(data, 4).empty

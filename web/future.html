@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="futures-explorer.css">
+<link rel="stylesheet" href="runs-chart.css">
 <link rel="stylesheet" href="vendor/katex/katex.min.css">
 <style>
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
@@ -73,6 +74,7 @@
 <script src="learn.js"></script>
 <script src="common.js"></script>
 <script src="futures-explorer.js"></script>
+<script src="runs-chart.js"></script>
 <script>
 (() => {
   "use strict";
@@ -305,6 +307,7 @@
     $("#body").innerHTML = [trustSection(), qualitySection(), forecastSection(), decksSection(), recordSection(), limitsSection()].join("");
     drawFans(); drawTarget(); drawDecks();
     if (window.FuturesExplorer) window.FuturesExplorer.mount(document);
+    if (window.RunsChart) window.RunsChart.mount({ F, keyName, styleName });
     document.addEventListener("click", onClick);
     const sel = $("#fancard");
     if (sel) sel.addEventListener("change", () => { extraCard = sel.value; drawFans(); });
@@ -424,6 +427,7 @@
     const styles = F.forecast.styles.series.slice().sort((a, b) => b.no_change - a.no_change);
     return `<section class="section" aria-labelledby="fc-h">
       <header><h2 id="fc-h">What may be played next</h2><p>Each chart shows how often a card or style appeared in each collection period, then a forecast for the next ${C.steps.length} steps of ${F.settings.hours_per_step} hours. <span class="src model">forecast</span></p></header>
+      ${window.RunsChart ? window.RunsChart.markup() : ""}
       ${window.FuturesExplorer ? window.FuturesExplorer.markup() : ""}
       <details class="more" open><summary>How the forecast works, with ${esc(keyName(top.key))} as the example</summary><div class="body">
         <ol class="steps">
@@ -593,7 +597,7 @@ win estimate = 1 / (1 + exp(−log-odds))`, true)}</pre>
         ${[["Card forms", C], ["Deck styles", F.forecast.styles], ["Single decks", F.forecast.decks]].map(([n, x]) => { const s = x.summary[0]; return `<tr><td>${esc(n)}</td><td>${s.mae.no_change.toFixed(3)}</td><td>${s.mae.last3_mean.toFixed(3)}</td><td>${s.mae.timesfm_hourly.toFixed(3)}</td><td>${s.beats_no_change.timesfm_hourly} of ${s.periods}</td><td>${s.coverage_90 === undefined ? "n/a" : pct(s.coverage_90, 0)}</td></tr>`; }).join("")}</tbody></table></div></div>
       ${F.data.skipped_origins.length ? `<p class="muted small">Not used as forecast times: ${list(F.data.skipped_origins.map((x) => `the end of P${x.origin} (only ${num(x.known_battles)} of its battles had been fetched by then)`))}. A real forecast wouldn't start from so little.</p>` : ""}
       <h3>Did the picks win in the next period?</h3>
-      <p class="plain">At each past period, each rule picked ${F.settings.top} decks using only what was known then. Then their real games in the next period were counted. <b>Adjusted win rate</b> is 50% plus wins beyond what the players' rating gap predicts, so it needs no deck model at all. The lead check uses <b>players new to that deck</b>, because they are in the same position as someone taking this advice. ${R.origins.length ? `Checked over ${plural(R.origins.length, "period", "periods")}.` : ""}</p>
+      <p class="plain">At each past period, each rule picked ${F.settings.top} decks using only what was known then. Then their real games in the next period were counted. <b>Adjusted win rate</b> is 50% plus wins beyond what the players' rating gap predicts, so it needs no deck model at all. The lead check uses <b>players new to that deck</b>, because they are in the same position as someone taking this advice. ${R.origins.length ? `Checked over ${plural(R.origins.length, "period", "periods")}.` : ""}${(R.unrated_origins || []).length ? ` Left out: ${list(R.unrated_origins.map((o) => `P${o + 1}`))}, where no battle log gave player ratings, so no deck's games could be counted.` : ""}</p>
       <div class="two">${checkChart("new_to_deck", "Players new to the deck")}${checkChart("all_players", "All players")}</div>
       <details class="more"><summary>The same check as tables, with differences and the top ${F.settings.top_secondary} version</summary><div class="body">
         <h4>Top ${F.settings.top}, players new to the deck</h4><div class="tblwrap">${verdictTable("new_to_deck")}</div>

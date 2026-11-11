@@ -163,9 +163,10 @@ def spread(q10: np.ndarray, q90: np.ndarray) -> np.ndarray:
 
 
 def run_family(data: RankedData, fam: Family, cfg: dict, forecaster: Callable[[list[Task]], list[tuple[np.ndarray, np.ndarray]]],
-               replicator: Callable[[int], np.ndarray] | None = None, keep_sims: bool = False) -> dict:
+               replicator: Callable[[int], np.ndarray] | None = None, keep_sims: bool = False, keep_paths: int = 0) -> dict:
     """Backtest every origin in time order, then the live forecast. `forecaster` takes Tasks and returns (point, quantile);
-    `replicator(o)` returns the existing Monte Carlo's [runs, series] simulated shares for period o."""
+    `replicator(o)` returns the existing Monte Carlo's [runs, series] simulated shares for period o. `keep_paths` keeps the first
+    that many runs of every step of the live forecast, to draw them; the runs are independent draws, so the first ones are a fair sample."""
     fc = cfg["forecast"]
     P, K, horizons = data.n_periods, len(fam.labels), int(fc["horizons"])
     all_mask = np.ones(len(data.deck), dtype=bool)
@@ -200,7 +201,8 @@ def run_family(data: RankedData, fam: Family, cfg: dict, forecaster: Callable[[l
             S = simulate(median, sigma, gamma, Z, idx, last, fam.total)
             org.forecast[t.horizon] = {"median": median, "q10": q10, "q90": q90, "gamma": gamma, "calibrated": calibrated, "sigma": sigma,
                                        "band": np.quantile(S, [0.05, 0.25, 0.5, 0.75, 0.95], axis=0),
-                                       "sims": S if keep_sims and t.horizon == 1 else None, "target": t}
+                                       "sims": S if keep_sims and t.horizon == 1 else None, "target": t,
+                                       "paths": S[:keep_paths].copy() if org.live and keep_paths else None}
             if t.period is None:
                 continue
             truth = actual[t.period]

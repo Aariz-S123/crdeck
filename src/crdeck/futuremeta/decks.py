@@ -246,9 +246,13 @@ def lists_at(s: Scored, top: int, min_diff: int) -> dict[str, list[str]]:
 
 def target_rows(data: RankedData, o: int) -> pd.DataFrame:
     """Sides of period o's OK battles with the rating-only expectation, and whether the player is new to that deck
-    (no earlier game with it, in any battle played before the origin)."""
+    (no earlier game with it, in any battle played before the origin). No rows when the period has no battle with a known
+    rating gap, as in the hours after the 2026-11-02 season start: nothing in it can be counted for or against a deck."""
     moment = data.periods["end"].iloc[o - 1]
     df = period_battles(data, [o])
+    if df.empty:
+        return pd.DataFrame({"deck": pd.Series(dtype=object), "player": pd.Series(dtype=object), "y": pd.Series(dtype=float),
+                             "exp": pd.Series(dtype=float), "new": pd.Series(dtype=bool)})
     rows = side_rows(df, rating_model(data, moment).predict_df(df))
     b = data.battles
     old = b[b["t"] <= moment]
