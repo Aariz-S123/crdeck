@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const { JSDOM, VirtualConsole } = require("jsdom");
 const WEB = path.join(__dirname, "..", "..", "web");
-const src = Object.fromEntries(["engine.js", "learn.js", "common.js"].map((f) => [f, fs.readFileSync(path.join(WEB, f), "utf8")]));
+const src = Object.fromEntries(["engine.js", "learn.js", "common.js", "futures-explorer.js"].map((f) => [f, fs.readFileSync(path.join(WEB, f), "utf8")]));
 const { Engine } = require(path.join(WEB, "engine.js"));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const fails = [], out = {};

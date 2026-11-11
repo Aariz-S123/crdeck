@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="futures-explorer.css">
 <link rel="stylesheet" href="vendor/katex/katex.min.css">
 <style>
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
@@ -71,6 +72,7 @@
 <script src="engine.js"></script>
 <script src="learn.js"></script>
 <script src="common.js"></script>
+<script src="futures-explorer.js"></script>
 <script>
 (() => {
   "use strict";
@@ -302,6 +304,7 @@
   function render() {
     $("#body").innerHTML = [trustSection(), qualitySection(), forecastSection(), decksSection(), recordSection(), limitsSection()].join("");
     drawFans(); drawTarget(); drawDecks();
+    if (window.FuturesExplorer) window.FuturesExplorer.mount(document);
     document.addEventListener("click", onClick);
     const sel = $("#fancard");
     if (sel) sel.addEventListener("change", () => { extraCard = sel.value; drawFans(); });
@@ -421,6 +424,7 @@
     const styles = F.forecast.styles.series.slice().sort((a, b) => b.no_change - a.no_change);
     return `<section class="section" aria-labelledby="fc-h">
       <header><h2 id="fc-h">What may be played next</h2><p>Each chart shows how often a card or style appeared in each collection period, then a forecast for the next ${C.steps.length} steps of ${F.settings.hours_per_step} hours. <span class="src model">forecast</span></p></header>
+      ${window.FuturesExplorer ? window.FuturesExplorer.markup() : ""}
       <details class="more" open><summary>How the forecast works, with ${esc(keyName(top.key))} as the example</summary><div class="body">
         <ol class="steps">
           <li><b>Count usage per hour.</b> ${esc(keyName(top.key))} was in ${pct(top.no_change)} of Ranked decks in the latest period.</li>
