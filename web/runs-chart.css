@@ -1,9 +1,19 @@
-/* The runs chart on the Future meta page (runs-chart.js). Colors come from app.css, so it follows the light and dark themes. */
+/* The runs chart on the Future meta page (runs-chart.js). Colors come from app.css, so it follows the light and dark themes.
+   Blue (--pos) is a run that ends above the share now, orange (--neg) one that ends below. */
 .runs { margin-block: var(--space-4); }
+.runs .runs-take { font-size: 1.0625rem; color: var(--ink); max-width: 72ch; }
+.runs-verdict { font-family: var(--display); font-size: 1.25rem; line-height: 1.25; }
+.runs-verdict.up, .runs .runs-take b.runs-up { color: var(--pos); }
+.runs-verdict.down, .runs .runs-take b.runs-down { color: var(--neg); }
 .runs-stage { min-width: 0; touch-action: pan-y; }
 .runs-stage svg { cursor: crosshair; }
-.runs-stage .run { fill: none; stroke: var(--elixir); stroke-width: 1; stroke-opacity: 0.2; stroke-linejoin: round; }
-.runs .key i.runs-thin { height: 2px; border-radius: 0; background: var(--elixir); opacity: 0.6; vertical-align: 3px; }
+.runs-stage .run { fill: none; stroke: var(--muted); stroke-width: 1; stroke-opacity: 0.28; stroke-linejoin: round; }
+.runs-stage .run.up { stroke: var(--pos); }
+.runs-stage .run.down { stroke: var(--neg); }
+.runs-stage .chart text.runs-count { font-size: 13px; font-weight: 700; paint-order: stroke; stroke: var(--sunken); stroke-width: 4px; stroke-linejoin: round; }
+.runs-stage .chart text.runs-count.up { fill: var(--pos); }
+.runs-stage .chart text.runs-count.down { fill: var(--neg); }
+.runs .key i.runs-thin { height: 2px; border-radius: 0; vertical-align: 3px; }
 .runs-read { min-height: 3em; font-variant-numeric: tabular-nums; }
 .runs-trace { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
 .runs-trace .lab { font-size: var(--step--1); color: var(--muted); font-weight: 600; }
@@ -11,3 +21,13 @@
 .runs-trace output { min-width: 7ch; font-size: 0.875rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .runs .nums3 { grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); gap: var(--space-3); }
 .runs [hidden] { display: none !important; }
+/* comparing cards: one color per card, and the pair grid */
+.runs-stage .run.cmp { stroke-opacity: 0.22; }
+.runs-chosen { display: inline-flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.runs-pick { gap: 8px; color: var(--ink); }
+.runs-pick i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.runs-pick:disabled { opacity: 1; cursor: default; }
+.runs-pairs { display: grid; gap: var(--space-2); min-width: 0; }
+.runs-pairs h4 { font-size: 1rem; }
+.runs-pairs .runs-dots circle { fill: var(--ink); fill-opacity: 0.45; }
+.runs-pairs .chart text.runs-r { font-family: var(--display); font-size: 22px; }
