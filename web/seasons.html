@@ -58,7 +58,7 @@
   const { $, esc, pct, num } = UI;
   let E = null;
   history.replaceState(null, "", "#ranked");   // this page always describes Ranked, whatever mode the link carried
-  UI.start("seasons.html", (c) => { E = c.E; UI.setHash(c.entry.slug); render(c.INDEX.seasons, c.INDEX.meta); }, { failTarget: "#body" });
+  UI.start("seasons.html", (c) => { E = c.E; UI.setHash(c.entry.slug); render(c.INDEX.seasons, c.INDEX.meta); }, { failTarget: "#body", decks: false });
 
   const entries = (k) => k.split("|").filter(Boolean).map((x) => { const [id, form] = x.split(":"); return { id: Number(id), form }; });
 

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Balance Watch · crdeck</title>
+<meta name="description" content="Which Clash Royale cards look out of line on use rate and win rate among top Path of Legends players: two ranked watch lists in tiers, a map of every card, and a track record. A research preview, never a probability.">
+<meta property="og:title" content="Balance Watch · crdeck">
+<meta property="og:description" content="Which Clash Royale cards look out of line on use rate and win rate among top Path of Legends players. A research preview, never a probability.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z' fill='%23a8247f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.box { padding: var(--space-4) var(--space-5); display: grid; gap: var(--space-3); min-width: 0; grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 600px) { .box { padding: var(--space-4); } }
+.banner { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 10px 12px; border-radius: 8px; background: var(--elixir-soft); font-size: var(--step--1); }
+.banner b { color: var(--elixir); }
+.controls { display: grid; gap: var(--space-2); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.lists { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); align-items: start; }
+@media (max-width: 920px) { .lists { grid-template-columns: minmax(0, 1fr); } }
+.list h2 { font-size: var(--step-1); }
+.list.nerf h2 { color: var(--warn); }
+.list.buff h2 { color: var(--wild); }
+.rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.row { width: 100%; display: grid; gap: 4px; text-align: left; min-height: 44px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.row:hover { border-color: var(--muted); }
+.rtop { display: flex; align-items: baseline; gap: var(--space-2); }
+.rtop .rank { font-size: var(--step--1); color: var(--muted); font-weight: 700; min-width: 1.5em; }
+.rtop .nm { font-weight: 700; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.pill.nerf { background: var(--warn-soft); color: var(--warn); }
+.pill.buff { background: var(--wild-soft); color: var(--wild); }
+.pill.none { background: var(--sunken); color: var(--muted); }
+.pill.watch { box-shadow: inset 0 0 0 1.5px currentColor; }
+.rviz { display: grid; grid-template-columns: auto minmax(0, 160px); gap: 0 var(--space-2); align-items: center; }
+.rviz .vlab { color: var(--muted); white-space: nowrap; }
+.rviz svg { width: 100%; max-width: 160px; height: 26px; display: block; overflow: visible; }
+@media (max-width: 600px) { .rviz { grid-template-columns: auto minmax(0, 120px); } .rviz svg { max-width: 120px; } }
+.mom.rising { color: var(--warn); } .mom.falling { color: var(--wild); } .mom.steady { color: var(--muted); }
+.row .why { color: var(--ink); }
+.detail .dhead { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+.detail .dhead h2 { font-size: var(--step-1); flex: 1; min-width: 0; }
+.dlist { display: grid; grid-template-columns: minmax(0, 14em) minmax(0, 1fr); gap: 4px var(--space-3); margin: 0; }
+.dlist dt { font-weight: 600; color: var(--muted); }
+.dlist dd { margin: 0; }
+@media (max-width: 600px) { .dlist { grid-template-columns: minmax(0, 1fr); } .dlist dd { margin-bottom: 6px; } }
+#map svg { width: 100%; height: auto; display: block; }
+#mapsec h2, #track h2 { font-size: var(--step-1); }
+details.panel.box > summary { font-size: 1rem; }
+.formula .katex-display { margin: 0; overflow-x: auto; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the balance watch</a>
+<div class="wrap">
+  <header class="site" id="site"></header>
+  <main id="main" class="wrap" data-page="balance">
+    <div class="pagehead" id="balance-page">
+      <h1>Balance watch</h1>
+      <p class="lede">This page lists cards that look out of line on the numbers Supercell says it watches: how often a card is used, and how often decks with it win. A card on this list is not certain to change, and cards change for reasons this data can't see, like how they feel to play against. We save every list before each update and check it afterwards; that track record is at the bottom.</p>
+    </div>
+    <div id="body" class="wrap"></div>
+  </main>
+  <footer class="site-foot">
+    <span>Tiers, never probabilities: a listed card is one that looks out of line in recorded battles, not one that is sure to change.</span>
+    <span>A fan-made learning project. Not affiliated with, endorsed by or sponsored by Supercell. Battle data from the official Clash Royale API.</span>
+  </footer>
+</div>
+
+<script src="vendor/katex/katex.min.js"></script>
+<script src="common.js"></script>
+<script src="balance.js"></script>
+</body>
+</html>

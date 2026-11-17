@@ -11,7 +11,7 @@ const fails = [], out = {};
 const expect = (c, m) => { if (!c) fails.push(m); };
 const text = (el) => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
 const F = JSON.parse(fs.readFileSync(path.join(WEB, "future_meta.json"), "utf8"));
-const ranked = new Engine(JSON.parse(fs.readFileSync(path.join(WEB, "models", "ranked.json"), "utf8")));
+const ranked = new Engine(require("./model_file.cjs").loadModel(path.join(WEB, "models", "ranked.json")));
 const pct = (x, d = 1) => (100 * x).toFixed(d) + "%";
 
 async function open(opts = {}) {
@@ -48,7 +48,7 @@ const ready = (d) => d.querySelector("#decklist article");
 
   // ---- menu and page
   expect(text(d.querySelector('.subnav a[aria-current="page"]')) === "Future meta", "sub-menu doesn't mark the page");
-  expect(text(d.querySelector('nav.nav:not(.subnav) a[aria-current]')) === "Explore trends", "Explore trends not marked as the section");
+  expect(text(d.querySelector('nav.nav:not(.subnav) a[aria-current]')) === "Explore", "Explore not marked as the section");
   expect(p.w.location.hash === "#ranked", "page isn't on Ranked");
 
   // ---- the verdict comes first and matches the export

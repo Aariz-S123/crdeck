@@ -107,7 +107,7 @@ table.cards .csvv { color: var(--hero); }
     // a link with one card form (cards.html#<mode>~~<card>) opens the page searched to that card
     if (first) { first = false; const e = c.hash.seeds && c.hash.seeds[0]; if (e && E.card(e.id)) { view.q = E.describe(e); $("#gq").value = view.q; } }
     UI.setHash(c.entry.slug); render();
-  }, { failTarget: "#gtable" });
+  }, { failTarget: "#gtable", decks: false });   // never explains a deck: skip the per-deck part of the model
 
   function rows() {
     if (ROWS) return ROWS;

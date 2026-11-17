@@ -71,19 +71,21 @@
   const cardHref = (slug, e) => `cards.html#${token(slug, null, [e])}`;
 
   // ------------------------------------------------------------ site bar and mode switch
-  // Four destinations. Explore trends groups usage trends, the future meta, season readiness and the card table under one
-  // menu entry with its own sub-menu; every old page address still works.
-  const PAGES = [["index.html", "Build a deck"], ["counters.html", "Find counters"], ["meta.html", "Explore trends"], ["model.html", "How it works"]];
-  const EXPLORE = [["meta.html", "Card usage trends"], ["future.html", "Future meta"], ["seasons.html", "Season readiness"], ["cards.html", "All cards"]];
+  // Four destinations. Explore groups usage trends, the balance watch, the future meta and the card table under one
+  // menu entry with its own sub-menu. Season readiness left the menu (it has no prediction); its address still works
+  // and still belongs to Explore, and Card usage trends links to it.
+  const PAGES = [["index.html", "Build a deck"], ["counters.html", "Find counters"], ["meta.html", "Explore"], ["model.html", "How it works"]];
+  const EXPLORE = [["meta.html", "Card usage trends"], ["balance.html", "Balance watch"], ["future.html", "Future meta"], ["cards.html", "All cards"]];
+  const EXPLORE_ALSO = ["seasons.html"];
   const LOGO = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z" fill="var(--elixir)"/><path d="M9.2 14.5a2.9 2.9 0 0 0 2.8 2.9" stroke="var(--surface)" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>`;
   function siteBar(page, slug) {
     const el = $("#site"); if (!el) return;
-    const s = esc(slug || ""), explore = EXPLORE.some(([h]) => h === page);
+    const s = esc(slug || ""), explore = EXPLORE.some(([h]) => h === page) || EXPLORE_ALSO.includes(page);
     // the page itself is "page"; the section it belongs to ("Build a deck" for a deck explanation) is "true"
     const cur = (href) => (href === page ? ' aria-current="page"' : (href === "meta.html" && explore) || (href === "index.html" && page === "") ? ' aria-current="true"' : "");
     el.innerHTML = `<a class="brand" href="index.html#${s}">${LOGO}crdeck</a>
       <nav class="nav" aria-label="Pages">${PAGES.map(([href, label]) => `<a href="${href}#${s}"${cur(href)}>${label}</a>`).join("")}</nav>
-      ${explore ? `<nav class="nav subnav" aria-label="Explore trends">${EXPLORE.map(([href, label]) => `<a href="${href}#${s}"${href === page ? ' aria-current="page"' : ""}>${label}</a>`).join("")}</nav>` : ""}`;
+      ${explore ? `<nav class="nav subnav" aria-label="Explore">${EXPLORE.map(([href, label]) => `<a href="${href}#${s}"${href === page ? ' aria-current="page"' : ""}>${label}</a>`).join("")}</nav>` : ""}`;
   }
   // Mode buttons (Ranked / Trophy Road / All), then a League or Arena list for the chosen mode.
   // Every configured league and arena is listed with its battle count; ones with too few battles
@@ -215,16 +217,23 @@
       try { return JSON.parse(texts.join("")); } catch (x) { throw new LoadError("bad_data", u, `${u} (joined from ${list.parts.length} parts) is not valid JSON: ${x.message}`); }
     }
   }
-  async function loadMode(slug) {
+  // A model comes in two parts (crdeck.explore.model_parts): <slug>.json, and <slug>.decks.json with the per-deck
+  // tables (deck_appearances, test_deck_records; about 5 MB of Ranked's 9 MB). Pages that explain decks ask for both
+  // (decks: true, the default); the others skip the second. A model exported before the split has no decks part and
+  // loads whole.
+  async function loadMode(slug, decks = true) {
     const entry = INDEX.modes.find((m) => m.slug === slug && m.status === "exported");
-    const m = await getModelJSON(entry.file);
+    const decksFile = entry.file.replace(/\.json$/, ".decks.json");
+    const [m, part] = await Promise.all([getModelJSON(entry.file),
+      decks ? getModelJSON(decksFile).catch((e) => { if (e instanceof LoadError && e.kind === "missing") return null; throw e; }) : null]);
+    if (part) Object.assign(m, part);
     store("crdeck.mode", slug);
     return { entry, m, E: new CRDeck.Engine(m) };
   }
   function facts(entry, m) {
     const el = $("#facts"); if (!el) return;
     el.innerHTML = `<span><b>${num(entry.ok_battles)}</b> ${esc(entry.label)} battles</span>
-      <span><b>${num(Object.keys(m.deck_appearances || {}).length)}</b> different decks</span>
+      ${m.deck_appearances ? `<span><b>${num(Object.keys(m.deck_appearances).length)}</b> different decks</span>` : ""}
       <span>Newest battle <b>${esc(when(m.meta.counts.last_battle))}</b></span>`;
   }
   // A plain-language failure message with a next step; the raw message stays under "Technical details".
@@ -281,16 +290,30 @@
   // what verdict() needs to know about a deck, from its explanation: x = Engine.explain(...), source = how it was made
   const verdictInfo = (x, source) => ({ source, games: x.score.test_battles_exact_deck, unseen: x.data_quality.some((q) => q.state === "UNSEEN_DECK") });
   // Whether a mode's win model earned its estimates: on the later battles it never trained on, the whole 90% range of
-  // its log-loss difference against always saying 50% must be below 0 (evaluation.strength_significance, the row
-  // "constant_0.5"). When it isn't, pages show no estimate, range or pill for that mode, and say why. An export from
-  // before that check existed has nothing to gate on, so its estimates stay.
-  function estimateGate(m, entry) {
+  // its log-loss difference against always saying 50% must be below 0. The range is the player-clustered one from
+  // strength_clustered.json (scripts/strength_clustered.py: all of a player's battles resampled together) when that
+  // file has the mode, else the exported battle-level one (evaluation.strength_significance). When it isn't below 0,
+  // pages show no estimate, range or pill for that mode, and say why. An export with neither check keeps its estimates.
+  let CLUSTERED = null;
+  async function loadClustered() {
+    if (CLUSTERED === null) { try { CLUSTERED = await getJSON("strength_clustered.json"); } catch { CLUSTERED = false; } }
+    return CLUSTERED || null;
+  }
+  function gateRow(m, entry) {
+    const c = CLUSTERED && entry && CLUSTERED.modes ? CLUSTERED.modes[entry.slug] : null;
+    const cr = Array.isArray(c) ? c.find((r) => r.vs === "constant_0.5") : null;
+    if (cr) return { delta: cr.delta, lo: cr.lo, hi: cr.hi, battles: cr.battles, players: cr.players, clustered: true };
     const row = (((m || {}).evaluation || {}).strength_significance || []).find((r) => r.vs === "constant_0.5");
-    if (!row || row.ci90_hi < 0) return { show: true, row: row || null, text: "" };
+    return row ? { delta: row.delta_log_loss, lo: row.ci90_lo, hi: row.ci90_hi, battles: row.test_battles, players: null, clustered: false } : null;
+  }
+  function estimateGate(m, entry) {
+    const row = gateRow(m, entry);
+    if (!row || row.hi < 0) return { show: true, row, text: "" };
     const where = entry ? entry.group || MODE_SHORT[entry.mode] || entry.label : "this mode";
-    const text = row.delta_log_loss >= 0
+    const basis = row.players ? `${num(row.battles)} battles from ${num(row.players)} players` : num(row.battles);
+    const text = row.delta >= 0
       ? `In ${where} the win model does no better than a coin flip on later battles, so no win estimate is shown.`
-      : `In ${where} the win model isn't shown to beat a coin flip on later battles (only ${num(row.test_battles)} to check it on), so no win estimate is shown.`;
+      : `In ${where} the win model isn't shown to beat a coin flip on later battles (only ${basis} to check it on), so no win estimate is shown.`;
     return { show: false, row, text };
   }
   // Evidence for one exact deck in this mode: its test-window record and how often it appears in all collected battles.
@@ -569,11 +592,40 @@
     if (!note) { note = document.createElement("p"); note.className = "notice"; note.id = id; note.setAttribute("role", "status"); head.appendChild(note); }
     note.textContent = msg;
   }
+  // "Data as of ..." in every page footer, from data_status.json (crdeck.explore.data_status): one line for the
+  // whole site, so pages built on different days say so in the same words. A copy without the file shows nothing.
+  function dataLine(st) {
+    const parts = [];
+    if (st.models && st.models.last_battle) parts.push(`deck models, battles to ${date(st.models.last_battle)}`);
+    if (st.future_meta && st.future_meta.last_period_end) parts.push(`usage forecast, battles to ${date(st.future_meta.last_period_end)}`);
+    if (st.balance_watch && st.balance_watch.cutoff) parts.push(`balance watch, battles to ${date(new Date(Date.parse(st.balance_watch.cutoff) - 1).toISOString())}`);
+    return parts.length ? `Data as of: ${parts.join("; ")}.` : "";
+  }
+  async function dataFooter() {
+    const foot = document.querySelector("footer.site-foot");
+    if (!foot || foot.querySelector(".datadate")) return;
+    let st;
+    try { st = await getJSON("data_status.json"); } catch { return; }
+    const line = dataLine(st || {});
+    if (!line || foot.querySelector(".datadate")) return;
+    const el = document.createElement("span"); el.className = "datadate"; el.textContent = line; foot.appendChild(el);
+  }
+
+  // A page that needs no model (the balance watch): the site bar, the tooltip and the scroll labels, then render().
+  // It never fetches modes.json or models/*.json, so it stays small. The mode in the link is kept for the menu links.
+  async function startStatic(page, render) {
+    document.documentElement.lang = "en";
+    initTip(); watchScrollers(); dataFooter();
+    const slug = readHash().slug || store("crdeck.mode") || "ranked";
+    siteBar(page, slug);
+    await render({ slug });
+  }
+
   async function start(page, render, opts = {}) {
     document.documentElement.lang = "en";
-    initTip(); watchScrollers();
+    initTip(); watchScrollers(); dataFooter();
     const target = opts.failTarget || "main";
-    const bal = loadBalance();
+    const bal = loadBalance(), clu = loadClustered();
     try {
       await loadIndex();
     } catch (e) {
@@ -581,7 +633,7 @@
       failed(target, e, { stage: "index", label: "the site", retry: () => location.reload() });
       return;
     }
-    await bal;
+    await bal; await clu;
     const h = readHash(), slug = pickSlug(INDEX, h.slug);
     if (h.slug && h.slug !== slug) {
       // the link named a mode that can't be shown: say so instead of switching silently
@@ -599,7 +651,7 @@
       siteBar(page, s); modeBar(INDEX, s, pick);
       const label = (INDEX.modes.find((m) => m.slug === s) || {}).label || s;
       let ctx;
-      try { ctx = await loadMode(s); } catch (e) {
+      try { ctx = await loadMode(s, opts.decks !== false); } catch (e) {
         if (mine !== latest) return;
         failed(target, e, { label, retry: () => go(s, first) });
         return;
@@ -614,6 +666,6 @@
   }
 
   root.UI = { $, esc, pct, signed, fmtPts, shorten, num, when, date, toDate, loadBalance, balanceEvents, balanceFlags, modeWindow, balanceNote, entTok, parseEnts, token, readHash, setHash, store, cardHref,
-    drop, typeName, FORM_WORD, archName, tile, SLOT_KEY, verdict, verdictInfo, estimateGate, MIN_CHECK_GAMES, support, supportText, estimateBasis, STYLE_DEF, styleDef, rankParts, styleNote, LoadError, tipAttr,
-    scrollTo, labelScrollers, tex, texNum, hasTex, niceStep, ticks, tickLabel, barPath, meter, coefChart, lineChart, partsChart, fmtCell, recordsTable, kv, md, start, failed };
+    drop, typeName, FORM_WORD, archName, tile, SLOT_KEY, verdict, verdictInfo, estimateGate, loadClustered, MIN_CHECK_GAMES, support, supportText, estimateBasis, STYLE_DEF, styleDef, rankParts, styleNote, LoadError, tipAttr,
+    scrollTo, labelScrollers, tex, texNum, hasTex, niceStep, ticks, tickLabel, barPath, meter, coefChart, lineChart, partsChart, fmtCell, recordsTable, kv, md, start, startStatic, getJSON, dataLine, failed };
 })(typeof self !== "undefined" ? self : this);

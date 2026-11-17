@@ -56,7 +56,7 @@
   const { $, esc, pct, fmtPts, num } = UI;
   let E = null;
   history.replaceState(null, "", "#ranked");   // this page always describes Ranked, whatever mode the link carried
-  UI.start("meta.html", (c) => { E = c.E; UI.setHash(c.entry.slug); render(c.INDEX.meta); }, { failTarget: "#meta" });
+  UI.start("meta.html", (c) => { E = c.E; UI.setHash(c.entry.slug); render(c.INDEX.meta); }, { failTarget: "#meta", decks: false });
 
   const keyName = (k) => { const e = CRDeck.parseKey(k); return E.card(e.id) ? E.describe(e) : k; };
 
@@ -235,7 +235,8 @@
       </section>
 
       <section class="panel box" aria-labelledby="sr-h"><h3 id="sr-h">Season readiness</h3>
-        <p>A season-to-season prediction is a separate question with its own data needs. It is not built; see <a href="seasons.html#ranked">Season readiness</a> for what is collected so far.</p></section>
+        <p>A season-to-season prediction is a separate question with its own data needs. It is not built; see <a href="seasons.html#ranked">Season readiness</a> for what is collected so far.</p>
+        <p>Which cards might the game's makers change next? That is a different question again: see <a href="balance.html">Balance watch</a>.</p></section>
 
       <div class="two">
         <section class="panel box" aria-labelledby="per-h"><h3 id="per-h">Collection periods</h3>
