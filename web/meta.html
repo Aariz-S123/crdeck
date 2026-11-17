@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Card Usage Trends · crdeck</title>
 <meta name="description" content="Which Clash Royale cards and deck styles sampled Ranked players use, how that changed between data collections, and an experimental next-period forecast with its track record.">
+<meta property="og:title" content="Card Usage Trends · crdeck">
+<meta property="og:description" content="Which Clash Royale cards and deck styles sampled Ranked players use, how that changed between data collections, and an experimental next-period forecast with its track record.">
+<meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z' fill='%23a8247f'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -204,7 +207,7 @@
       </section>
 
       ${M.movers.length ? `<section class="section" aria-labelledby="mv-h">
-        <header><h2 id="mv-h">All changes, P${M.periods.length - 1} → P${M.periods.length}</h2><p>Each bar is how much a card form's usage share rose or fell between the last two collections, in percentage points. The thin line is the 90% bootstrap range; bars whose line crosses zero are not clear changes.</p></header>
+        <header><h2 id="mv-h">Change since the previous collection (${esc(M.periods.length > 1 ? `${UI.date(M.periods[M.periods.length - 2].end)} → ${UI.date(M.periods[M.periods.length - 1].end)}` : "only one collection")})</h2><p>Each bar is how much a card form's usage share rose or fell between the last two collections, in percentage points. The thin line is the 90% bootstrap range; bars whose line crosses zero are not clear changes.</p></header>
         <div class="panel box">
           ${smallLast ? `<p>Not drawn by default: P${M.periods.length} holds only ${num(pb.battles)} battles, so these changes are mostly noise (see above).</p>
           <details class="more"><summary>Show the changes into P${M.periods.length} anyway</summary><div class="body">${moverParts}</div></details>` : moverParts}

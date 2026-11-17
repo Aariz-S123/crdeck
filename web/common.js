@@ -12,17 +12,19 @@
   const shorten = (s, n) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
   const num = (n) => Number(n).toLocaleString();
 
-  // data times are UTC ("2026-10-19 16:15:39+00:00" or "2026-10-19 10:30 UTC"); show them in the viewer's time zone
+  // data times are UTC ("2026-10-19 16:15:39+00:00" or "2026-10-19 10:30 UTC"), and the site shows them in UTC
   function toDate(t) {
     let s = String(t).trim().replace(" UTC", "Z").replace(" ", "T");
     if (!/[zZ]|[+-]\d\d:?\d\d$/.test(s)) s += "Z";
     const d = new Date(s);
     return Number.isNaN(d.getTime()) ? null : d;
   }
+  // a moment with its hour, in UTC like UI.date: "Oct 26, 2026, 21:22 UTC", or "21:22 UTC" without the date
   function when(t, withDate = true) {
     const d = toDate(t);
     if (!d) return String(t);
-    return d.toLocaleString(undefined, Object.assign(withDate ? { month: "short", day: "numeric" } : {}, { hour: "numeric", minute: "2-digit", timeZoneName: "short" }));
+    const hm = `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")} UTC`;
+    return withDate ? `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}, ${hm}` : hm;
   }
 
   // One date format for the whole site, in UTC so every reader and every page shows the same day: "Nov 11, 2026",
@@ -189,7 +191,7 @@
     const byCard = new Map();
     for (const f of flags) { const k = `${f.card_id}:${f.form}`; if (!byCard.has(k)) byCard.set(k, []); byCard.get(k).push(f); }
     const n = byCard.size;
-    return `<details class="more balflags"><summary><span class="baltag">balance update</span> ${n} card${n === 1 ? "" : "s"} here ${n === 1 ? "was" : "were"} changed by the game's makers</summary><div class="body small">
+    return `<details class="more balflags"><summary><span class="baltag">balance update</span> ${n} changed card${n === 1 ? "" : "s"}</summary><div class="body small">
       <ul>${[...byCard.values()].map((fs) => `<li><b>${esc(E.describe({ id: fs[0].card_id, form: fs[0].form }))}.</b> ${fs.map((f) => esc(flagLine(f, cal.events.find((ev) => ev.id === f.event_id)))).join(" ")}</li>`).join("")}</ul>
       <p class="muted">This mode's numbers come from battles played ${esc(date(win.from))} to ${esc(date(win.to))}. A changed card may play differently now. This is advice, like a deck warning: it changes no score.</p></div></details>`;
   }
@@ -234,7 +236,8 @@
     const el = $("#facts"); if (!el) return;
     el.innerHTML = `<span><b>${num(entry.ok_battles)}</b> ${esc(entry.label)} battles</span>
       ${m.deck_appearances ? `<span><b>${num(Object.keys(m.deck_appearances).length)}</b> different decks</span>` : ""}
-      <span>Newest battle <b>${esc(when(m.meta.counts.last_battle))}</b></span>`;
+      <span>Newest battle <b>${esc(when(m.meta.counts.last_battle))}</b></span>
+      ${entry.train_window ? `<span>Model trained on battles up to <b>${esc(date(entry.train_window[1]))}</b></span>` : ""}`;
   }
   // A plain-language failure message with a next step; the raw message stays under "Technical details".
   function failed(where, e, opts = {}) {

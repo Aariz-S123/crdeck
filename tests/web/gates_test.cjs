@@ -141,6 +141,7 @@ const shown = (m, slug) => { const r = rowOf(m, slug); return !r || r.hi < 0; };
     return hi < 0.5 ? "Model estimate below 50%" : "Range includes 50%: no clear modeled edge";
   };
   const tally = {};
+  let maxVisible = 0;
   for (const [hash, source] of [["ranked~~", "observed"], ["ranked~~~g", "generated"], ["ranked~~26000021b", "observed"], ["ranked~~26000021b~g", "generated"]]) {
     p = await open("index.html", hash); d = p.d;
     await until(() => settled(d));
@@ -153,6 +154,14 @@ const shown = (m, slug) => { const r = rowOf(m, slug); return !r || r.hi < 0; };
       expect(a.querySelector(".pill").classList.contains("good") === (want === "Model estimate above 50%"), `${hash} deck ${i + 1}: pill colour doesn't match its text`);
       expect(!!a.querySelector(".win .big") && /90% model range/.test(text(a)), `${hash} deck ${i + 1}: estimate missing`);
       tally[`${source}: ${want}`] = (tally[`${source}: ${want}`] || 0) + 1;
+      // a closed deck card stays short (BLUEPRINT 8.4, builder item 1; it was about 1,050 visible characters). The
+      // blueprint aimed at 450; tile names, the estimate block and the buttons alone take about 370, so the check is 650.
+      const vis = a.cloneNode(true);
+      vis.querySelectorAll("details").forEach((det) => { [...det.children].forEach((ch) => { if (ch.tagName !== "SUMMARY") ch.remove(); }); });
+      const visible = text(vis).length;
+      expect(visible < 650, `${hash} deck ${i + 1}: ${visible} visible characters with Details closed`);
+      maxVisible = Math.max(maxVisible, visible);
+      expect(!!a.querySelector("details.deckmore .rankwhy") && /Details/.test(text(a.querySelector("details.deckmore > summary"))), `${hash} deck ${i + 1}: no Details holding "Why it ranks here"`);
     }
     if (source === "generated") expect(!d.querySelector("#decks .pill.good"), `${hash}: a generated deck wears a green pill`);
     if (hash === "ranked~~") {
@@ -167,7 +176,7 @@ const shown = (m, slug) => { const r = rowOf(m, slug); return !r || r.hi < 0; };
     }
     clean(`Ranked builder ${hash}`, p);
   }
-  out.pills = tally;
+  out.pills = tally; out.maxVisibleChars = maxVisible;
 
   // ---------------- 5. Ranked deck page: estimate shown; a generated deck's pill is never green there either
   p = await open("index.html", "ranked~~~g"); d = p.d;

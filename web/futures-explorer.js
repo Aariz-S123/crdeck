@@ -7,10 +7,10 @@
   const line = (x,y,a,b,color=C.grid,width=1,extra='') => `<line x1="${x}" y1="${y}" x2="${a}" y2="${b}" stroke="${color}" stroke-width="${width}" ${extra}/>`;
   const points = (a) => a.map(p=>p.map(v=>v.toFixed(2)).join(',')).join(' ');
   const poly = (a,color,width,opacity=1,extra='') => `<polyline points="${points(a)}" fill="none" stroke="${color}" stroke-width="${width}" opacity="${opacity}" ${extra}/>`;
-  function markup() {
+  function markup(realRuns) {
     return `<div class="futures-explorer" data-futures>
-      <div class="futures-intro"><h3>10,000 futures, one forecast.</h3><p>Start with a forecast. Sample possible paths around it. See where they finish.</p></div>
-      <p class="futures-disclaimer">Model simulation: illustrative numbers. This eight-week example explains the mechanism; it is not a card’s actual forecast or the production sampling method.</p>
+      <div class="futures-intro"><h3>An example with 10,000 runs (the real forecast uses ${realRuns ? realRuns.toLocaleString("en-US") : "fewer"})</h3><p>Start with a forecast. Sample possible paths around it. See where they finish.</p></div>
+      <p class="futures-disclaimer">Model simulation: illustrative numbers. This eight-week example explains the mechanism; it is not a card's actual forecast or the production sampling method.</p>
       <div class="futures-toolbar"><div class="futures-views" role="group" aria-label="View the same simulated futures">
         <button type="button" data-futures-view="paths" aria-pressed="true">Paths</button><button type="button" data-futures-view="surface" aria-pressed="false">Density surface</button><button type="button" data-futures-view="endings" aria-pressed="false">Endings</button>
       </div><label class="futures-hero-control"><input type="checkbox" data-futures-heroes> Trace three futures</label></div>
@@ -19,7 +19,7 @@
       <div class="futures-time"><label>Week <output data-futures-week>8</output> of 8<input type="range" min="0" max="8" step="1" value="8" data-futures-scrub aria-label="Forecast week"></label><label class="futures-orbit" hidden>Surface angle<input type="range" min="-65" max="-30" value="-52" data-futures-angle aria-label="Density surface viewing angle"></label></div>
       <p class="futures-explanation" data-futures-explanation></p>
       <dl class="futures-stats" aria-live="polite" aria-atomic="true"></dl>
-      <details class="futures-method"><summary>Read the numbers and how this example is built</summary><p>TimesFM’s illustrative median and per-week spread condition 10,000 samples. Quarter-week AR(1) noise (ρ = 0.75, seed 20261110) supplies temporal coupling. This is an educational construction, not the site’s production logit-space, calibrated, cross-card sampler. Bands are pointwise percentiles, not individual paths or promises about actual usage.</p><p>All three views come from the same saved simulation. The 200 visible paths are a fixed sample; the three highlighted paths are selected by final endpoint rank (10th, 50th and 90th percentiles). Surface height is count ÷ (10,000 × 0.25 percentage points), with one global scale. The ridge marks the mode; the near-white floor trace is the median.</p><div class="futures-table"></div></details>
+      <details class="futures-method"><summary>Read the numbers and how this example is built</summary><p>TimesFM's illustrative median and per-week spread condition 10,000 samples. Quarter-week AR(1) noise (ρ = 0.75, seed 20261110) supplies temporal coupling. This is an educational construction, not the site's production logit-space, calibrated, cross-card sampler. Bands are pointwise percentiles, not individual paths or promises about actual usage.</p><p>All three views come from the same saved simulation. The 200 visible paths are a fixed sample; the three highlighted paths are selected by final endpoint rank (10th, 50th and 90th percentiles). Surface height is count ÷ (10,000 × 0.25 percentage points), with one global scale. The ridge marks the mode; the near-white floor trace is the median.</p><div class="futures-table"></div></details>
     </div>`;
   }
   async function mount(host) {

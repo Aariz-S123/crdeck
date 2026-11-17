@@ -7,7 +7,7 @@ const path = require("path");
 const { JSDOM, VirtualConsole } = require("jsdom");
 const WEB = path.join(__dirname, "..", "..", "web");
 const FIX = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "fixtures", "balance_flags.json"), "utf8"));
-const src = Object.fromEntries(["engine.js", "observed.js", "votes.js", "learn.js", "common.js", "balance.js"].map((f) => [f, fs.readFileSync(path.join(WEB, f), "utf8")]));
+const src = Object.fromEntries(["engine.js", "observed.js", "votes.js", "learn.js", "loss-surface.js", "futures-explorer.js", "common.js", "balance.js"].map((f) => [f, fs.readFileSync(path.join(WEB, f), "utf8")]));
 const { UI } = require(path.join(WEB, "common.js"));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const fails = [], out = {};
@@ -93,7 +93,7 @@ const DART = 26000040; // Dart Goblin: nerfed in the official 2026-10-19 update
     expect(!f.open, `builder deck ${i + 1}: the flag list starts closed`);
     // the count in the summary is the number of flagged cards, recomputed here from the deck's own tiles
     const names = [...a.querySelectorAll(".grid8 .tile .tn")].map((n) => text(n));
-    const items = f.querySelectorAll("li").length, said = Number((/(\d+) cards? here/.exec(text(f.querySelector("summary"))) || [])[1]);
+    const items = f.querySelectorAll("li").length, said = Number((/(\d+) changed cards?/.exec(text(f.querySelector("summary"))) || [])[1]);
     expect(items === said && items >= 1 && items <= names.length, `builder deck ${i + 1}: summary says ${said}, lists ${items}`);
     expect(a.querySelector(".health").contains(f), `builder deck ${i + 1}: flag sits under the warnings`);
   }
@@ -299,6 +299,24 @@ const DART = 26000040; // Dart Goblin: nerfed in the official 2026-10-19 update
     expect(meta < transfer["index.html"] - 4e6 && fut < transfer["index.html"] - 4e6, `split saves the per-deck part: ${JSON.stringify(transfer)}`);
   }
   out.transferBytes = transfer;
+
+  // ---------------- 17. the made-up futures example lives on How it works, not on Future meta (WP11)
+  const fq = await open("future.html", "ranked", { now: fresh });
+  await until(() => fq.d.querySelector("#decklist article"));
+  expect(!fq.d.querySelector(".futures-explorer") && !fq.asked.includes("futures-example.json"), "future meta: the illustrative explorer is gone");
+  const toc = [...fq.d.querySelectorAll('nav.toc[aria-label="On this page"] a')];
+  expect(toc.length >= 4 && toc.every((a) => fq.d.getElementById(a.getAttribute("href").slice(1))), `future meta: contents list links ${toc.length}`);
+  expect(fq.d.querySelector("nav.toc").previousElementSibling === fq.d.querySelector("#body > section"), "future meta: contents list right after the verdict");
+  clean("future meta after the move", fq);
+  const mq = await open("model.html", "ranked", { now: fresh });
+  await until(() => mq.d.querySelector("#mcexample"));
+  expect(!mq.asked.includes("futures-example.json"), "how it works: the example loads only when opened");
+  const mx = mq.d.querySelector("#mcexample"); mx.open = true; mx.dispatchEvent(new mq.w.Event("toggle"));
+  await until(() => mq.d.querySelector("#mcexample .futures-explorer h3") && mq.asked.includes("futures-example.json"));
+  const F = JSON.parse(fs.readFileSync(path.join(WEB, "future_meta.json"), "utf8"));
+  expect(text(mq.d.querySelector("#mcexample .futures-explorer h3")) === `An example with 10,000 runs (the real forecast uses ${F.settings.runs.toLocaleString("en-US")})`, `how it works: example heading "${text(mq.d.querySelector("#mcexample h3"))}"`);
+  expect(/illustrative/.test(text(mq.d.querySelector("#mcexample"))) && !/’/.test(fs.readFileSync(path.join(WEB, "futures-explorer.js"), "utf8")), "example keeps its disclaimer; no curly apostrophes");
+  clean("how it works with the example", mq);
 
   console.log(JSON.stringify({ out, fails }, null, 1));
   process.exit(fails.length ? 1 : 0);

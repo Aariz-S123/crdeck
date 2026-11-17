@@ -3,13 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>How crdeck Works</title>
+<title>How It Works · crdeck</title>
 <meta name="description" content="How the crdeck deck builder learns from Clash Royale battles, how well it does on battles it never trained on, its limits, and the full model log.">
+<meta property="og:title" content="How It Works · crdeck">
+<meta property="og:description" content="How the crdeck deck builder learns from Clash Royale battles, how well it does on battles it never trained on, its limits, and the full model log.">
+<meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z' fill='%23a8247f'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600;700&display=swap">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="futures-explorer.css">
 <link rel="stylesheet" href="vendor/katex/katex.min.css">
 <style>
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
@@ -133,6 +137,18 @@ table.nums tr.top td { font-weight: 700; background: var(--elixir-soft); }
       <div class="panel" id="log"><div class="logsec"><div class="skel" style="height:120px"></div></div></div>
     </section>
   </main>
+<script>
+// "On this page": the page's section headings as links, after its heading block (BLUEPRINT F8)
+(() => {
+  const ms = document.querySelector("main"), head = ms && ms.querySelector(".pagehead");
+  const hs = ms ? [...ms.querySelectorAll("section > header > h2[id], section > h2[id]")] : [];
+  if (!head || hs.length < 3) return;
+  const nav = document.createElement("nav");
+  nav.className = "panel toc"; nav.setAttribute("aria-label", "On this page");
+  nav.innerHTML = "<b>On this page</b><ul>" + hs.map((h) => `<li><a href="#${h.id}">${h.textContent.replace(/[<>&]/g, "")}</a></li>`).join("") + "</ul>";
+  head.insertAdjacentElement("afterend", nav);
+})();
+</script>
   <footer class="site-foot">
     <span>A fan-made learning project. Not affiliated with, endorsed by or sponsored by Supercell. Battle data from the official Clash Royale API.</span>
   </footer>
@@ -144,6 +160,7 @@ table.nums tr.top td { font-weight: 700; background: var(--elixir-soft); }
 <script src="learn.js"></script>
 <script src="loss-surface.js"></script>
 <script src="common.js"></script>
+<script src="futures-explorer.js"></script>
 <script>
 (() => {
   "use strict";
@@ -221,11 +238,22 @@ average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single m
         <p>More runs only reduce the randomness of the simulation itself. They don't fix the model's assumptions: periods of different lengths, a battle log that keeps only each player's last 30 battles, changing players, repeated players, balance changes, and card shares drawn one card at a time (the runs don't build whole 8-card decks).</p></div></details>
     </div>`;
     }
-    el.innerHTML = `<div class="three">${sig}${smx}${mc}</div>
+    const example = window.FuturesExplorer ? `<details class="more panel box" id="mcexample"><summary>How a simulation spreads out (a made-up example)</summary><div class="body" id="mcexample-body"></div></details>` : "";
+    el.innerHTML = `<div class="three">${sig}${smx}${mc}</div>${example}
       <div class="panel box"><b>Side by side</b><ul class="contrast small">
         <li><b>Sigmoid</b> answers “which side wins this modeled matchup?”: a win probability, in %.</li>
         <li><b>Softmax</b> answers “which style label fits this deck?”: label probabilities that add to 100%, never a win chance.</li>
         <li><b>Monte Carlo</b> answers “how much might a card be used next period?”: a usage share with simulation bands, not a win rate.</li></ul></div>`;
+    const ex = $("#mcexample");
+    if (ex) ex.addEventListener("toggle", async () => {
+      const body = $("#mcexample-body");
+      if (!ex.open || body.dataset.done) return;
+      body.dataset.done = "1";
+      let runs = null;
+      try { runs = (await UI.getJSON("future_meta.json")).settings.runs; } catch { runs = null; }
+      body.innerHTML = window.FuturesExplorer.markup(runs);
+      window.FuturesExplorer.mount(body);
+    });
   }
 
 
