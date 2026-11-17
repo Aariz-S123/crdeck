@@ -49,19 +49,20 @@ table.results td { padding: 12px; border-top: 1px solid var(--line); }
 .md code { background: var(--sunken); padding: 1px 4px; border-radius: 4px; }
 .lrow { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
 @media (max-width: 900px) { .lrow { grid-template-columns: minmax(0, 1fr); } }
-.surf { touch-action: none; cursor: grab; user-select: none; }
-.surf:active { cursor: grabbing; }
+.surf { user-select: none; }
+.surf.is3d { cursor: grab; touch-action: pan-y; }
+.surf.is3d.rotating { touch-action: none; }
+.surf.is3d:active { cursor: grabbing; }
 .surf svg { width: 100%; height: auto; display: block; }
 .surf .axlab { font-size: 12px; fill: var(--muted); }
 .surf .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; fill: var(--ink); }
-.surf .flab { font-size: 15px; font-style: italic; fill: var(--ink); font-family: "Cambria Math", Georgia, serif; }
 .slicepick { display: flex; flex-wrap: wrap; gap: 4px; }
 .slicepick .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 .scale-bar { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--muted); max-width: 360px; margin: 0 auto; width: 100%; }
 .scale-bar i { flex: 1; height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--surf-lo), var(--surf-mid), var(--surf-hi)); }
 .surf .axtick { font-size: 10px; }
 /* the chart scales down to about half size on a phone; larger text in drawing units keeps it readable */
-@media (max-width: 600px) { .surf .axlab { font-size: 25px; } .surf .axtick { font-size: 21px; } .surf .flab { font-size: 27px; } .surf .halo { stroke-width: 6px; } }
+@media (max-width: 600px) { .surf .axlab { font-size: 25px; } .surf .axtick { font-size: 21px; } .surf .halo { stroke-width: 6px; } }
 .lspanel { display: grid; gap: var(--space-3); min-width: 0; align-content: start; grid-template-columns: minmax(0, 1fr); }
 .cmpgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
 @media (max-width: 900px) { .cmpgrid { grid-template-columns: minmax(0, 1fr); } }
@@ -262,7 +263,8 @@ average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single m
   // ({ ka, kb }) drawn from the local quadratic in loss_surface.json (web/loss-surface.js), labelled approximate.
   // Compare mode shows two panels; both share one viewing angle.
   const VIEW = { yaw: -0.75, pitch: 0.55 };
-  const surf = { yaw: VIEW.yaw, pitch: VIEW.pitch, compare: false, panels: [{ pick: 0 }, { pick: 1 }], token: 0, ls: null, lsKey: null, lsPromise: null, msg: "" };
+  const surf = { yaw: VIEW.yaw, pitch: VIEW.pitch, compare: false, panels: [{ pick: 0 }, { pick: 1 }], token: 0, ls: null, lsKey: null, lsPromise: null, msg: "",
+    view: "2d", rotate: false, seen: typeof IntersectionObserver !== "function", watching: false };
   // the approximation file, fetched once and cached across mode changes: { ok, S } | { ok: false, reason } | null while loading
   function lossState(INDEX) {
     const ref = INDEX.loss_surface;
@@ -282,8 +284,14 @@ average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single m
   function learn(c) {
     const { INDEX, E } = c, L = INDEX.landscape, el = $("#learn");
     if (!L) { el.innerHTML = `<p class="muted">The loss surface is drawn from the Ranked model, which this export does not have.</p>`; return; }
-    const tok = ++surf.token, LS = lossState(INDEX);
-    if (!LS) surf.lsPromise.then(() => { if (tok === surf.token) learn(c); });
+    // the approximation file (about 300 kB) is fetched only once this section comes into view
+    if (!surf.seen && !surf.watching) {
+      surf.watching = true;
+      const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); surf.seen = true; learn(c); } }, { rootMargin: "200px" });
+      io.observe(el);
+    }
+    const tok = ++surf.token, LS = surf.seen ? lossState(INDEX) : null;
+    if (surf.seen && !LS) surf.lsPromise.then(() => { if (tok === surf.token) learn(c); });
     const nm = (k) => E.describe(CRDeck.parseKey(k));
     const opts = LS && LS.ok ? CRLoss.formOptions(LS.S) : [], label = new Map(opts.map((o) => [o.key, o.label]));
     const preset = (i) => { const sl = L.slices[i]; return { sl, exact: true, pick: i, A: nm(sl.keys[0]), B: nm(sl.keys[1]) }; };
@@ -308,23 +316,24 @@ average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single m
           : `<p class="muted small" style="margin:0">${LS ? `Choosing other card forms is unavailable: ${esc(LS.reason)}. The three exact slices still work.` : "Getting the file for other card forms…"}</p>`}
         ${R.err ? `<p class="notice small">That pair can't be drawn (${esc(R.err)}), so the first exact slice is shown.</p>` : ""}
         ${R.exact ? `<p class="muted small" style="margin:0">Exact: the real training loss, recomputed at every grid point.</p>`
-          : `<p class="small" style="margin:0"><b>Approximate:</b> a local quadratic around the fitted weights (each ± ${R.sl.half_width.toFixed(3)}), every other weight fixed. It is not recomputed from battles; trust it only near the dot.</p>`}
-        <div class="surf" id="surf${k}" tabindex="0" aria-label="3D ${R.exact ? "" : "approximate "}training-loss surface${many ? ` for pair ${k + 1}` : ""}. Drag or use arrow keys to rotate."></div>
-        <div class="scale-bar"><span>${lo.toFixed(5)}</span><i></i><span>${hi.toFixed(5)}</span></div>
+          : `<p class="small" style="margin:0"><b>Approximate:</b> a local quadratic around the fitted weights (each ± ${R.sl.half_width.toFixed(3)}), every other weight fixed. It is not recomputed from battles; trust it only near the dot. Custom pairs use a quadratic approximation built from the slope and curvature at the trained weights. It is very close near the bottom (within 0.2% of the range on the three exact slices) and less exact far from it.</p>`}
+        <div class="surf${surf.view === "3d" ? " is3d" : ""}${surf.rotate ? " rotating" : ""}" id="surf${k}" tabindex="0" aria-label="${surf.view === "3d" ? `3D ${R.exact ? "" : "approximate "}training-loss surface${many ? ` for pair ${k + 1}` : ""}. Drag or use arrow keys to rotate.` : `Flat map of the ${R.exact ? "" : "approximate "}training loss${many ? ` for pair ${k + 1}` : ""}, seen from above.`}"></div>
+        <div class="scale-bar" aria-label="Colour scale: loss above the lowest point"><span>+0.00000</span><i></i><span>+${(hi - lo).toFixed(5)}</span></div>
+        <p class="muted small" style="text-align:center;margin:0">Colour: loss above the lowest point, from the bottom (blue) to the highest drawn point (orange).</p>
         <p class="muted small axkey"><b>a</b> = the weight of ${esc(R.A)}, <b>b</b> = the weight of ${esc(R.B)} (log-odds; above 0 went with winning). <b>J</b> = training loss: lower is better.</p>
-        <p class="muted small" style="text-align:center;margin:0">${R.exact ? "Training loss" : "Approximate training loss"} J(a, b): low (blue) to high (orange). The height is stretched so the shape is visible; the whole surface only spans ${(hi - lo).toFixed(5)}. The pink path is illustrative.</p>
+        <p class="muted small" style="text-align:center;margin:0">${R.exact ? "Training loss" : "Approximate training loss"} J(a, b): low (blue) to high (orange). The height is stretched so the shape is visible; the whole surface only spans ${(hi - lo).toFixed(5)}: the data can barely tell the best weights from slightly worse ones. The pink path is illustrative.</p>
       </div>`;
     };
     const walk = (s) => s.path.findIndex((q) => Math.abs(q[2] - s.path[s.path.length - 1][2]) < 1e-7) + 1;
     const detail = (R, k) => {
       const s = R.sl, head = many ? `<h3>Pair ${k + 1}: ${esc(R.A)} and ${esc(R.B)}</h3>` : "";
       if (R.exact) return `${head}
-          <p><b>The dot ${tx("f(a, b)")}</b> is where training ended: ${tx(`a = ${tn(signed(s.fitted[0], 4))}`, `a = ${signed(s.fitted[0], 4)}`)}, ${tx(`b = ${tn(signed(s.fitted[1], 4))}`, `b = ${signed(s.fitted[1], 4)}`)}, at the bottom of the bowl, where both slopes are zero.</p>
+          <p><b>The dark dot</b> is where training ended: ${tx(`a = ${tn(signed(s.fitted[0], 4))}`, `a = ${signed(s.fitted[0], 4)}`)}, ${tx(`b = ${tn(signed(s.fitted[1], 4))}`, `b = ${signed(s.fitted[1], 4)}`)}, at the bottom of the bowl, where both slopes are zero.</p>
           <p><b>The pink path is an illustration.</b> It starts in a corner and repeatedly takes a step against the gradient (step size ${s.learning_rate.toFixed(1)}, set by the surface's steepest curvature), reaching the bottom in about ${walk(s)} of ${s.path.length - 1} steps. The real fit doesn't walk like this: it uses L-BFGS and then exact Newton steps on all weights at once.</p>
           <p class="muted small">Ranges shown: each weight ± ${(s.a[s.a.length - 1] - s.fitted[0]).toFixed(3)} (about 4 standard errors). ${esc(R.A)} was in ${num(s.games[0])} training decks, ${esc(R.B)} in ${num(s.games[1])}.</p>`;
       return `${head}
           <p><b>Approximate surface.</b> This one is not the loss recomputed over the battles. It is a local quadratic: the loss, slopes and curvature at the fitted weights, computed once in Python, extended a short way out. Every other weight stays exactly as trained, so it is still a slice through one point of the full landscape, and it can differ from the real loss away from the dot.</p>
-          <p><b>The dot ${tx("f(a, b)")}</b> is where training ended: ${tx(`a = ${tn(signed(s.fitted[0], 4))}`, `a = ${signed(s.fitted[0], 4)}`)}, ${tx(`b = ${tn(signed(s.fitted[1], 4))}`, `b = ${signed(s.fitted[1], 4)}`)}. Its slopes are ${s.fitted_grad[0].toExponential(1)} along a and ${s.fitted_grad[1].toExponential(1)} along b: about zero, so it is the bottom of the bowl.</p>
+          <p><b>The dark dot</b> is where training ended: ${tx(`a = ${tn(signed(s.fitted[0], 4))}`, `a = ${signed(s.fitted[0], 4)}`)}, ${tx(`b = ${tn(signed(s.fitted[1], 4))}`, `b = ${signed(s.fitted[1], 4)}`)}. Its slopes are ${s.fitted_grad[0].toExponential(1)} along a and ${s.fitted_grad[1].toExponential(1)} along b: about zero, so it is the bottom of the bowl.</p>
           <p><b>The pink path is an illustration</b> on the quadratic: it starts in a corner and repeatedly steps against the quadratic's gradient (step size ${s.learning_rate.toFixed(1)}, set by its steepest curvature; a step that would leave the drawn range is shortened), reaching the bottom in about ${walk(s)} of ${s.path.length - 1} steps. The real fit doesn't walk like this: it uses L-BFGS and then exact Newton steps on all weights at once.</p>
           <p class="muted small">Range shown: each weight ± ${s.half_width.toFixed(3)}, a fixed local range for approximate surfaces (the exact slices use about 4 standard errors). Curvature here: ${tx(`H_{aa} = ${tn(s.curvature[0].toPrecision(4))}`, `H_aa = ${s.curvature[0].toPrecision(4)}`)}, ${tx(`H_{ab} = ${tn(s.curvature[1].toPrecision(4))}`, `H_ab = ${s.curvature[1].toPrecision(4)}`)}, ${tx(`H_{bb} = ${tn(s.curvature[2].toPrecision(4))}`, `H_bb = ${s.curvature[2].toPrecision(4)}`)}. ${esc(R.A)} was in ${num(s.games[0])} training decks, ${esc(R.B)} in ${num(s.games[1])}.</p>`;
     };
@@ -336,7 +345,8 @@ average over all ${num(sg.n)} sampled opponents = ${pct(sg.mean, 2)}   (single m
           <div class="${many ? "cmpgrid" : "lspanel"}">${P.map(panel).join("")}</div>
           ${many ? `<p class="notice small">Both pairs share one viewing angle: drag or use the arrow keys on either. Each panel stretches its height and colours to its own loss range, so two bowls that look alike can differ in curvature. Compare the numbers on the J axes: the loss spans ${P.map((R, k) => `${(span(R.sl)[1] - span(R.sl)[0]).toFixed(5)} for pair ${k + 1}`).join(" and ")}.</p>` : ""}
           <p class="muted small" id="surfmsg" role="status" style="margin:0">${esc(surf.msg)}</p>
-          <div class="mapctl" style="justify-content:center"><button class="btn small" id="surfreset">Reset view</button></div>
+          <div class="mapctl" style="justify-content:center"><button class="btn small" id="surfview" aria-pressed="${surf.view === "3d"}">${surf.view === "3d" ? "Show as a flat map" : "Show in 3D"}</button>
+            ${surf.view === "3d" ? `<button class="btn small" id="surfreset">Reset view</button><button class="btn small" id="surfrotate" aria-pressed="${surf.rotate}" title="On a touch screen, lets a swipe on the picture turn it instead of scrolling the page">Rotate</button>` : ""}</div>
           ${categories(LS, P)}
         </div>
         <div class="panel box" style="min-width:0">
@@ -376,11 +386,14 @@ J(a, b) &= \text{mean log loss} + \frac{\lVert w \rVert^2}{2CN} \\
         surf.panels[1] = { pick: i >= 0 ? i : 0 };
       }
       learn(c); refocus("#surfcmp"); };
-    const redraw = () => P.forEach((R, k) => drawSurf($(`#surf${k}`), R));
-    $("#surfreset").onclick = () => { surf.yaw = VIEW.yaw; surf.pitch = VIEW.pitch; redraw(); };
+    const redraw = () => P.forEach((R, k) => (surf.view === "3d" ? drawSurf : drawFlat)($(`#surf${k}`), R));
+    $("#surfview").onclick = () => { surf.view = surf.view === "3d" ? "2d" : "3d"; learn(c); refocus("#surfview"); };
+    if ($("#surfreset")) $("#surfreset").onclick = () => { surf.yaw = VIEW.yaw; surf.pitch = VIEW.pitch; redraw(); };
+    if ($("#surfrotate")) $("#surfrotate").onclick = () => { surf.rotate = !surf.rotate; learn(c); refocus("#surfrotate"); };
     P.forEach((R, k) => {
       const box = $(`#surf${k}`); let drag = null;
-      box.onpointerdown = (ev) => { drag = [ev.clientX, ev.clientY, surf.yaw, surf.pitch]; if (box.setPointerCapture) box.setPointerCapture(ev.pointerId); };
+      if (surf.view !== "3d") return;
+      box.onpointerdown = (ev) => { if (ev.pointerType === "touch" && !surf.rotate) return; drag = [ev.clientX, ev.clientY, surf.yaw, surf.pitch]; if (box.setPointerCapture) box.setPointerCapture(ev.pointerId); };
       box.onpointermove = (ev) => { if (!drag) return; surf.yaw = drag[2] + (ev.clientX - drag[0]) * 0.01; surf.pitch = Math.max(0.05, Math.min(1.4, drag[3] + (ev.clientY - drag[1]) * 0.01)); redraw(); };
       box.onpointerup = box.onpointercancel = () => { drag = null; };
       box.onkeydown = (ev) => {
@@ -442,15 +455,14 @@ J(a, b) &= \text{mean log loss} + \frac{\lVert w \rVert^2}{2CN} \\
     // so long card names never land on tick numbers at any viewing angle
     const letter = (x, y, t) => { const p = proj(x, y, 0); return `<text x="${p[0].toFixed(1)}" y="${(p[1] + 5).toFixed(1)}" text-anchor="middle" class="axlab halo" font-weight="700">${t}</text>`; };
     let axes = letter(1.5, -1.36, "a") + letter(-1.36, 1.5, "b")
-      + `<text x="632" y="-12" text-anchor="end" class="axlab halo"><tspan x="632"><tspan font-weight="700">a</tspan> = weight of ${esc(UI.shorten(A, 24))}</tspan><tspan x="632" dy="1.3em"><tspan font-weight="700">b</tspan> = weight of ${esc(UI.shorten(B, 24))}</tspan></text>`;
+      + `<text x="632" y="-12" text-anchor="end" class="axlab halo"><tspan x="632"><tspan font-weight="700">a</tspan> = weight of ${esc(UI.shorten(A, 24))}, ${signed(amin, 3)} to ${signed(amax, 3)}</tspan><tspan x="632" dy="1.3em"><tspan font-weight="700">b</tspan> = weight of ${esc(UI.shorten(B, 24))}, ${signed(bmin, 3)} to ${signed(bmax, 3)}</tspan></text>`;
     // numeric ticks on all three axes (CRLoss.ticks picks enough decimals that neighbouring labels differ)
     if (typeof CRLoss !== "undefined") {
       // on a phone the chart is drawn at about half size: every other tick number keeps neighbours apart
       const thin = (ts) => (el.clientWidth && el.clientWidth < 520 ? ts.filter((_, k) => k % 2 === 0) : ts);
       const tick = (p0, p1, pl, label, anchor = "middle", dy = 4) => `<line x1="${p0[0].toFixed(1)}" y1="${p0[1].toFixed(1)}" x2="${p1[0].toFixed(1)}" y2="${p1[1].toFixed(1)}" stroke="var(--muted)" stroke-width="1"/><text x="${pl[0].toFixed(1)}" y="${(pl[1] + dy).toFixed(1)}" text-anchor="${anchor}" class="axlab axtick halo" data-axis-tick>${esc(label)}</text>`;
-      thin(CRLoss.ticks(amin, amax)).forEach((t) => { const x = X(t.v); if (x < -0.9) return; axes += tick(proj(x, -1.15, 0), proj(x, -1.22, 0), proj(x, -1.36, 0), t.label).replace("data-axis-tick", 'data-axis-tick="a"'); });
-      thin(CRLoss.ticks(bmin, bmax)).forEach((t) => { const y = Y(t.v); if (y < -0.9) return; axes += tick(proj(-1.15, y, 0), proj(-1.22, y, 0), proj(-1.36, y, 0), t.label).replace("data-axis-tick", 'data-axis-tick="b"'); });
-      CRLoss.ticks(lo, hi, 3).forEach((t) => { const p = proj(-1.15, -1.15, Z(t.v)); axes += tick(p, [p[0] - 5, p[1]], [p[0] - 8, p[1]], t.label, "end", 3).replace("data-axis-tick", 'data-axis-tick="J"'); });
+      // only the loss axis carries numbers in 3D, on the same scale as the colour bar: loss above the lowest point
+      CRLoss.ticks(0, hi - lo, 3).forEach((t) => { const p = proj(-1.15, -1.15, Z(lo + t.v)); axes += tick(p, [p[0] - 5, p[1]], [p[0] - 8, p[1]], `+${t.label}`, "end", 3).replace("data-axis-tick", 'data-axis-tick="J"'); });
     }
     for (const q of quads) {
       const d = q.pts.map((p, k) => `${k ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join("") + "Z";
@@ -465,7 +477,7 @@ J(a, b) &= \text{mean log loss} + \frac{\lVert w \rVert^2}{2CN} \\
     const st = sl.arrow_step, gm = Math.max(...sl.grad_a.flat().map(Math.abs), ...sl.grad_b.flat().map(Math.abs)) || 1;
     sl.grad_a.forEach((row, ii) => row.forEach((gA, jj) => {
       const i = ii * st, j = jj * st, gB = sl.grad_b[ii][jj], len = Math.hypot(gA, gB) / gm;
-      if (len < 0.06) return;
+      if (len < 0.06 || (ii + jj) % 2 === 1) return;   // every other arrow: half as many
       const a0 = sl.a[i], b0 = sl.b[j], s = 0.2 * Math.max(0.35, len) / Math.hypot(gA, gB);
       const p0 = proj(X(a0), Y(b0), Z(sl.loss[i][j]) + 0.01), p1 = proj(X(a0) - gA * s, Y(b0) - gB * s, Z(sl.loss[i][j]) + 0.01);
       const dx = p1[0] - p0[0], dy = p1[1] - p0[1], dl = Math.hypot(dx, dy) || 1, ux = dx / dl, uy = dy / dl;
@@ -474,21 +486,68 @@ J(a, b) &= \text{mean log loss} + \frac{\lVert w \rVert^2}{2CN} \\
     // gradient-descent path
     const pp = sl.path.map((q) => proj(X(q[0]), Y(q[1]), Z(q[2]) + 0.015));
     g += `<path d="${pp.map((p, k) => `${k ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join("")}" fill="none" stroke="var(--elixir)" stroke-width="2.4" stroke-linejoin="round"/>`;
+    g += `<text x="${(pp[0][0] + 8).toFixed(1)}" y="${(pp[0][1] - 8).toFixed(1)}" class="axlab halo">start (example)</text>`;
     pp.forEach((p, k) => { if (k % 4 === 0) g += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="var(--elixir)" ${UI.tipAttr(`Descent step ${k}`, [`a ${signed(sl.path[k][0], 4)}, b ${signed(sl.path[k][1], 4)}`, `J ${sl.path[k][2].toFixed(6)}`, `slope ${sl.path[k][3].toExponential(1)}, ${sl.path[k][4].toExponential(1)}`])}/>`; });
-    // the fitted point f(a, b), labelled like a textbook figure
+    // the fitted point, named in words
     const mid = Math.floor(n / 2), fp = proj(X(sl.fitted[0]), Y(sl.fitted[1]), Z(sl.loss[mid][mid]) + 0.015);
     const lx = fp[0] - 70, ly = fp[1] - 95;
-    g += `<text x="${lx}" y="${ly}" class="flab" text-anchor="middle">f(a, b)</text>
+    g += `<text x="${lx}" y="${ly}" class="axlab halo" text-anchor="middle">end of training (lowest point)</text>
       <path d="M${lx + 6},${ly + 8}L${fp[0] - 4},${fp[1] - 8}" stroke="var(--ink)" stroke-width="1.6" fill="none"/>
       <path d="M${fp[0] - 4},${fp[1] - 8}l-1,-8M${fp[0] - 4},${fp[1] - 8}l-8,-3" stroke="var(--ink)" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-      <circle cx="${fp[0]}" cy="${fp[1]}" r="5.5" fill="var(--ink)" stroke="var(--surface)" stroke-width="2" ${UI.tipAttr("f(a, b): the fitted weights", approx
+      <circle cx="${fp[0]}" cy="${fp[1]}" r="5.5" fill="var(--ink)" stroke="var(--surface)" stroke-width="2" ${UI.tipAttr("End of training: the fitted weights", approx
         ? [`a ${signed(sl.fitted[0], 4)}, b ${signed(sl.fitted[1], 4)}`, `J ${sl.fitted_loss.toFixed(6)}`, `slope ${sl.fitted_grad[0].toExponential(1)}, ${sl.fitted_grad[1].toExponential(1)}: about 0, the bottom`, "approximate surface (local quadratic)"]
         : [`a ${signed(sl.fitted[0], 4)}, b ${signed(sl.fitted[1], 4)}`, `J ${sl.fitted_loss.toFixed(6)}`, "slope 0 in both directions: the bottom"])}/>`;
     g += axes;
     // vertical axis for the loss, named in plain words (kept inside the picture whichever way it is turned)
     const z0 = proj(-1.15, -1.15, 0), z1 = proj(-1.15, -1.15, 1.0), jx = Math.max(-44, Math.min(W + 4, z1[0]));
-    g = `<line x1="${z0[0]}" y1="${z0[1]}" x2="${z1[0]}" y2="${z1[1]}" stroke="var(--muted)" stroke-width="1" opacity="0.6"/><text x="${jx}" y="${z1[1] - 20}" text-anchor="${jx < W / 2 ? "start" : "end"}" class="axlab halo"><tspan x="${jx}">J: ${approx ? "approx. " : ""}training loss</tspan><tspan x="${jx}" dy="1.15em">lower is better</tspan></text>` + g;
+    g = `<line x1="${z0[0]}" y1="${z0[1]}" x2="${z1[0]}" y2="${z1[1]}" stroke="var(--muted)" stroke-width="1" opacity="0.6"/><text x="${jx}" y="${z1[1] - 20}" text-anchor="${jx < W / 2 ? "start" : "end"}" class="axlab halo"><tspan x="${jx}">J: ${approx ? "approx. " : ""}training loss above its lowest point</tspan><tspan x="${jx}" dy="1.15em">lower is better</tspan></text>` + g;
     el.innerHTML = `<svg viewBox="-80 -40 720 530" role="img" aria-label="${approx ? "Approximate (local quadratic) training" : "Training"} loss surface over the weights of ${esc(A)} and ${esc(B)}; the fitted point is at the bottom. Lower loss is better.">${g}</svg>`;
+  }
+
+  // The default view: the same surface seen from above. Each cell is coloured by its loss above the lowest point, with
+  // the descent path, half the downhill arrows and the end of training; a and b sit on ordinary axes with their numbers.
+  function drawFlat(el, R) {
+    if (!el) return;
+    const sl = R.sl, approx = !!sl.approximate, n = sl.a.length;
+    const lo = Math.min(...sl.loss.flat()), hi = Math.max(...sl.loss.flat());
+    const W = 520, H = 470, L = 74, Rm = 18, T = 18, B = 78, pw = W - L - Rm, ph = H - T - B;
+    const amin = sl.a[0], amax = sl.a[n - 1], bmin = sl.b[0], bmax = sl.b[n - 1];
+    const X = (a) => L + pw * (a - amin) / (amax - amin), Y = (b) => T + ph * (1 - (b - bmin) / (bmax - bmin));
+    let g = "";
+    for (let i = 0; i < n - 1; i++) for (let j = 0; j < n - 1; j++) {
+      const mean = (sl.loss[i][j] + sl.loss[i + 1][j] + sl.loss[i + 1][j + 1] + sl.loss[i][j + 1]) / 4;
+      const x0 = X(sl.a[i]), x1 = X(sl.a[i + 1]), y0 = Y(sl.b[j + 1]), y1 = Y(sl.b[j]);
+      const tip = (i % 2 === 0 && j % 2 === 0) ? ` ${UI.tipAttr(approx ? "Approximate training loss" : "Training loss", [`a ${signed(sl.a[i], 4)}, b ${signed(sl.b[j], 4)}`, `J ${mean.toFixed(6)}`, `+${(mean - lo).toFixed(6)} above the lowest point`], false)}` : "";
+      g += `<path d="M${x0.toFixed(1)},${y0.toFixed(1)}H${(x1 + 0.4).toFixed(1)}V${(y1 + 0.4).toFixed(1)}H${x0.toFixed(1)}Z" fill="${ramp((mean - lo) / (hi - lo || 1), 1)}"${tip}/>`;
+    }
+    const st = sl.arrow_step, gm = Math.max(...sl.grad_a.flat().map(Math.abs), ...sl.grad_b.flat().map(Math.abs)) || 1;
+    sl.grad_a.forEach((row, ii) => row.forEach((gA, jj) => {
+      const i = ii * st, j = jj * st, gB = sl.grad_b[ii][jj], len = Math.hypot(gA, gB) / gm;
+      if (len < 0.06 || (ii + jj) % 2 === 1) return;
+      const s = 0.09 * Math.max(0.35, len) / Math.hypot(gA, gB);
+      const x0 = X(sl.a[i]), y0 = Y(sl.b[j]), x1 = X(sl.a[i] - gA * s * (amax - amin)), y1 = Y(sl.b[j] - gB * s * (bmax - bmin));
+      const dx = x1 - x0, dy = y1 - y0, dl = Math.hypot(dx, dy) || 1, ux = dx / dl, uy = dy / dl;
+      g += `<path d="M${x0.toFixed(1)},${y0.toFixed(1)}L${x1.toFixed(1)},${y1.toFixed(1)}M${(x1 - 6 * ux - 3.5 * uy).toFixed(1)},${(y1 - 6 * uy + 3.5 * ux).toFixed(1)}L${x1.toFixed(1)},${y1.toFixed(1)}L${(x1 - 6 * ux + 3.5 * uy).toFixed(1)},${(y1 - 6 * uy - 3.5 * ux).toFixed(1)}" stroke="#ffffff" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>`;
+    }));
+    const pp = sl.path.map((q) => [X(q[0]), Y(q[1])]);
+    g += `<path d="${pp.map((q, k) => `${k ? "L" : "M"}${q[0].toFixed(1)},${q[1].toFixed(1)}`).join("")}" fill="none" stroke="var(--elixir)" stroke-width="2.4" stroke-linejoin="round"/>`;
+    g += `<text x="${(pp[0][0] + 8).toFixed(1)}" y="${(pp[0][1] - 8).toFixed(1)}" class="axlab halo">start (example)</text>`;
+    pp.forEach((q, k) => { if (k % 4 === 0) g += `<circle cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="2.8" fill="var(--elixir)" ${UI.tipAttr(`Descent step ${k}`, [`a ${signed(sl.path[k][0], 4)}, b ${signed(sl.path[k][1], 4)}`, `J ${sl.path[k][2].toFixed(6)}`, `slope ${sl.path[k][3].toExponential(1)}, ${sl.path[k][4].toExponential(1)}`])}/>`; });
+    const fx = X(sl.fitted[0]), fy = Y(sl.fitted[1]), right = fx < L + pw / 2;
+    g += `<circle cx="${fx.toFixed(1)}" cy="${fy.toFixed(1)}" r="6" fill="var(--ink)" stroke="var(--surface)" stroke-width="2" ${UI.tipAttr("End of training: the fitted weights", approx
+        ? [`a ${signed(sl.fitted[0], 4)}, b ${signed(sl.fitted[1], 4)}`, `J ${sl.fitted_loss.toFixed(6)}`, `slope ${sl.fitted_grad[0].toExponential(1)}, ${sl.fitted_grad[1].toExponential(1)}: about 0, the bottom`, "approximate surface (local quadratic)"]
+        : [`a ${signed(sl.fitted[0], 4)}, b ${signed(sl.fitted[1], 4)}`, `J ${sl.fitted_loss.toFixed(6)}`, "slope 0 in both directions: the bottom"])}/>
+      <text x="${(fx + (right ? 11 : -11)).toFixed(1)}" y="${(fy + 4).toFixed(1)}" text-anchor="${right ? "start" : "end"}" class="axlab halo">end of training (lowest point)</text>`;
+    // axes with numbers, outside the coloured square
+    g += `<rect x="${L}" y="${T}" width="${pw}" height="${ph}" fill="none" stroke="var(--line)"/>`;
+    if (typeof CRLoss !== "undefined") {
+      const thin = (ts) => (el.clientWidth && el.clientWidth < 420 ? ts.filter((_, k) => k % 2 === 0) : ts);
+      thin(CRLoss.ticks(amin, amax)).forEach((t) => { const x = X(t.v); g += `<line x1="${x.toFixed(1)}" y1="${T + ph}" x2="${x.toFixed(1)}" y2="${T + ph + 5}" stroke="var(--muted)"/><text x="${x.toFixed(1)}" y="${T + ph + 19}" text-anchor="middle" class="axlab axtick" data-axis-tick="a">${esc(t.label)}</text>`; });
+      thin(CRLoss.ticks(bmin, bmax)).forEach((t) => { const y = Y(t.v); g += `<line x1="${L - 5}" y1="${y.toFixed(1)}" x2="${L}" y2="${y.toFixed(1)}" stroke="var(--muted)"/><text x="${L - 8}" y="${(y + 4).toFixed(1)}" text-anchor="end" class="axlab axtick" data-axis-tick="b">${esc(t.label)}</text>`; });
+    }
+    g += `<text x="${L + pw / 2}" y="${H - 34}" text-anchor="middle" class="axlab"><tspan font-weight="700">a</tspan> = weight of ${esc(UI.shorten(R.A, 30))} →</text>
+      <text x="${L + pw / 2}" y="${H - 14}" text-anchor="middle" class="axlab"><tspan font-weight="700">b</tspan> = weight of ${esc(UI.shorten(R.B, 30))}, upward. Colour: ${approx ? "approx. " : ""}training loss above its lowest point; lower is better</text>`;
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Flat map of the ${approx ? "approximate (local quadratic) " : ""}training loss over the weights of ${esc(R.A)} and ${esc(R.B)}; the end of training is at the lowest point. Lower loss is better.">${g}</svg>`;
   }
 
   // One story, in order: recorded battles → learned relationships → candidate decks → scores and recommendations → tests on later battles

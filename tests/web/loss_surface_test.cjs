@@ -232,10 +232,23 @@ async function pageChecks(env, tag) {
   expect(dis.length === 1 && dis[0] === sel(d, 0, "b").value, "page: the b form isn't disabled on the a axis");
   // three numeric ticks per axis, plain names, lower is better
   const ticksOf = (k, ax) => [...d.querySelectorAll(`#surf${k} [data-axis-tick="${ax}"]`)].map(text);
-  for (const ax of ["a", "b", "J"]) { const t = ticksOf(0, ax); expect(t.length >= 3 && new Set(t).size === t.length && t.every((x) => /^−?\d/.test(x)), `page: ${ax} ticks ${t}`); }
+  // the default is the flat map: a and b on real axes with numbers, words for the dot and the path's start
+  expect(/^Flat map/.test(d.querySelector("#surf0").getAttribute("aria-label")) && d.querySelector("#surfview").getAttribute("aria-pressed") === "false" && !d.querySelector("#surfreset"), "page: the flat map isn't the default view");
+  for (const ax of ["a", "b"]) { const t = ticksOf(0, ax); expect(t.length >= 3 && new Set(t).size === t.length && t.every((x) => /^−?\d/.test(x)), `page: ${ax} ticks ${t}`); }
   const svg0 = d.querySelector("#surf0 svg");
   expect(/a\s*[:=] weight of/.test(text(svg0)) && /b\s*[:=] weight of/.test(text(svg0)) && /training loss/.test(text(svg0)) && /lower is better/.test(text(svg0)), "page: axis names not in plain words");
-  out[`${tag}Ticks`] = { a: ticksOf(0, "a"), b: ticksOf(0, "b"), J: ticksOf(0, "J") };
+  expect(/end of training \(lowest point\)/.test(text(svg0)) && /start \(example\)/.test(text(svg0)) && !/f\(a, b\)/.test(text(d.querySelector("#learn"))), "page: the dot and the path's start aren't named in words");
+  const bar = [...d.querySelectorAll("#learn .scale-bar span")].map(text);
+  expect(bar[0] === "+0.00000" && /^\+0\.000\d\d$/.test(bar[1]), `page: colour bar not on the 'above the lowest point' scale: ${bar}`);
+  out[`${tag}Ticks`] = { a: ticksOf(0, "a"), b: ticksOf(0, "b") };
+  // 3D: only the loss axis has numbers, on the colour bar's scale; a and b ranges sit in the corner key
+  d.querySelector("#surfview").click(); await wait(20);
+  const tJ = ticksOf(0, "J");
+  expect(/^3D/.test(d.querySelector("#surf0").getAttribute("aria-label")) && tJ.length >= 3 && new Set(tJ).size === tJ.length && tJ.every((x) => /^\+\d/.test(x)) && !ticksOf(0, "a").length && !ticksOf(0, "b").length, `page: 3D ticks J ${tJ}, a ${ticksOf(0, "a")}`);
+  expect(/a = weight of .+, [+−]\d.* to [+−]\d/.test(text(d.querySelector("#surf0 svg"))) && /end of training \(lowest point\)/.test(text(d.querySelector("#surf0 svg"))), "page: 3D corner key has no ranges, or the dot isn't named");
+  expect(!!d.querySelector("#surfreset") && !!d.querySelector("#surfrotate"), "page: 3D has no Reset view or Rotate");
+  d.querySelector("#surfview").click(); await wait(20);
+  out[`${tag}Ticks`].J = tJ;
   // a pair no preset uses: approximate, from the quadratic, labelled
   const presetKeys = new Set(L.slices.flatMap((s) => s.keys));
   const free = keys.filter((x) => !presetKeys.has(x));
@@ -275,6 +288,7 @@ async function pageChecks(env, tag) {
   expect(p1.join() === `${free[0]},${free[1]}` && sel(d, 1, "a").value + sel(d, 1, "b").value !== p1.join(""), "page: pair 2 starts as pair 1");
   await pick(p, 1, "b", free[2] === sel(d, 1, "a").value ? free[3] : free[2]);
   expect([sel(d, 0, "a").value, sel(d, 0, "b").value].join() === p1.join() && pill(d, 1) === "Approximate" && pill(d, 0) === "Approximate", "page: changing pair 2 changed pair 1");
+  d.querySelector("#surfview").click(); await wait(20);   // rotation is a 3D thing
   const svgs = () => [0, 1].map((k2) => d.querySelector(`#surf${k2} svg`).innerHTML);
   const s0 = svgs();
   d.querySelector("#surf1").dispatchEvent(new p.w.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })); await wait(20);
@@ -284,7 +298,9 @@ async function pageChecks(env, tag) {
   expect(svgs().join() === s0.join(), "page: Reset view doesn't reset both panels");
   d.querySelector('[data-panel="1"][data-slice="1"]').click(); await wait(30);
   expect(pill(d, 1) === "Exact slice" && pill(d, 0) === "Approximate" && fittedTip(d, 1).includes(`J ${L.slices[1].fitted_loss.toFixed(6)}`), "page: preset in pair 2 not exact, or pair 1 lost");
-  for (const ax of ["a", "b", "J"]) expect([...d.querySelectorAll(`#surf1 [data-axis-tick="${ax}"]`)].length >= 3, `page: pair 2 has no ${ax} ticks`);
+  expect([...d.querySelectorAll(`#surf1 [data-axis-tick="J"]`)].length >= 3, "page: pair 2 has no J ticks in 3D");
+  d.querySelector("#surfview").click(); await wait(20);
+  for (const ax of ["a", "b"]) expect([...d.querySelectorAll(`#surf1 [data-axis-tick="${ax}"]`)].length >= 3, `page: pair 2 has no ${ax} ticks on the flat map`);
   expect(p.fetched.filter((f) => f === "loss_surface.json").length === 1, `page: approximation file fetched ${p.fetched.filter((f) => f === "loss_surface.json").length} times`);
   clean("page", p);
 
