@@ -269,6 +269,8 @@
       try { decks = E.counterDecks(opps); cards = E.counterCards(opps, mu.top_cards); }
       catch (e) { el.innerHTML = `<div class="panel empty" role="alert"><b>The counter search hit an error.</b><span>Your choice is kept. Try another style or card.</span><details class="more tech"><summary>Technical details</summary><div class="body"><code>${esc(e.message)}</code></div></details></div>`; return; }
       const nOpp = opps.reduce((t, [, n]) => t + n, 0), name = (k) => E.describe(CRDeck.parseKey(k));
+      // the general estimate comes from the win model; it is left out where that model didn't beat a coin flip
+      const gate = UI.estimateGate(E.m, ctx.entry);
       const atEven = (z) => 100 * (1 / (1 + Math.exp(-z)) - 0.5);   // points away from 50% in an even battle
       el.innerHTML = `
         ${VERDICT_NOW ? `<p class="notice small"><b>Evidence so far:</b> ${FORWARD_NOW ? `forward check: ${esc(FORWARD_NOW)}; retrospective check: ${esc(VERDICT_NOW)}` : `${esc(VERDICT_NOW)} (retrospective check)`}. Details at the end of the page. The estimates are model numbers, not results of these exact matchups.</p>` : ""}
@@ -297,11 +299,12 @@
                 <div class="deck-top"><b>Counter deck ${i + 1} · ${esc(UI.archName(x.archetype))}</b><span class="realtag">Real deck · played ${num(d.played)} times</span></div>
                 <div class="grid8">${x.entries.map((e) => UI.tile(E, e, x.legality.slots, null, null)).join("")}</div>
                 <div class="wins"><div><b>${pct(d.win_vs)}</b><span>estimate vs ${esc(what)} <span class="src model">model</span></span></div>
-                  <div><b>${pct(x.score.meta_win_prob)}</b><span>general estimate vs sampled field <span class="src model">model</span></span></div>${rec}
+                  ${gate.show ? `<div><b>${pct(x.score.meta_win_prob)}</b><span>general estimate vs sampled field <span class="src model">model</span></span></div>` : ""}${rec}
                   <div><b>${x.avg_elixir === null ? "n/a" : x.avg_elixir.toFixed(1)}</b><span>average elixir</span></div></div>
                 ${w ? `<div class="swapbox"><span><b>Tech swap:</b> ${esc(E.describe(w.replace))} → ${esc(E.describe(w.with))}, estimated ${pct(w.win_vs)} vs ${esc(what)} (${signed(100 * (w.win_vs - d.win_vs), 1)} percentage points) <span class="src model">model</span></span>
                   <span class="muted small">Same kind of card, no new deck warning. ${w.played ? `The changed deck is in the pool too, played ${num(w.played)} times in the training battles.` : `The changed deck isn't among this mode's ${num(E.counterPool().length)} pool decks, so it has no pool count (it may still have been played); its number is the model's estimate.`} <a href="reason.html#${UI.token(ctx.entry.slug, w.entries, [])}">See the changed deck →</a></span></div>` : ""}
                 ${x.warnings.length ? `<div class="notice"><b>Watch out:</b> ${x.warnings.map((g) => esc(g.root_cause)).join(". ")}</div>` : ""}
+                ${UI.balanceNote(E, x.entries, ctx.entry)}
                 <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn small primary" href="reason.html#${UI.token(ctx.entry.slug, d.entries, [])}">Explain this deck →</a>
                   <button class="btn small" data-copy="${esc(d.entries.map((e) => E.describe(e)).join(", "))}">Copy card list</button></div>
               </article>`; }).join("") || `<div class="panel empty">${E.counterPool().length ? "No counter deck was found." : `No deck here was played at least ${num(mu.pool_min_battles)} times in the training battles, so there is no real deck to recommend.`}</div>`}</div>

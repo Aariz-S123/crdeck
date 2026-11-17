@@ -149,7 +149,10 @@ details.layer > .body { display: grid; gap: var(--space-6); margin-top: var(--sp
   function draw() {
     const x = E.explain(deck, E.objectiveDict(E.evaluate(deck)));
     // "Your pick" marks only say something when some cards aren't picks
-    const seedIds = pickedHere() === deck.length ? null : new Set(seeds.map((s) => s.id)), v = UI.verdict(x.score);
+    // the deck's source decides the pill with its evidence (UI.verdict); a mode whose win model didn't beat a coin
+    // flip shows no estimate at all (UI.estimateGate)
+    const seedIds = pickedHere() === deck.length ? null : new Set(seeds.map((s) => s.id)), v = UI.verdict(x.score, UI.verdictInfo(x, source || "observed"));
+    const gate = UI.estimateGate(E.m, ctx.entry);
     const ws = x.entries.map((e) => Object.assign(E.coefInfo(e), { role: "in", entry: e })).sort((p, q) => q.weight - p.weight);
     const known = ws.filter((w) => w.known), cardSum = ws.reduce((t, w) => t + w.weight, 0), pairSum = E.utility(x.entries) - cardSum;
     const best = known[0], worst = known[known.length - 1];
@@ -174,8 +177,9 @@ details.layer > .body { display: grid; gap: var(--space-6); margin-top: var(--sp
         <section class="panel short" aria-labelledby="short-h">
           <h2 id="short-h" style="font-size:1.25rem">The short version</h2>
           <ul>
-            <li><span class="line"><span class="big">${pct(x.score.meta_win_prob)}</span><span class="pill ${v[0]}">${v[1]}</span></span>
-              <span class="muted small">Estimated wins against sampled opponents. 90% model range ${pct(x.score.interval[0])} to ${pct(x.score.interval[1])}, against ${esc(UI.estimateBasis(E, x, ctx.entry.label))}. <span class="src model">model estimate</span></span></li>
+            ${gate.show ? `<li><span class="line"><span class="big">${pct(x.score.meta_win_prob)}</span><span class="pill ${v[0]}">${v[1]}</span></span>
+              <span class="muted small">Estimated wins against sampled opponents. 90% model range ${pct(x.score.interval[0])} to ${pct(x.score.interval[1])}, against ${esc(UI.estimateBasis(E, x, ctx.entry.label))}. <span class="src model">model estimate</span></span></li>`
+              : `<li id="gatenote"><b>No win estimate here.</b><span class="muted small">${esc(gate.text)} The swaps and charts below still show how the model orders cards, so read them as rough.</span></li>`}
             ${best ? `<li><b>${esc(best.name)} has the highest card weight here.</b><span class="muted small">${best.weight > 0 ? "Decks with it won more often, after accounting for the other cards and player rating." : "No card in this deck has a positive weight, so the deck leans on its pairs and matchups."}${worst && worst !== best ? ` ${esc(worst.name)} has the lowest.` : ""} <span class="src model">learned from ${num(best.games)} games</span></span></li>` : ""}
             ${bestPair ? `<li><b>Best pair: ${esc(bestPair.pair)}.</b><span class="muted small">Together they won ${pct(bestPair.shrunk_wr)} of ${num(bestPair.games)} games, ${bestPair.synergy > 0 ? "more" : "less"} than each card alone predicts. <span class="src measured">measured</span></span></li>` : ""}
             <li><b>${esc(sup.rec)}</b>
@@ -442,7 +446,7 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
       swapHtml = `<div class="bestswap"><b>Replace ${esc(sw.replace)} with ${esc(sw.with)}</b>
         <dl class="ba">
           <dt>Ranking score</dt><dd>${fmtPts(sw.delta_objective)} score points</dd>
-          <dt>Estimated wins</dt><dd>${pct(x.score.meta_win_prob)} → ${pct(nx.score.meta_win_prob)} (${dw >= 0 ? "+" : "−"}${Math.abs(dw).toFixed(2)} percentage points) <span class="src model">model estimate</span></dd>
+          ${UI.estimateGate(E.m, ctx.entry).show ? `<dt>Estimated wins</dt><dd>${pct(x.score.meta_win_prob)} → ${pct(nx.score.meta_win_prob)} (${dw >= 0 ? "+" : "−"}${Math.abs(dw).toFixed(2)} percentage points) <span class="src model">model estimate</span></dd>` : ""}
           <dt>Deck checks</dt><dd>${added.length ? `adds: ${esc(added.join(", "))}` : "adds no warning"}${removed.length ? `; removes: ${esc(removed.join(", "))}` : ""}</dd>
           <dt>Evidence</dt><dd>${esc(sup.rec)} ${esc(sup.seen)}</dd>
         </dl>
@@ -461,7 +465,7 @@ distance(card) = 1 − (v · c) / ‖c‖      (v has length 1; 0 = same directi
         <div><dl class="roles">${roles.map(([t, v]) => `<dt>${t}</dt><dd>${v.length ? v.join(", ") : "none"}</dd>`).join("")}
           <dt>Average elixir</dt><dd>${x.avg_elixir === null ? "n/a" : x.avg_elixir.toFixed(1)}</dd></dl>
           <p class="muted small" style="margin-top:6px">Roles come from the project's hand-made card labels, not from the model. <span class="src rule">labels</span></p></div>
-        <div class="ovwarn">${warnHtml}</div>
+        <div class="ovwarn">${warnHtml}${UI.balanceNote(E, x.entries, ctx.entry)}</div>
       </div>
       <div><h3 style="font-size:1.0625rem;margin-bottom:6px">Best next step</h3>${swapHtml}${pickHtml}
         ${past.length ? `<div class="actions" style="margin-top:8px"><button class="btn" data-undo="1">Undo last swap</button></div>` : ""}</div>

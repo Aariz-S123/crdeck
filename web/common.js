@@ -25,6 +25,16 @@
     return d.toLocaleString(undefined, Object.assign(withDate ? { month: "short", day: "numeric" } : {}, { hour: "numeric", minute: "2-digit", timeZoneName: "short" }));
   }
 
+  // One date format for the whole site, in UTC so every reader and every page shows the same day: "Nov 11, 2026",
+  // and with the hour only where it matters: "Nov 11, 2026, 21:22 UTC".
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function date(t, withTime = false) {
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(String(t).trim()) ? new Date(String(t).trim() + "T00:00:00Z") : toDate(t);
+    if (!d || Number.isNaN(d.getTime())) return String(t);
+    const day = `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+    return withTime ? `${day}, ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")} UTC` : day;
+  }
+
   // ------------------------------------------------------------ links between pages
   // A page's state travels in a plain #anchor token: <mode>~<deck>~<picked cards>[~<source>[~<extra>]],
   // each card written as its id plus b (base), e (Evolution) or h (Hero), joined by "-".
@@ -131,6 +141,56 @@
   }
   let INDEX = null;
   async function loadIndex() { if (!INDEX) INDEX = await getJSON("modes.json"); return INDEX; }
+
+  // ------------------------------------------------------------ balance updates
+  // balance_events.json is the website's copy of the balance calendar (config/balance/events.yaml, written by
+  // scripts/balance_watch.py). A copy of the site without it still works: there are simply no flags.
+  let BALANCE = null;
+  async function loadBalance() {
+    if (BALANCE === null) { try { BALANCE = await getJSON("balance_events.json"); } catch { BALANCE = false; } }
+    return BALANCE || null;
+  }
+  const balanceEvents = () => BALANCE || null;
+  // Which deck cards changed while, or after, the battles behind a mode's numbers were played. The same rule as
+  // crdeck.balance.stale_flags in Python (tests/fixtures/balance_flags.json holds the cases both must match):
+  // a nerf, buff or rework whose form is "all" or the deck card's own form; an update before the window gives no
+  // flag, one inside it (boundary days included) is "mixed", one after it is "after". Advice only, like a warning.
+  const FLAG_LABELS = ["nerf", "buff", "rework"];
+  function balanceFlags(entries, events, window) {
+    const first = String(window.from).slice(0, 10), last = String(window.to).slice(0, 10), out = [];
+    for (const e of entries) for (const ev of events) {
+      const day = ev.effective_date;
+      if (day < first) continue;
+      for (const ch of ev.changes) {
+        if (ch.card_id !== e.id || !FLAG_LABELS.includes(ch.label) || (ch.form !== "all" && ch.form !== e.form)) continue;
+        out.push({ card_id: e.id, form: e.form, event_id: ev.id, date: day, label: ch.label, kind: day <= last ? "mixed" : "after" });
+      }
+    }
+    return out;
+  }
+  // the days a mode's numbers were measured on: first training battle to newest test battle (UTC days)
+  function modeWindow(entry) {
+    const a = entry && entry.train_window, b = entry && entry.test_window;
+    return a && b && a.length === 2 && b.length === 2 ? { from: String(a[0]).slice(0, 10), to: String(b[1]).slice(0, 10) } : null;
+  }
+  function flagLine(f, ev) {
+    const how = ev.source_kind === "official" ? `Changed on ${date(f.date)} (${f.label}).`
+      : `Reported changed on ${date(f.date)} (${f.label}; from a community tracker${ev.date_conflict ? ", and sources disagree on the day" : ""}).`;
+    return `${how} ${f.kind === "mixed" ? "This card's numbers mix battles from before and after the change." : "This card's numbers were measured before the change."}`;
+  }
+  // The flags of one deck as a closed disclosure with a grey "balance update" tag; "" when there is nothing to say.
+  function balanceNote(E, entries, entry) {
+    const cal = balanceEvents(), win = modeWindow(entry);
+    if (!cal || !win) return "";
+    const flags = balanceFlags(entries, cal.events, win);
+    if (!flags.length) return "";
+    const byCard = new Map();
+    for (const f of flags) { const k = `${f.card_id}:${f.form}`; if (!byCard.has(k)) byCard.set(k, []); byCard.get(k).push(f); }
+    const n = byCard.size;
+    return `<details class="more balflags"><summary><span class="baltag">balance update</span> ${n} card${n === 1 ? "" : "s"} here ${n === 1 ? "was" : "were"} changed by the game's makers</summary><div class="body small">
+      <ul>${[...byCard.values()].map((fs) => `<li><b>${esc(E.describe({ id: fs[0].card_id, form: fs[0].form }))}.</b> ${fs.map((f) => esc(flagLine(f, cal.events.find((ev) => ev.id === f.event_id)))).join(" ")}</li>`).join("")}</ul>
+      <p class="muted">This mode's numbers come from battles played ${esc(date(win.from))} to ${esc(date(win.to))}. A changed card may play differently now. This is advice, like a deck warning: it changes no score.</p></div></details>`;
+  }
   function pickSlug(INDEX, wanted) {
     const ok = (s) => s && INDEX.modes.some((m) => m.slug === s && m.status === "exported");
     if (ok(wanted)) return wanted;
@@ -204,12 +264,34 @@
     </div>`;
   }
   const SLOT_KEY = `<div class="slotkey" aria-label="Slot colors"><span><i style="background:var(--evo)"></i>Evolution slot</span><span><i style="background:var(--hero)"></i>Hero slot</span><span><i style="background:var(--wild)"></i>Wild slot (Evolution, Hero or Champion)</span></div>`;
-  function verdict(score) {
-    // plain-language reading of the model's 90% range, computed from it: a statement about the model, not a promise
+  // Plain-language reading of the model's 90% range, computed from it: a statement about the model, not a promise.
+  // The green pill also needs evidence that doesn't come from the model: with `info` given, a deck gets it only when
+  // it wasn't built by the search (the top of many noisy estimates runs high), appears in the collected battles, and
+  // has at least MIN_CHECK_GAMES exact-deck games in the later test battles. Otherwise the pill is neutral.
+  const MIN_CHECK_GAMES = 200;
+  function verdict(score, info) {
     const [a, b] = score.interval;
-    if (a > 0.5) return ["good", "Model estimate above 50%"];
+    if (a > 0.5) {
+      if (info && (info.source === "generated" || info.unseen || !(info.games >= MIN_CHECK_GAMES))) return ["neutral", "Model estimate (no measured check)"];
+      return ["good", "Model estimate above 50%"];
+    }
     if (b < 0.5) return ["bad", "Model estimate below 50%"];
     return ["weak", "Range includes 50%: no clear modeled edge"];
+  }
+  // what verdict() needs to know about a deck, from its explanation: x = Engine.explain(...), source = how it was made
+  const verdictInfo = (x, source) => ({ source, games: x.score.test_battles_exact_deck, unseen: x.data_quality.some((q) => q.state === "UNSEEN_DECK") });
+  // Whether a mode's win model earned its estimates: on the later battles it never trained on, the whole 90% range of
+  // its log-loss difference against always saying 50% must be below 0 (evaluation.strength_significance, the row
+  // "constant_0.5"). When it isn't, pages show no estimate, range or pill for that mode, and say why. An export from
+  // before that check existed has nothing to gate on, so its estimates stay.
+  function estimateGate(m, entry) {
+    const row = (((m || {}).evaluation || {}).strength_significance || []).find((r) => r.vs === "constant_0.5");
+    if (!row || row.ci90_hi < 0) return { show: true, row: row || null, text: "" };
+    const where = entry ? entry.group || MODE_SHORT[entry.mode] || entry.label : "this mode";
+    const text = row.delta_log_loss >= 0
+      ? `In ${where} the win model does no better than a coin flip on later battles, so no win estimate is shown.`
+      : `In ${where} the win model isn't shown to beat a coin flip on later battles (only ${num(row.test_battles)} to check it on), so no win estimate is shown.`;
+    return { show: false, row, text };
   }
   // Evidence for one exact deck in this mode: its test-window record and how often it appears in all collected battles.
   // Hero and base can't be told apart in battle data unless the mode says so, so heroes count as base here (as in Engine.explain).
@@ -491,6 +573,7 @@
     document.documentElement.lang = "en";
     initTip(); watchScrollers();
     const target = opts.failTarget || "main";
+    const bal = loadBalance();
     try {
       await loadIndex();
     } catch (e) {
@@ -498,6 +581,7 @@
       failed(target, e, { stage: "index", label: "the site", retry: () => location.reload() });
       return;
     }
+    await bal;
     const h = readHash(), slug = pickSlug(INDEX, h.slug);
     if (h.slug && h.slug !== slug) {
       // the link named a mode that can't be shown: say so instead of switching silently
@@ -529,7 +613,7 @@
     await go(slug, true);
   }
 
-  root.UI = { $, esc, pct, signed, fmtPts, shorten, num, when, toDate, entTok, parseEnts, token, readHash, setHash, store, cardHref,
-    drop, typeName, FORM_WORD, archName, tile, SLOT_KEY, verdict, support, supportText, estimateBasis, STYLE_DEF, styleDef, rankParts, styleNote, LoadError, tipAttr,
+  root.UI = { $, esc, pct, signed, fmtPts, shorten, num, when, date, toDate, loadBalance, balanceEvents, balanceFlags, modeWindow, balanceNote, entTok, parseEnts, token, readHash, setHash, store, cardHref,
+    drop, typeName, FORM_WORD, archName, tile, SLOT_KEY, verdict, verdictInfo, estimateGate, MIN_CHECK_GAMES, support, supportText, estimateBasis, STYLE_DEF, styleDef, rankParts, styleNote, LoadError, tipAttr,
     scrollTo, labelScrollers, tex, texNum, hasTex, niceStep, ticks, tickLabel, barPath, meter, coefChart, lineChart, partsChart, fmtCell, recordsTable, kv, md, start, failed };
 })(typeof self !== "undefined" ? self : this);
