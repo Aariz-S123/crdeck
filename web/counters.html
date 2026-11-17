@@ -28,7 +28,8 @@
 .oppcard button { border: 0; background: transparent; color: var(--muted); width: 44px; height: 44px; border-radius: 6px; font-size: 18px; }
 .cardlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); grid-auto-rows: min-content; gap: 6px; max-height: 300px; overflow-y: auto; padding: 2px; }
 .pick { min-height: 44px; }
-.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: var(--space-4); align-items: start; }
+/* counter decks (wider) first, then the counter cards that explain them */
+.two { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
 @media (max-width: 960px) { .two { grid-template-columns: minmax(0, 1fr); } }
 .ccard { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px var(--space-3); align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
 .ccard:first-of-type { border-top: 0; }
@@ -386,20 +387,8 @@
       el.innerHTML = `
         ${VERDICT_NOW ? `<p class="notice small"><b>Evidence so far:</b> ${FORWARD_NOW ? `forward check: ${esc(FORWARD_NOW)}; retrospective check: ${esc(VERDICT_NOW)}` : `${esc(VERDICT_NOW)} (retrospective check)`}. Details at the end of the page. The estimates are model numbers, not results of these exact matchups.</p>` : ""}
         <div class="two">
-          <section class="panel box" aria-labelledby="cc-h">
-            <h2 id="cc-h" style="font-size:1.25rem">2. Counter cards</h2>
-            <p class="muted small">Cards whose learned matchups did best against ${esc(what)}. The effect is in log-odds; next to it, what it means for an otherwise even battle. These are patterns in which decks won, not measured one-on-one fights between cards. <span class="src model">model</span></p>
-            ${cards.map((c, i) => `<div class="ccard">
-              <span class="muted small">${i + 1}</span>
-              <span class="nm"><a href="${UI.cardHref(ctx.entry.slug, CRDeck.parseKey(c.card))}">${esc(name(c.card))}</a></span>
-              <span class="eff" title="log-odds effect against these decks">${signed(c.effect, 3)}</span>
-              <span class="why"><span>≈ ${atEven(c.effect) >= 0 ? "+" : "−"}${Math.abs(atEven(c.effect)).toFixed(1)} percentage points of win rate in an even battle (own strength ${signed(c.own_weight, 3)})</span>
-                ${c.best_against.length ? `<span>Best against: ${c.best_against.map((t) => `<b>${esc(name(t.card))}</b> ${signed(t.weight, 3)}${t.ci90 ? ` (90% ${signed(t.ci90[0], 3)} to ${signed(t.ci90[1], 3)})` : ""}${t.share < 0.999 ? ` in ${pct(t.share, 0)} of them` : ""}`).join("; ")}</span>` : ""}
-                ${c.worst_against.length ? `<span>Weak against: ${c.worst_against.map((t) => `<b>${esc(name(t.card))}</b> ${signed(t.weight, 3)}`).join("; ")}</span>` : ""}</span>
-            </div>`).join("") || `<p class="muted">No card has matchup data against these decks.</p>`}
-          </section>
           <section class="section" aria-labelledby="cd-h">
-            <header><h2 id="cd-h" style="font-size:1.25rem">3. Counter decks</h2>
+            <header><h2 id="cd-h" style="font-size:1.25rem">2. Counter decks</h2>
               <p>Real decks only: each was played at least ${num(mu.pool_min_battles)} times in the training battles${E.m.availability ? " and uses only cards unlocked here" : ""}. They are ranked the way the deck builder ranks decks, with its win term replaced by the estimated win rate against ${esc(what)}: win rate against them + ${E.weight} × synergy + ${E.coWeight} × how often the cards are played together.${sel.tab === "style" ? " Each shows how it really did against this style in the later battles (a style-wide record, not a record against one exact deck)." : " Pick a deck style to see each deck's real record against a style."}</p></header>
             <div class="decks">${decks.map((d, i) => {
               const x = E.explain(d.entries, E.objectiveDict(E.evaluate(d.entries)));
@@ -419,6 +408,18 @@
                 <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn small primary" href="reason.html#${UI.token(ctx.entry.slug, d.entries, [])}">Explain this deck →</a>
                   <button class="btn small" data-copy="${esc(d.entries.map((e) => E.describe(e)).join(", "))}">Copy card list</button></div>
               </article>`; }).join("") || `<div class="panel empty">${E.counterPool().length ? "No counter deck was found." : `No deck here was played at least ${num(mu.pool_min_battles)} times in the training battles, so there is no real deck to recommend.`}</div>`}</div>
+          </section>
+          <section class="panel box" aria-labelledby="cc-h">
+            <h2 id="cc-h" style="font-size:1.25rem">3. Why these decks work: counter cards</h2>
+            <p class="muted small">Cards whose learned matchups did best against ${esc(what)}. The effect is in log-odds; next to it, what it means for an otherwise even battle. These are patterns in which decks won, not measured one-on-one fights between cards. <span class="src model">model</span></p>
+            ${cards.map((c, i) => `<div class="ccard">
+              <span class="muted small">${i + 1}</span>
+              <span class="nm"><a href="${UI.cardHref(ctx.entry.slug, CRDeck.parseKey(c.card))}">${esc(name(c.card))}</a></span>
+              <span class="eff" title="log-odds effect against these decks">${signed(c.effect, 3)}</span>
+              <span class="why"><span>≈ ${atEven(c.effect) >= 0 ? "+" : "−"}${Math.abs(atEven(c.effect)).toFixed(1)} percentage points of win rate in an even battle (own strength ${signed(c.own_weight, 3)})</span>
+                ${c.best_against.length ? `<span>Best against: ${c.best_against.map((t) => `<b>${esc(name(t.card))}</b> ${signed(t.weight, 3)}${t.ci90 ? ` (90% ${signed(t.ci90[0], 3)} to ${signed(t.ci90[1], 3)})` : ""}${t.share < 0.999 ? ` in ${pct(t.share, 0)} of them` : ""}`).join("; ")}</span>` : ""}
+                ${c.worst_against.length ? `<span>Weak against: ${c.worst_against.map((t) => `<b>${esc(name(t.card))}</b> ${signed(t.weight, 3)}`).join("; ")}</span>` : ""}</span>
+            </div>`).join("") || `<p class="muted">No card has matchup data against these decks.</p>`}
           </section>
         </div>
         <section class="panel box" aria-labelledby="opp-h">
