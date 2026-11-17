@@ -1,0 +1,89 @@
+{
+  "about": "Hand-worked cases for the balance staleness flags. Python: crdeck.balance.stale_flags (tests/test_balance_events.py). Website: UI.balanceFlags in web/common.js (tests/web/balance_test.cjs). Card ids here are made up.",
+  "calendar": {
+    "version": 1,
+    "checked_on": "2026-03-01",
+    "events": [
+      {"id": "2026-01-10", "effective_date": "2026-01-10", "source_kind": "official", "source_url": "https://example.invalid/a", "date_conflict": false, "scoreable": true, "partial": false,
+       "changes": [
+         {"card_id": 1, "name": "Card one", "form": "all", "label": "nerf"},
+         {"card_id": 2, "name": "Card two", "form": "evo", "label": "buff"},
+         {"card_id": 3, "name": "Card three", "form": "all", "label": "fix"},
+         {"card_id": 4, "name": "Card four", "form": "hero", "label": "addition"}
+       ]},
+      {"id": "2026-01-20", "effective_date": "2026-01-20", "source_kind": "official", "source_url": "https://example.invalid/b", "date_conflict": false, "scoreable": true, "partial": false,
+       "changes": [
+         {"card_id": 1, "name": "Card one", "form": "all", "label": "nerf"},
+         {"card_id": 5, "name": "Card five", "form": "base", "label": "rework"},
+         {"card_id": 5, "name": "Card five", "form": "evo", "label": "rework"}
+       ]},
+      {"id": "2026-02-05", "effective_date": "2026-02-05", "source_kind": "community", "source_url": "https://example.invalid/c", "date_conflict": true, "scoreable": false, "partial": true,
+       "changes": [
+         {"card_id": 6, "name": "Card six", "form": "all", "label": "buff"},
+         {"card_id": 2, "name": "Card two", "form": "all", "label": "nerf"}
+       ]}
+    ]
+  },
+  "cases": [
+    {
+      "name": "inside the window is mixed, after it is after, in deck order then oldest update first",
+      "entries": [[1, "base"], [6, "base"], [7, "base"]],
+      "window": ["2026-01-12", "2026-01-25"],
+      "expect": [
+        {"card_id": 1, "form": "base", "event_id": "2026-01-20", "date": "2026-01-20", "label": "nerf", "kind": "mixed"},
+        {"card_id": 6, "form": "base", "event_id": "2026-02-05", "date": "2026-02-05", "label": "buff", "kind": "after"}
+      ]
+    },
+    {
+      "name": "an update before the window gives no flag; a card changed twice gets one flag per update",
+      "entries": [[1, "base"]],
+      "window": ["2026-01-05", "2026-01-25"],
+      "expect": [
+        {"card_id": 1, "form": "base", "event_id": "2026-01-10", "date": "2026-01-10", "label": "nerf", "kind": "mixed"},
+        {"card_id": 1, "form": "base", "event_id": "2026-01-20", "date": "2026-01-20", "label": "nerf", "kind": "mixed"}
+      ]
+    },
+    {
+      "name": "boundary days count as inside the window",
+      "entries": [[1, "evo"]],
+      "window": ["2026-01-10", "2026-01-20"],
+      "expect": [
+        {"card_id": 1, "form": "evo", "event_id": "2026-01-10", "date": "2026-01-10", "label": "nerf", "kind": "mixed"},
+        {"card_id": 1, "form": "evo", "event_id": "2026-01-20", "date": "2026-01-20", "label": "nerf", "kind": "mixed"}
+      ]
+    },
+    {
+      "name": "a form-specific change flags only that form; a change to all forms flags every form",
+      "entries": [[2, "base"], [2, "evo"], [5, "evo"], [5, "hero"]],
+      "window": ["2026-01-01", "2026-01-31"],
+      "expect": [
+        {"card_id": 2, "form": "base", "event_id": "2026-02-05", "date": "2026-02-05", "label": "nerf", "kind": "after"},
+        {"card_id": 2, "form": "evo", "event_id": "2026-01-10", "date": "2026-01-10", "label": "buff", "kind": "mixed"},
+        {"card_id": 2, "form": "evo", "event_id": "2026-02-05", "date": "2026-02-05", "label": "nerf", "kind": "after"},
+        {"card_id": 5, "form": "evo", "event_id": "2026-01-20", "date": "2026-01-20", "label": "rework", "kind": "mixed"}
+      ]
+    },
+    {
+      "name": "fixes and releases are never flagged",
+      "entries": [[3, "base"], [4, "hero"]],
+      "window": ["2026-01-01", "2026-01-31"],
+      "expect": []
+    },
+    {
+      "name": "a window that ends before every update: all flags are after",
+      "entries": [[1, "base"], [5, "base"]],
+      "window": ["2025-12-01", "2025-12-31"],
+      "expect": [
+        {"card_id": 1, "form": "base", "event_id": "2026-01-10", "date": "2026-01-10", "label": "nerf", "kind": "after"},
+        {"card_id": 1, "form": "base", "event_id": "2026-01-20", "date": "2026-01-20", "label": "nerf", "kind": "after"},
+        {"card_id": 5, "form": "base", "event_id": "2026-01-20", "date": "2026-01-20", "label": "rework", "kind": "after"}
+      ]
+    },
+    {
+      "name": "a window after every update: nothing to flag",
+      "entries": [[1, "base"], [2, "evo"], [5, "base"], [6, "base"]],
+      "window": ["2026-02-06", "2026-02-20"],
+      "expect": []
+    }
+  ]
+}

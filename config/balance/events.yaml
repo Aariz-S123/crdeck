@@ -1,0 +1,289 @@
+# Balance calendar: when cards changed, by official notes first and community trackers second.
+# Read and checked by src/crdeck/balance/events.py. This folder is outside the model cache fingerprint
+# (crdeck.pipeline._fingerprint reads config/*.yaml only), so editing it never forces a retrain.
+#
+# Rules (docs/fable-brief/BLUEPRINT.md 6.2 and 6.3):
+# - A card name must match data/labels/cards.csv exactly. An unknown name is an error, never a guess.
+# - form: all (the notes name no form: the change is taken to reach every form, an assumption the notes state as
+#   "most of the time"), or base | evo | hero when the notes name one.
+# - label: nerf | buff | rework | fix | addition, the heading the entry sits under in the notes.
+# - scoreable: true only for an official page with dated sections. Community entries are never scored.
+# - reason: only words read from the official page itself. Left out when the page was read through a summary.
+# - partial: true when the entry list was read from a listing that may not show every card.
+# Bump `version` on any edit.
+version: 1
+
+# The official blog list (https://supercell.com/en/games/clashroyale/blog/, first page) was read on this date and
+# showed no balance post dated after 2026-10-27. The release-notes index address itself answered HTTP 404.
+checked_on: 2026-11-16
+checked_note: "Official blog list, first page: no balance post after 2026-10-27. Release-notes index answered 404."
+
+events:
+  - id: 2026-08-03
+    announced: null
+    effective_date: 2026-08-03
+    effective_time_utc: null
+    source_kind: community
+    source_url: https://www.elixirdeck.org/en/updates/
+    date_conflict: false
+    scoreable: false
+    partial: false
+    note: "Season release, from the community tracker's change list. Not a balance update."
+    changes:
+      - {card: Valkyrie, form: hero, label: addition}
+      - {card: Berserker, form: hero, label: addition}
+      - {card: Elite Barbarians, form: evo, label: addition}
+
+  - id: 2026-08-04
+    announced: null
+    effective_date: 2026-08-04
+    effective_time_utc: null
+    source_kind: community
+    source_url: https://www.elixirdeck.org/en/updates/august-2026-balance-changes.html
+    date_conflict: false
+    scoreable: false
+    partial: true
+    note: "Large rework update. Only the cards the tracker's listing names are entered; the official notes were not read."
+    changes:
+      - {card: Elite Barbarians, form: evo, label: nerf}
+      - {card: Electro Spirit, form: all, label: nerf}
+      - {card: Fire Spirit, form: all, label: nerf}
+      - {card: Ice Spirit, form: all, label: nerf}
+      - {card: Heal Spirit, form: all, label: nerf}
+      - {card: Wall Breakers, form: all, label: nerf}
+      - {card: Magic Archer, form: all, label: nerf}
+      - {card: Royal Delivery, form: all, label: nerf}
+      - {card: Void, form: all, label: rework}
+      - {card: Electro Giant, form: all, label: buff}
+      - {card: Little Prince, form: all, label: buff}
+      - {card: Archer Queen, form: all, label: buff}
+      - {card: Tombstone, form: hero, label: buff}
+      - {card: Battle Healer, form: all, label: buff}
+
+  - id: 2026-09-07
+    announced: null
+    effective_date: 2026-09-07
+    effective_time_utc: null
+    source_kind: community
+    source_url: https://www.elixirdeck.org/en/updates/minion-academy-season-minion-giant-hero-ice-wizard.html
+    date_conflict: false
+    scoreable: false
+    partial: false
+    note: "Season release. Not a balance update."
+    changes:
+      - {card: Minion Giant, form: base, label: addition}
+      - {card: Ice Wizard, form: hero, label: addition}
+
+  - id: 2026-09-23
+    announced: null
+    effective_date: 2026-09-23
+    effective_time_utc: null
+    source_kind: community
+    source_url: https://www.elixirdeck.org/en/updates/september-2026-balance-changes.html
+    date_conflict: true      # another community tracker gives 2026-09-16; no official page was found
+    alt_dates: [2026-09-16]
+    scoreable: false
+    partial: true
+    note: "From the community tracker's listing; the official notes were not found."
+    changes:
+      - {card: Ice Wizard, form: hero, label: nerf}
+      - {card: Goblinstein, form: all, label: nerf}
+      - {card: Minion Giant, form: all, label: nerf}
+      - {card: Balloon, form: hero, label: nerf}
+      - {card: Battle Ram, form: evo, label: nerf}
+      - {card: Elite Barbarians, form: evo, label: nerf}
+      - {card: Freeze, form: all, label: nerf}
+      - {card: Fireball, form: all, label: nerf}
+      - {card: Ice Golem, form: all, label: nerf}
+      - {card: Zappies, form: all, label: nerf}
+      - {card: Fire Spirit, form: all, label: buff}
+      - {card: Ronin, form: all, label: buff}
+      - {card: Spirit Empress, form: all, label: buff}
+      - {card: Goblin Cage, form: all, label: buff}
+      - {card: Mega Minion, form: hero, label: rework}
+      - {card: Wizard, form: hero, label: rework}
+      - {card: Wizard, form: evo, label: rework}
+      - {card: Wizard, form: base, label: rework}
+      - {card: Bomber, form: evo, label: rework}
+      - {card: Bomber, form: base, label: rework}
+      - {card: Battle Ram, form: base, label: rework}
+      - {card: Golem, form: all, label: rework}
+
+  - id: 2026-10-05
+    announced: null
+    effective_date: 2026-10-05
+    effective_time_utc: null
+    source_kind: community
+    source_url: https://www.elixirdeck.org/en/updates/shocktober-season-hero-electro-wizard-electro-giant-evolution.html
+    date_conflict: false
+    scoreable: false
+    partial: false
+    note: "Season release. Not a balance update."
+    changes:
+      - {card: Electro Wizard, form: hero, label: addition}
+      - {card: Electro Giant, form: evo, label: addition}
+
+  - id: 2026-10-06
+    announced: null
+    effective_date: 2026-10-06
+    effective_time_utc: null
+    source_kind: official
+    source_url: https://supercell.com/en/games/clashroyale/blog/release-notes/october-balance-changes-2026/
+    date_conflict: false
+    scoreable: true
+    partial: false
+    note: "Section 'Balance Update - October 6th' of the official October post."
+    changes:
+      - card: Ice Wizard
+        form: hero
+        label: nerf
+        stats: [{stat: Freeze Damage, before: "89", after: "46"}]
+      - card: Cannon
+        form: evo
+        label: nerf
+        stats: [{stat: Barrage Damage, before: "281", after: "261"}]
+      - card: Barbarian Barrel
+        form: all
+        label: nerf
+        stats: [{stat: Damage, before: "232", after: "215"}]
+      - card: Elixir Collector
+        form: all
+        label: nerf
+        stats: [{stat: Lifetime, before: "1m 33s", after: "1m 50s"}, {stat: Production Speed, before: "13s", after: "15s"}]
+        reason: "Considering the buff to Three Musketeers, we wanted them to be viable without depending on Elixir Collector"
+      - card: Minion Giant
+        form: all
+        label: nerf
+        stats: [{stat: Hit Speed, before: "1.5s", after: "1.7s"}]
+        reason: "Minion Giant was too punishing for a flying win condition"
+      - card: Royal Ghost
+        form: all
+        label: nerf
+        stats: [{stat: Hitpoints, before: "1210", after: "1152"}]
+      - card: Skeletons
+        form: all
+        label: nerf
+        stats: [{stat: Spawn Spread, before: null, after: "tighter"}]
+      - card: Goblin Barrel
+        form: all
+        label: buff
+        stats: [{stat: First Hit Speed, before: "0.4s", after: "0.3s"}]
+      - card: Goblin Drill
+        form: all
+        label: buff
+        stats: [{stat: Crown Tower Spawn Damage, before: "0", after: "20"}]
+      - card: Lava Hound
+        form: all
+        label: buff
+        stats: [{stat: Damage, before: "53", after: "71"}, {stat: Hit Speed, before: "1.3s", after: "1.5s"}]
+      - card: Ram Rider
+        form: all
+        label: buff
+        stats: [{stat: Damage, before: "250", after: "271"}]
+      - card: Wall Breakers
+        form: all
+        label: buff
+        stats: [{stat: Damage, before: "281", after: "302"}]
+      - card: X-Bow
+        form: all
+        label: buff
+        stats: [{stat: Damage, before: "58", after: "61"}]
+        reason: "We're buffing weaker conditions to put them on par with the best tower-takers in the game"
+      - card: Monk
+        form: all
+        label: buff
+        stats: [{stat: Ability Cast Time, before: "0.93s", after: "0.7s"}]
+      - card: Three Musketeers
+        form: all
+        label: buff
+        stats: [{stat: Hitpoints, before: "883", after: "906"}]
+      - card: Golden Knight
+        form: all
+        label: rework
+        stats: [{stat: Damage, before: "161", after: "168"}, {stat: Dash Range, before: "5.5 tiles", after: "5 tiles"}]
+      - card: Elite Barbarians
+        form: evo
+        label: fix
+        stats: [{stat: Spear Attack Sight Range, before: "4.5 tiles", after: "6 tiles"}]
+      - card: Royal Ghost
+        form: all
+        label: fix
+        stats: [{stat: Damage, before: "261", after: "263"}]
+
+  - id: 2026-10-19
+    announced: null
+    effective_date: 2026-10-19
+    effective_time_utc: null
+    source_kind: official
+    source_url: https://supercell.com/en/games/clashroyale/blog/release-notes/october-balance-changes-2026/
+    date_conflict: false
+    scoreable: true
+    partial: false
+    note: "Section 'Balance Update - October 19th' of the official October post (the seasonal November changes, made early)."
+    changes:
+      - card: Cannon Cart
+        form: all
+        label: nerf
+        stats: [{stat: Damage, before: "212", after: "202"}, {stat: Mass, before: "3", after: "6"}]
+        reason: "Mortar decks are often impossible to break through, so we're targeting Cannon Cart"
+      - card: Dart Goblin
+        form: all
+        label: nerf
+        stats: [{stat: Damage, before: "151", after: "143"}]
+        reason: "Dart Goblin is the common denominator among the stronger spell bait decks"
+      - card: Minion Giant
+        form: all
+        label: nerf
+        stats: [{stat: Damage, before: "168", after: "153"}]
+      - card: Rune Giant
+        form: all
+        label: nerf
+        stats: [{stat: Enchantment Linger Duration, before: "5s", after: "0.5s"}]
+        reason: "Rune Giant has forged her way into Ranked thanks to her synergy with Minion Giant and Little Prince"
+      - card: Electro Wizard
+        form: hero
+        label: buff
+        stats: [{stat: Attack Delay after Ability, before: null, after: "removed"}]
+      - card: Electro Dragon
+        form: all
+        label: buff
+        stats: [{stat: First Hit Time, before: "0.7s", after: "0.5s"}]
+      - card: Flying Machine
+        form: all
+        label: buff
+        stats: [{stat: Damage, before: "171", after: "179"}]
+      - card: Void
+        form: all
+        label: buff
+        stats: [{stat: 2-4 Target Damage, before: "296", after: "307"}]
+      - card: Skeleton Barrel
+        form: evo
+        label: rework
+        stats: [{stat: Death Damage, before: "192", after: "163"}]
+      - card: Skeleton Barrel
+        form: base
+        label: rework
+        stats: [{stat: Death Damage, before: "145", after: "163"}]
+      - card: Skeletons
+        form: all
+        label: rework
+        stats: [{stat: Spawn Spread, before: "0.4 tiles", after: "0.5 tiles"}]
+
+  - id: 2026-10-27
+    announced: null
+    effective_date: 2026-10-27
+    effective_time_utc: null
+    source_kind: community
+    source_url: https://www.elixirdeck.org/en/updates/king-vs-king-season-giant-and-mirror-evolutions.html
+    date_conflict: false
+    scoreable: false
+    partial: true
+    note: "Season release and bug fixes. Not a balance update. The saved card lists (GET /cards) first show Giant's Evolution on 2026-11-04 and Mirror's on 2026-11-10; the tracker's listing names only Giant's."
+    changes:
+      - {card: Giant, form: evo, label: addition}
+      - {card: Mega Knight, form: base, label: fix}
+      - {card: Mega Knight, form: evo, label: fix}
+      - {card: Bandit, form: all, label: fix}
+      - {card: Wall Breakers, form: evo, label: fix}
+      - {card: Battle Ram, form: evo, label: fix}
+      - {card: Ice Wizard, form: hero, label: fix}
