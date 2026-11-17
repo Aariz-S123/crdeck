@@ -16,10 +16,14 @@ holding those cards, in battles the models never saw, than simple alternatives?
   forms. A game counts at most once per list, however many query sets put it there (the same popular decks meet the
   same opponents in many sets; counting them each time multiplied a few games into hundreds).
 - Ranges: paired bootstrap over the listed deck's player, REPLICATES draws, seed 42: every list is recomputed from the
-  same draw. Verdict: "better" when the whole 90% range of builder − random is above 0; "too_few" under MIN_GAMES
-  games for the builder or for the random list; else "not_shown".
-- Raw wins, not adjusted for player skill: decks the model likes may be the decks of stronger players. Read a
-  "better" verdict with that in mind.
+  same draw.
+- Two outcomes. Raw: the win rate. Adjusted (the verdict): the mean of won minus the side's win chance from the rating
+  gap alone (RatingBaseline fitted on the training and validation battles), over games with both ratings known, so a
+  deck doesn't look good only because stronger players pick it. Verdict: "better" when the whole 90% range of
+  builder − random (adjusted) is above 0; "too_few" under MIN_GAMES rating-known games for the builder or for the
+  random list; else "not_shown". The raw verdict is kept as verdict_raw.
+- New players: the same adjusted comparison over games by players who never appear in the training or validation
+  battles, so the model can't be recognizing regulars it learned matchups from (as the existing counter check does).
 
 Assumption: a query set's later opponents are the test-window decks holding at least MIN_OVERLAP of its forms. Test:
 vary MIN_OVERLAP (3 and 5) and see whether the verdict moves.
@@ -111,6 +115,17 @@ def run(ctx, model, searcher, pool: list, queries: int = QUERIES, replicates: in
     me = np.r_[te["deck_a"].to_numpy(), te["deck_b"].to_numpy()]
     op = np.r_[te["deck_b"].to_numpy(), te["deck_a"].to_numpy()]
     won = np.r_[te["a_won"].astype(float).to_numpy(), 1 - te["a_won"].astype(float).to_numpy()]
+    # skill: each side's win chance from the rating gap alone (crdeck.strength.RatingBaseline, fitted on the training
+    # and validation battles); NaN where a rating is unknown, and such games leave the adjusted figures
+    from ..strength import RatingBaseline
+    tv = ctx.split.train_valid
+    tv = tv[tv["rating_diff"].notna()]
+    if len(tv) >= 2 and tv["a_won"].nunique() == 2:
+        pa = RatingBaseline().fit(tv).predict_df(te)
+        pa = np.where(te["rating_diff"].notna().to_numpy(), pa, np.nan)
+    else:
+        pa = np.full(len(te), np.nan)
+    expected = np.r_[pa, 1 - pa]
     bk = np.r_[te["battle_key"].to_numpy(), te["battle_key"].to_numpy()]
     side = np.r_[np.full(len(te), "A"), np.full(len(te), "B")]
     if players is None:
@@ -155,31 +170,47 @@ def run(ctx, model, searcher, pool: list, queries: int = QUERIES, replicates: in
     if not games:
         return {"queries": len(sets), "candidates": len(cand), "games": {n: 0 for n in LISTS}, "verdict": "too_few"}
     g = pd.DataFrame(games, columns=["query", "list", "row"]).drop_duplicates(["list", "row"])
-    g["won"], g["player"] = won[g["row"]], pl[g["row"]]
+    g["won"], g["player"], g["exp"] = won[g["row"]], pl[g["row"]], expected[g["row"]]
+    # players who never appear in the training or validation battles: the model can't have learned their own habits
+    seen = set()
+    if players is not None:
+        seen = set(players.loc[players["battle_key"].isin(set(ctx.split.train_valid["battle_key"])), "player_tag"])
+    g["new"] = [isinstance(x, str) and not x.startswith("row") and x not in seen for x in pl[g["row"]]] if seen else False
     g["player"] = g["player"].where(pd.notna(g["player"]), "row" + g["row"].astype(str))
     ci, _ = pd.factorize(g["player"], sort=True)
     li = g["list"].map({n: i for i, n in enumerate(LISTS)}).to_numpy()
     C = int(ci.max()) + 1
-    N, Wn = np.zeros((C, 3)), np.zeros((C, 3))
-    np.add.at(N, (ci, li), 1.0)
-    np.add.at(Wn, (ci, li), g["won"].to_numpy())
-    tot_n, tot_w = N.sum(0), Wn.sum(0)
-    rate = np.where(tot_n > 0, tot_w / np.maximum(tot_n, 1), np.nan)
     brng = np.random.default_rng(seed)
-    reps = np.full((replicates, 3), np.nan)
-    for b in range(replicates):
-        kk = np.bincount(brng.integers(0, C, C), minlength=C).astype(float)
-        n_, w_ = kk @ N, kk @ Wn
+    draws = np.stack([np.bincount(brng.integers(0, C, C), minlength=C).astype(float) for _ in range(replicates)])
+
+    def summarize(values: np.ndarray, keep: np.ndarray) -> dict:
+        """Per list: games and mean of `values` over the rows in `keep`; list differences with player-clustered ranges
+        (every list from the same draw)."""
+        N, V = np.zeros((C, 3)), np.zeros((C, 3))
+        np.add.at(N, (ci[keep], li[keep]), 1.0)
+        np.add.at(V, (ci[keep], li[keep]), values[keep])
+        n, v = N.sum(0), V.sum(0)
+        mean = np.where(n > 0, v / np.maximum(n, 1), np.nan)
         with np.errstate(invalid="ignore", divide="ignore"):
-            reps[b] = w_ / n_
-    def diff(j):
-        d = rate[0] - rate[j]
-        x = reps[:, 0] - reps[:, j]
-        x = x[~np.isnan(x)]
-        return None if np.isnan(d) or not len(x) else [float(d), float(np.percentile(x, 5)), float(np.percentile(x, 95))]
-    vs_random, vs_most = diff(2), diff(1)
-    verdict = "too_few" if tot_n[0] < MIN_GAMES or tot_n[2] < MIN_GAMES or vs_random is None else ("better" if vs_random[1] > 0 else "not_shown")
+            reps = (draws @ V) / (draws @ N)
+        def diff(j):
+            d = mean[0] - mean[j]
+            x = reps[:, 0] - reps[:, j]
+            x = x[~np.isnan(x)]
+            return None if np.isnan(d) or not len(x) else [float(d), float(np.percentile(x, 5)), float(np.percentile(x, 95))]
+        vs_random = diff(2)
+        verdict = "too_few" if n[0] < MIN_GAMES or n[2] < MIN_GAMES or vs_random is None else ("better" if vs_random[1] > 0 else "not_shown")
+        return {"games": {k: int(n[i]) for i, k in enumerate(LISTS)}, "mean": {k: (None if np.isnan(mean[i]) else float(mean[i])) for i, k in enumerate(LISTS)},
+                "vs_random": vs_random, "vs_most_played": diff(1), "verdict": verdict}
+
+    allrows = np.ones(len(g), dtype=bool)
+    raw = summarize(g["won"].to_numpy(), allrows)
+    known = g["exp"].notna().to_numpy()
+    adj = summarize((g["won"] - g["exp"].fillna(0.0)).to_numpy(), known)
+    new = summarize((g["won"] - g["exp"].fillna(0.0)).to_numpy(), known & g["new"].to_numpy(dtype=bool))
     return {"queries": len(sets), "candidates": len(cand), "min_overlap": min_overlap, "clusters": C, "replicates": replicates, "seed": seed,
-            "games": {n: int(tot_n[i]) for i, n in enumerate(LISTS)}, "wins": {n: int(tot_w[i]) for i, n in enumerate(LISTS)},
-            "rate": {n: (None if np.isnan(rate[i]) else float(rate[i])) for i, n in enumerate(LISTS)},
-            "vs_random": vs_random, "vs_most_played": vs_most, "verdict": verdict}
+            "games": raw["games"], "wins": {k: int(round(raw["mean"][k] * raw["games"][k])) if raw["mean"][k] is not None else 0 for k in LISTS},
+            "rate": raw["mean"], "vs_random": raw["vs_random"], "vs_most_played": raw["vs_most_played"], "verdict_raw": raw["verdict"],
+            "adjusted": {"games": adj["games"], "edge": adj["mean"], "vs_random": adj["vs_random"], "vs_most_played": adj["vs_most_played"]},
+            "new_players": {"games": new["games"], "edge": new["mean"], "vs_random": new["vs_random"], "verdict": new["verdict"]},
+            "verdict": adj["verdict"]}

@@ -88,6 +88,7 @@ def test_forward_check_runs_on_a_small_context_and_reproduces(small_ctx):
     if a["vs_random"]:
         d, lo, hi = a["vs_random"]
         assert lo <= hi and d == pytest.approx(a["rate"]["builder"] - a["rate"]["random"])
+    assert set(a["adjusted"]) == {"games", "edge", "vs_random", "vs_most_played"} and a["verdict_raw"] in ("better", "not_shown", "too_few")
 
 
 def test_norms_match_the_websites_strict_rule(cards):

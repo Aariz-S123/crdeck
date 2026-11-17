@@ -276,10 +276,15 @@
     const fb = EVAL && EVAL.modes && EVAL.modes[ctx.entry.slug] ? EVAL.modes[ctx.entry.slug].builder : null;
     const pp = (v) => `${v >= 0 ? "+" : "−"}${Math.abs(100 * v).toFixed(1)}`;
     if (!fb || fb.skipped) return "<b>Not checked yet:</b> this ranking hasn't been tested against later battles in this mode, so treat its order as a model's suggestion.";
-    const g = fb.games.builder, r = fb.vs_random;
-    if (fb.verdict === "better") return `<b>Checked on later battles (experimental):</b> in ${num(g)} games against decks holding at least ${fb.min_overlap} of the cards in ${num(fb.queries)} test sets, the builder's decks won ${pp(r[0])} percentage points more often than a random real deck (90% range ${pp(r[1])} to ${pp(r[2])}). These are raw wins, not adjusted for player skill: the players who pick these decks may simply be stronger, so part of the gap may not come from the decks.`;
-    if (fb.verdict === "not_shown") return `<b>Not shown to beat a random real deck here:</b> in ${num(g)} later games against decks holding at least ${fb.min_overlap} of the cards in ${num(fb.queries)} test sets, the difference was ${pp(r[0])} percentage points (90% range ${pp(r[1])} to ${pp(r[2])}). Treat the order as a model's suggestion.`;
-    return `<b>Too few later battles to check this ranking here</b> (${num(g)} games against decks holding at least ${fb.min_overlap} of the test sets' cards). Treat the order as a model's suggestion.`;
+    // the verdict uses the rating-adjusted outcome (wins minus what the players' ratings predict); raw wins are shown too
+    const A = fb.adjusted || null, r = A ? A.vs_random : fb.vs_random, g = A ? A.games.builder : fb.games.builder, nw = fb.new_players;
+    const sets = `against decks holding at least ${fb.min_overlap} of the cards in ${num(fb.queries)} test sets`;
+    const newLine = nw && nw.vs_random && nw.games.builder >= 30 && nw.games.random >= 30
+      ? ` Among players who never appear in the training battles (${num(nw.games.builder)} games): ${pp(nw.vs_random[0])} points (90% range ${pp(nw.vs_random[1])} to ${pp(nw.vs_random[2])}).`
+      : nw ? " Too few games by players new to the model to repeat the check on them alone." : "";
+    if (fb.verdict === "better") return `<b>Checked on later battles (experimental):</b> in ${num(g)} games ${sets}, the builder's decks won ${A ? `${pp(A.edge.builder)} points more often than their players' ratings predict, and ` : ""}${pp(r[0])} points more than a random real deck did (90% range ${pp(r[1])} to ${pp(r[2])}).${newLine} Raw win rates: ${pct(fb.rate.builder)} against ${pct(fb.rate.random)} for a random real deck.`;
+    if (fb.verdict === "not_shown") return `<b>Not shown to beat a random real deck here:</b> in ${num(g)} later games ${sets}, the difference after allowing for player ratings was ${pp(r[0])} points (90% range ${pp(r[1])} to ${pp(r[2])}). Treat the order as a model's suggestion.`;
+    return `<b>Too few later battles to check this ranking here</b> (${num(g)} games ${sets}). Treat the order as a model's suggestion.`;
   }
   function runBuild() {
     const el = $("#results"), b = sel.build, name = (k) => E.describe(CRDeck.parseKey(k)), area = (E.m.availability && E.m.availability.arena) || ctx.entry.label;

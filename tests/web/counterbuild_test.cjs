@@ -117,7 +117,7 @@ const pageText = (d) => { const v = d.body.cloneNode(true); v.querySelectorAll("
   const EV = JSON.parse(fs.readFileSync(path.join(WEB, "counter_eval.json"), "utf8")), fb = (EV.modes.ranked || {}).builder;
   const vt = text(d.querySelector("#cbcheck"));
   expect(!fb || fb.skipped ? /^Not checked yet/.test(vt) : fb.verdict === "better" ? /^Checked on later battles/.test(vt) : fb.verdict === "not_shown" ? /^Not shown to beat a random real deck here/.test(vt) : /^Too few later battles/.test(vt), `builder check wording: "${vt}"`);
-  if (fb && !fb.skipped) expect(vt.includes(Number(fb.games.builder).toLocaleString()), "builder check: game count");
+  if (fb && !fb.skipped) expect(vt.includes(Number((fb.adjusted || fb).games.builder).toLocaleString()), "builder check: game count");
   out.builderCheck = vt;
   expect(!p.errors.length, `page errors: ${p.errors.join(" | ").slice(0, 300)}`);
   // choosing a style keeps the picks in the link
