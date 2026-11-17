@@ -16,7 +16,7 @@ const fails = [], out = {};
 const expect = (c, m) => { if (!c) fails.push(m); };
 const text = (el) => (el ? el.textContent.replace(/\s+/g, " ").trim() : "");
 const INDEX = JSON.parse(fs.readFileSync(path.join(WEB, "modes.json"), "utf8"));
-const load = (slug) => JSON.parse(fs.readFileSync(path.join(WEB, "models", slug + ".json"), "utf8"));
+const load = (slug) => require("./model_file.cjs").loadModel(path.join(WEB, "models", slug + ".json"));
 const LETTER = { b: "base", e: "evo", h: "hero" };
 const ents = (s) => s.split("-").filter(Boolean).map((t) => ({ id: Number(t.slice(0, -1)), form: LETTER[t.slice(-1)] }));
 
@@ -43,6 +43,11 @@ async function open(page, hash = "") {
   });
   return { w: dom.window, d: dom.window.document, errors };
 }
+async function withFetch(fn) {
+  const before = global.fetch;
+  global.fetch = async (u) => { const f = path.join(WEB, String(u)); return fs.existsSync(f) ? { ok: true, status: 200, json: async () => JSON.parse(fs.readFileSync(f, "utf8")) } : { ok: false, status: 404, json: async () => ({}) }; };
+  try { return await fn(); } finally { global.fetch = before; }
+}
 async function until(fn, ms = 90000) { for (let t = 0; t < ms / 50; t++) { if (fn()) return true; await wait(50); } return false; }
 const settled = (d) => d.querySelectorAll("#decks article.deck").length > 0 && !/Building|Loading/.test(text(d.querySelector("#status")));
 const pageText = (d) => { const v = d.body.cloneNode(true); v.querySelectorAll("script,style").forEach((s) => s.remove()); return v.textContent.replace(/\s+/g, " "); };
@@ -52,25 +57,33 @@ function clean(name, p) {
   expect(!t.includes("—"), `${name}: em dash in text`);
   expect(!p.errors.length, `${name}: script errors ${p.errors.join(" | ").slice(0, 300)}`);
 }
-// the gate's rule, straight from the exported check
-const rowOf = (m) => (m.evaluation.strength_significance || []).find((r) => r.vs === "constant_0.5");
-const shown = (m) => { const r = rowOf(m); return !r || r.ci90_hi < 0; };
+// the gate's rule: the player-clustered range (strength_clustered.json) when it has the mode, else the exported one
+const CLU = fs.existsSync(path.join(WEB, "strength_clustered.json")) ? JSON.parse(fs.readFileSync(path.join(WEB, "strength_clustered.json"), "utf8")) : null;
+const rowOf = (m, slug) => {
+  const c = CLU && Array.isArray(CLU.modes[slug]) ? CLU.modes[slug].find((r) => r.vs === "constant_0.5") : null;
+  if (c) return { delta: c.delta, hi: c.hi, battles: c.battles, players: c.players };
+  const r = (m.evaluation.strength_significance || []).find((x) => x.vs === "constant_0.5");
+  return r ? { delta: r.delta_log_loss, hi: r.ci90_hi, battles: r.test_battles, players: null } : null;
+};
+const shown = (m, slug) => { const r = rowOf(m, slug); return !r || r.hi < 0; };
 
 (async () => {
+  if (CLU) await (async () => { UI.loadClustered && (await withFetch(() => UI.loadClustered())); })();
   // ---------------- 1. the gate equals the rule in every exported mode
   const exported = INDEX.modes.filter((m) => m.status === "exported"), gated = [];
   for (const e of exported) {
     const m = load(e.slug), g = UI.estimateGate(m, e);
-    expect(g.show === shown(m), `${e.slug}: gate says ${g.show}, the exported check says ${shown(m)}`);
+    expect(g.show === shown(m, e.slug), `${e.slug}: gate says ${g.show}, the check says ${shown(m, e.slug)}`);
     if (!g.show) {
       gated.push(e.slug);
-      const r = rowOf(m), where = e.group || { ranked: "Ranked", trophy_road: "Trophy Road", all: "All modes" }[e.mode];
+      const r = rowOf(m, e.slug), where = e.group || { ranked: "Ranked", trophy_road: "Trophy Road", all: "All modes" }[e.mode];
       expect(g.text.startsWith(`In ${where} the win model `) && g.text.endsWith("so no win estimate is shown."), `${e.slug}: gate sentence "${g.text}"`);
-      expect(r.delta_log_loss >= 0 ? g.text.includes("does no better than a coin flip") : g.text.includes("isn't shown to beat a coin flip") && g.text.includes(Number(r.test_battles).toLocaleString()),
+      expect(r.delta >= 0 ? g.text.includes("does no better than a coin flip") : g.text.includes("isn't shown to beat a coin flip") && g.text.includes(Number(r.battles).toLocaleString()) && (!r.players || g.text.includes(`${Number(r.players).toLocaleString()} players`)),
         `${e.slug}: gate wording doesn't follow the result: "${g.text}"`);
     } else expect(g.text === "", `${e.slug}: an open gate has no sentence`);
   }
   expect(gated.includes("all") && !gated.includes("ranked") && !gated.includes("trophy_road"), `gated modes: ${gated.join(", ")}`);
+  out.clustered = !!CLU;
   const noCheck = UI.estimateGate({ evaluation: {} }, null);
   expect(noCheck.show === true && noCheck.row === null, "an export without the check keeps its estimates");
   out.modes = exported.length; out.gated = gated;
@@ -107,12 +120,12 @@ const shown = (m) => { const r = rowOf(m); return !r || r.ci90_hi < 0; };
   clean("All modes counters", p);
 
   // ---------------- 3. a small league whose check is inconclusive says so with its battle count
-  const small = INDEX.modes.find((e) => gated.includes(e.slug) && e.group && rowOf(load(e.slug)).delta_log_loss < 0);
+  const small = INDEX.modes.find((e) => gated.includes(e.slug) && e.group && rowOf(load(e.slug), e.slug).delta < 0);
   if (small) {
     p = await open("index.html", `${small.slug}~~`); d = p.d;
     await until(() => settled(d) || d.querySelector("#decks .empty"));
-    const r = rowOf(load(small.slug));
-    if (d.querySelector("#gatenote")) expect(text(d.querySelector("#gatenote")).includes(`In ${small.group} the win model isn't shown to beat a coin flip on later battles (only ${Number(r.test_battles).toLocaleString()} to check it on)`), `${small.slug}: ${text(d.querySelector("#gatenote"))}`);
+    const r = rowOf(load(small.slug), small.slug), basis = r.players ? `${Number(r.battles).toLocaleString()} battles from ${Number(r.players).toLocaleString()} players` : Number(r.battles).toLocaleString();
+    if (d.querySelector("#gatenote")) expect(text(d.querySelector("#gatenote")).includes(`In ${small.group} the win model isn't shown to beat a coin flip on later battles (only ${basis} to check it on)`), `${small.slug}: ${text(d.querySelector("#gatenote"))}`);
     expect(!d.querySelector("#decks article.deck .pill"), `${small.slug}: a pill is shown`);
     clean(`${small.slug} builder`, p);
     out.smallGated = small.slug;
