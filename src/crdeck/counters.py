@@ -543,3 +543,76 @@ def check_version(ctx, model: MatchupModel, searcher, pool: list, styles: dict, 
     out["headline"] = "new_players" if new is not None and new["games"]["counter"] >= min_games else "all_players"
     out["verdict"] = check_verdict(out["populations"][out["headline"]], min_games)
     return out
+
+
+# ---------------------------------------------------------------- counter deck builder ("cards I keep facing")
+# docs/fable-brief/BLUEPRINT.md 8.4.1. The website's twin is web/counterbuild.js; tests/fixtures/counter_builder.json
+# holds cases both must answer the same way. Candidates are real pool decks only (no generated fallback); which pool
+# decks qualify (legal, unlocked, the chosen style, the deck norms) is decided by the page, as for the deck builder.
+
+BUILDER_MAX_PICKS = 16
+BUILDER_MIN_STYLE_DECKS = 5     # a deck-style chip needs this many pool decks of that style in the chosen group
+BUILDER_EXACT_MIN_DECKS = 5     # opponent decks holding every pick needed for the exact-opponent path
+
+
+def builder_shares(picks: list[str], deck_size: int = 8) -> float:
+    """How much of the enemy field each picked card form is assumed to fill: min(1, 8 / |P|). With 16 picks each card
+    is taken to be in half the enemy decks; with 8 or fewer, in all of them."""
+    return min(1.0, deck_size / len(picks)) if picks else 0.0
+
+
+def builder_field_fit(deck: list[str], picks: list[str], model, deck_size: int = 8) -> tuple[float, float]:
+    """(z, σ(z)) of deck A against a field of the picked card forms, each at share s (builder_shares):
+    z(A | s) = Σ_{i∈A} w_i − Σ_{j∈P} s·w_j + Σ_{i∈A} Σ_{j∈P} s·K(i, j). Deck and picks are summed in key order, the
+    same order as the website."""
+    s = builder_shares(picks, deck_size)
+    A, P = sorted(set(deck)), sorted(set(picks))
+    z = 0.0
+    for i in A:
+        z += model.w.get(i, 0.0)
+    for j in P:
+        z -= s * model.w.get(j, 0.0)
+    for i in A:
+        for j in P:
+            z += s * model.k(i, j)
+    return z, float(sigmoid(z))
+
+
+def builder_use_exact(picks: list[str], decks_holding_all: int) -> bool:
+    """With 8 or fewer picks and enough real opponent decks holding all of them, those decks are direct evidence:
+    the page uses the existing exact-opponent ranking instead of the card field."""
+    return 0 < len(picks) <= 8 and decks_holding_all >= BUILDER_EXACT_MIN_DECKS
+
+
+def builder_rank(rows: list[dict], synergy_weight: float, cooccurrence_weight: float, n_results: int, min_diff: int) -> list[dict]:
+    """rows: {key, fit, mean_synergy, mean_log_lift}. score = fit + synergy_weight · synergy + cooccurrence_weight ·
+    log-lift; highest first at 1e-10 precision, then key; each kept deck differs from every earlier one by at least
+    `min_diff` card ids. Returns the kept rows with their score."""
+    scored = [{**r, "score": r["fit"] + synergy_weight * r["mean_synergy"] + cooccurrence_weight * r["mean_log_lift"]} for r in rows]
+    scored.sort(key=lambda r: (-tie(r["score"]), r["key"]))
+    out: list[dict] = []
+    for r in scored:
+        ids = {int(k.split(":")[0]) for k in r["key"].split("|") if k}
+        if all(len(ids - {int(k.split(":")[0]) for k in c["key"].split("|") if k}) >= min_diff for c in out):
+            out.append(r)
+        if len(out) == n_results:
+            break
+    return out
+
+
+def builder_elixir_bounds(decks: list[tuple[float, float]], lo: float = 0.05, hi: float = 0.95) -> tuple[float, float] | None:
+    """The 5th and 95th percentiles of average elixir over a group's pool decks, weighted by appearances. Each bound is
+    the smallest elixir value whose cumulative weight share reaches it. decks: (average elixir, appearances)."""
+    pts = sorted((float(e), float(n)) for e, n in decks if n > 0)
+    total = sum(n for _, n in pts)
+    if not pts or total <= 0:
+        return None
+    def q(share: float) -> float:
+        acc = 0.0
+        for e, n in pts:
+            acc += n
+            if acc / total >= share - 1e-12:
+                return e
+        return pts[-1][0]
+    return q(lo), q(hi)
+

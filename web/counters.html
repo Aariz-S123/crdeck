@@ -3,8 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Counter a Deck · crdeck</title>
+<title>Find Counters · crdeck</title>
 <meta name="description" content="Pick a Clash Royale deck style or the cards you keep losing to, and get counter cards and counter decks learned from card-vs-card matchups in real battles.">
+<meta property="og:title" content="Find Counters · crdeck">
+<meta property="og:description" content="Pick a Clash Royale deck style or the cards you keep losing to, and get counter cards and counter decks learned from card-vs-card matchups in real battles.">
+<meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z' fill='%23a8247f'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,6 +52,11 @@
 .opps .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); font-size: 0.8125rem; color: var(--muted); }
 .fwd { display: grid; gap: var(--space-3); padding-bottom: var(--space-4); border-bottom: 1px solid var(--line); }
 #verdict h3 { font-size: 1.0625rem; }
+.cbhead { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2) var(--space-3); }
+.cbhead b { font-family: var(--display); }
+.cbdeck .why { display: grid; gap: 4px; font-size: 0.875rem; }
+.cbdeck .why ul { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
+.styles .chip[disabled] { opacity: 0.55; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -64,7 +72,7 @@
     </div>
     <section class="panel box" aria-labelledby="who-h">
       <h2 id="who-h" style="font-size:1.25rem">1. What do you keep losing to?</h2>
-      <div class="tabs" role="group" aria-label="Pick the opponent by"><button class="chip" data-tab="style" aria-pressed="true">A deck style</button><button class="chip" data-tab="cards" aria-pressed="false">Specific cards</button></div>
+      <div class="tabs" role="group" aria-label="Pick the opponent by"><button class="chip" data-tab="style" aria-pressed="true">A deck style</button><button class="chip" data-tab="cards" aria-pressed="false">Specific cards</button><button class="chip" data-tab="build" aria-pressed="false">Cards I keep facing</button></div>
       <div id="whobody"></div>
     </section>
     <p class="sr" id="announce" role="status"></p>
@@ -80,13 +88,15 @@
 <script src="vendor/katex/katex.min.js"></script>
 <script src="engine.js"></script>
 <script src="common.js"></script>
+<script src="counterbuild.js"></script>
 <script>
 (() => {
   "use strict";
   const { $, esc, pct, num, signed } = UI;
   const m = (t, plain = t) => UI.tex(t, plain); // inline math in a sentence (plain text without KaTeX)
   let ctx = null, E = null, first = true;
-  const sel = { tab: "style", style: null, cards: [], q: "" };
+  // build: the counter deck builder ("Cards I keep facing", web/counterbuild.js): up to 16 card forms and a deck style
+  const sel = { tab: "style", style: null, cards: [], q: "", build: { cards: [], style: "Any" } };
   const styleName = (s) => (s === CRDeck.UNCERTAIN ? "Mixed style" : s);
   // The forward check (scripts/counter_eval.py, design in docs/claude-redesign/EVAL-DESIGN.md) is an optional
   // file: a copy of the site without it shows the exported retrospective check only.
@@ -98,16 +108,20 @@
     if (first) {
       // the choice travels in the link: <mode>~~<opponent cards> for cards, <mode>~~~~<style> for a style
       first = false;
-      if (c.hash.seeds && c.hash.seeds.length) { sel.tab = "cards"; sel.cards = c.hash.seeds.slice(0, 8).map(CRDeck.keyOf); }
+      // the builder: <mode>~~<cards>~~c:<style> (old links never start their extra part with "c:")
+      if (c.hash.extra && c.hash.extra.startsWith("c:")) { sel.tab = "build"; sel.build.cards = (c.hash.seeds || []).slice(0, CRCounterBuild.MAX_PICKS).map(CRDeck.keyOf); sel.build.style = c.hash.extra.slice(2) || "Any"; }
+      else if (c.hash.seeds && c.hash.seeds.length) { sel.tab = "cards"; sel.cards = c.hash.seeds.slice(0, 8).map(CRDeck.keyOf); }
       else if (c.hash.extra) sel.style = c.hash.extra;
     }
     sel.cards = sel.cards.filter((k) => E.m.matchup && k in E.m.matchup.cards);
+    sel.build.cards = sel.build.cards.filter((k) => E.m.matchup && k in E.m.matchup.cards);
     evalReady.then(() => { if (ctx === c) render(); });
   }, { failTarget: "#results", onLoading: () => { $("#results").innerHTML = `<div class="panel box"><div class="skel" style="height:120px"></div></div>`; } });
   // Old links (just the mode) still work; a style or card choice is added after it.
   function saveLink() {
     const s = ctx.entry.slug;
-    if (sel.tab === "cards") UI.setHash(sel.cards.length ? UI.token(s, null, sel.cards.map(CRDeck.parseKey)) : s);
+    if (sel.tab === "build") UI.setHash(UI.token(s, null, sel.build.cards.map(CRDeck.parseKey), null, `c:${sel.build.style}`));
+    else if (sel.tab === "cards") UI.setHash(sel.cards.length ? UI.token(s, null, sel.cards.map(CRDeck.parseKey)) : s);
     else UI.setHash(sel.style ? `${s}~~~~${encodeURIComponent(sel.style)}` : s);
   }
 
@@ -218,6 +232,8 @@
         ${STYLE_DEF[sel.style] ? `<p class="small" id="styledef"><b>${esc(styleName(sel.style))}:</b> a deck that ${STYLE_DEF[sel.style]} <span class="src rule">plain-language description, not model output</span></p>` : ""}
         <p class="muted small">Each style stands for its ${num(mu.opponents_per_set)} most-played decks in this mode's later battles, weighted by how often they were played. Which style a deck belongs to comes from the deck-style classifier. <span class="src model">model</span></p>`
         : `<p class="muted">No deck styles are available in this mode.</p>`;
+    } else if (sel.tab === "build") {
+      renderBuildWho(mu);
     } else {
       const q = sel.q.trim().toLowerCase();
       const forms = E.m.forms.filter((f) => f.key in mu.cards).map((f) => Object.assign({}, f, { c: E.card(f.card_id) }))
@@ -231,7 +247,96 @@
       const oq = $("#oq"); oq.oninput = () => { sel.q = oq.value; renderWho(mu); const n = $("#oq"); n.focus(); n.setSelectionRange(n.value.length, n.value.length); };
     }
   }
+  // ---------------------------------------------------------------- the counter deck builder ("Cards I keep facing")
+  const CB = () => window.CRCounterBuild;
+  function renderBuildWho(mu) {
+    const b = sel.build, q = sel.q.trim().toLowerCase(), max = CB().MAX_PICKS, cand = CB().candidates(E), area = (E.m.availability && E.m.availability.arena) || ctx.entry.label;
+    const forms = E.m.forms.filter((f) => f.key in mu.cards).map((f) => Object.assign({}, f, { c: E.card(f.card_id) }))
+      .filter((f) => !q || E.describe({ id: f.card_id, form: f.form }).toLowerCase().includes(q))
+      .sort((a, c) => a.c.name.localeCompare(c.c.name) || a.form.localeCompare(c.form));
+    const chips = ["Any", ...CB().STYLES].map((s) => {
+      if (s === "Any") return `<button class="chip" type="button" data-cbstyle="Any" aria-pressed="${b.style === "Any"}">Any style</button>`;
+      const n = cand.counts[s], off = n < CB().MIN_STYLE_DECKS;
+      return `<button class="chip" type="button" data-cbstyle="${esc(s)}" aria-pressed="${b.style === s}"${off ? ` disabled title="Only ${num(n)} real deck${n === 1 ? "" : "s"} of this style in ${esc(area)}"` : ""}>${esc(s)}<small>${num(n)} deck${n === 1 ? "" : "s"}</small></button>`;
+    }).join("");
+    $("#whobody").innerHTML = `
+      <p class="small measure">Pick the cards you keep losing to, up to ${max} (about two decks). You get real decks people play that do well against them in this mode${E.m.availability ? ", using only cards unlocked here" : ""}.</p>
+      <div class="cbhead"><b id="cbcount">${b.cards.length} of ${max}</b><span class="muted small">${b.cards.length && b.cards.length <= 3 ? "With few cards the result leans on the general counter ranking." : "The same card in two forms counts as two picks."}</span></div>
+      <div class="oppcards" aria-label="Cards you keep facing">${b.cards.length ? b.cards.map((k) => `<span class="oppcard">${esc(E.describe(CRDeck.parseKey(k)))}<button data-cbrm="${k}" aria-label="Remove ${esc(E.describe(CRDeck.parseKey(k)))}">×</button></span>`).join("") : `<span class="muted small">Pick the cards you keep losing to (up to ${max}, about two decks).</span>`}</div>
+      <label class="sr" for="oq">Search cards you keep facing</label><input class="search" id="oq" type="search" placeholder="Search cards" autocomplete="off" value="${esc(sel.q)}">
+      <div class="cardlist" aria-label="Cards to pick">${forms.map((f) => `<button class="pick" data-cbkey="${f.key}" aria-pressed="${b.cards.includes(f.key)}">${UI.drop(f.c)}<span class="pn">${esc(E.describe({ id: f.card_id, form: f.form }))}</span></button>`).join("") || `<p class="muted small">No card matches “${esc(sel.q)}”. <button class="btn small" type="button" data-clearq>Clear the search</button></p>`}</div>
+      <span class="lab small muted" id="cbstyle-lab">Deck style you want to play</span>
+      <div class="styles" role="group" aria-labelledby="cbstyle-lab" id="cbstyles">${chips}</div>
+      <p class="muted small measure">Style counts are real decks in this mode that pass the deck checks. A style needs at least ${CB().MIN_STYLE_DECKS} before it can be picked. Styles come from the deck-style classifier; Control and Graveyard rest on only 4 hand-labelled decks each.</p>`;
+    const oq = $("#oq"); oq.oninput = () => { sel.q = oq.value; renderBuildWho(mu); const n = $("#oq"); n.focus(); n.setSelectionRange(n.value.length, n.value.length); };
+  }
+  // The builder's forward check for this mode (scripts/counter_builder_eval.py, in counter_eval.json): its top decks
+  // against a random qualifying real deck, on later battles against decks holding at least 4 of a query's cards.
+  function builderCheck() {
+    const fb = EVAL && EVAL.modes && EVAL.modes[ctx.entry.slug] ? EVAL.modes[ctx.entry.slug].builder : null;
+    const pp = (v) => `${v >= 0 ? "+" : "−"}${Math.abs(100 * v).toFixed(1)}`;
+    if (!fb || fb.skipped) return "<b>Not checked yet:</b> this ranking hasn't been tested against later battles in this mode, so treat its order as a model's suggestion.";
+    const g = fb.games.builder, r = fb.vs_random;
+    if (fb.verdict === "better") return `<b>Checked on later battles (experimental):</b> in ${num(g)} games against decks holding at least ${fb.min_overlap} of the cards in ${num(fb.queries)} test sets, the builder's decks won ${pp(r[0])} percentage points more often than a random real deck (90% range ${pp(r[1])} to ${pp(r[2])}). These are raw wins, not adjusted for player skill: the players who pick these decks may simply be stronger, so part of the gap may not come from the decks.`;
+    if (fb.verdict === "not_shown") return `<b>Not shown to beat a random real deck here:</b> in ${num(g)} later games against decks holding at least ${fb.min_overlap} of the cards in ${num(fb.queries)} test sets, the difference was ${pp(r[0])} percentage points (90% range ${pp(r[1])} to ${pp(r[2])}). Treat the order as a model's suggestion.`;
+    return `<b>Too few later battles to check this ranking here</b> (${num(g)} games against decks holding at least ${fb.min_overlap} of the test sets' cards). Treat the order as a model's suggestion.`;
+  }
+  function runBuild() {
+    const el = $("#results"), b = sel.build, name = (k) => E.describe(CRDeck.parseKey(k)), area = (E.m.availability && E.m.availability.arena) || ctx.entry.label;
+    let r;
+    try { r = CB().build(E, b.cards, b.style); }
+    catch (e) { el.innerHTML = `<div class="panel empty" role="alert"><b>The counter deck builder hit an error.</b><span>Your picks are kept.</span><details class="more tech"><summary>Technical details</summary><div class="body"><code>${esc(e.message)}</code></div></details></div>`; return; }
+    if (r.state === "no_picks") { el.innerHTML = ""; return; }
+    if (r.state === "style_too_few") { el.innerHTML = `<div class="panel empty" role="status"><b>Too few ${esc(r.style)} decks here.</b><span>Only ${num(r.counts[r.style])} real decks of this style pass the deck checks in ${esc(area)}. Try Any style, or another league or arena.</span></div>`; return; }
+    if (r.state === "none") { el.innerHTML = `<div class="panel empty" role="status"><b>No real deck fits.</b><span>No real deck in ${esc(area)} passes the deck checks${r.style ? ` and has the ${esc(r.style)} style` : ""}. Try Any style, or another league or arena.</span></div>`; return; }
+    const how = r.path === "exact"
+      ? `Your ${b.cards.length} card${b.cards.length === 1 ? " is" : "s are"} held together by ${num(r.opponents)} real opponent decks in this mode's later battles, so the decks are ranked against those decks, weighted by how often each was played.`
+      : `Each deck is ranked against a field made of your picks, each assumed to be in ${r.share === 1 ? "every" : `${Math.round(100 * r.share)}% of`} enemy deck${r.share === 1 ? "" : "s"}${b.cards.length > 8 ? ` (8 ÷ ${b.cards.length})` : ""}, with the learned card-against-card matchups.`;
+    el.innerHTML = `
+      <section class="section" aria-labelledby="cb-h">
+        <header><h2 id="cb-h" style="font-size:1.25rem">Decks to try against these cards</h2>
+          <p>${num(r.decks.length)} real deck${r.decks.length === 1 ? "" : "s"}${r.style ? ` of the ${esc(r.style)} style` : ""}, out of ${num(r.candidates)} that qualify here. ${esc(how)}</p>
+          <p class="notice small" id="cbcheck">${builderCheck()}</p></header>
+        <div class="decks">${r.decks.map((d, i) => {
+          const x = E.explain(d.entries, E.objectiveDict(E.evaluate(d.entries))), keys = d.entries.map(CRDeck.keyOf);
+          const best = d.why.per.filter((t) => t.best.length).map((t) => `<li><b>${esc(name(t.card))}</b> against ${t.best.map((u) => `${esc(name(u.card))} ${signed(u.weight, 3)}${u.ci90 ? ` (90% ${signed(u.ci90[0], 3)} to ${signed(u.ci90[1], 3)})` : ""}, ${num(u.games)} games`).join("; ")}</li>`).join("");
+          return `<article class="panel deck cbdeck" data-key="${esc(d.key)}" aria-label="Deck to try ${i + 1}">
+            <div class="deck-top"><b>Deck ${i + 1} · ${esc(UI.archName(x.archetype))}</b><span class="realtag">Real deck · played ${num(d.played)} times</span></div>
+            <div class="grid8">${x.entries.map((e) => UI.tile(E, e, x.legality.slots, null, null)).join("")}</div>
+            <div class="wins"><div><b>${pct(d.fit)}</b><span>estimate against your cards, equal rating <span class="src model">model</span></span></div>
+              <div><b>${d.elixir === null ? "n/a" : d.elixir.toFixed(1)}</b><span>average elixir</span></div></div>
+            <div class="why"><span><b>What it does well against your cards</b> (learned matchups in log-odds, not one-on-one fights):</span>${best ? `<ul>${best}</ul>` : `<span class="muted">No card here has a positive learned matchup against your picks.</span>`}
+              <span><b>Still weak against:</b> ${d.why.weak.map((t) => esc(name(t.card))).join(", ")}.</span>
+              ${d.why.noEvidence.length ? `<span class="muted">No direct evidence against ${d.why.noEvidence.map((k) => esc(name(k))).join(", ")}: no card pair with enough games.</span>` : ""}</div>
+            ${x.warnings.length ? `<div class="notice"><b>Watch out:</b> ${x.warnings.map((g) => esc(g.root_cause)).join(". ")}</div>` : ""}
+            ${UI.balanceNote(E, x.entries, ctx.entry)}
+            <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn small primary" href="reason.html#${UI.token(ctx.entry.slug, d.entries, [])}">Explain this deck →</a>
+              <button class="btn small" data-copy="${esc(d.entries.map((e) => E.describe(e)).join(", "))}">Copy card list</button></div>
+          </article>`; }).join("")}</div>
+        <details class="more panel box"><summary>How these decks were chosen</summary><div class="body small measure">
+          <p>Only real decks: each played at least ${num(E.m.matchup.pool_min_battles)} times in this mode's training battles, legal${E.m.availability ? " and unlocked" : ""} here. Of the ${num(r.poolSize)} in the pool, ${num(r.passing)} pass the deck checks (a win condition, air defense, a spell, an answer to tanks, at most one tank, and ${E.cfg.warnings.elixir_min} to ${E.cfg.warnings.elixir_max} average elixir)${r.bounds ? `, and ${num(r.candidates)}${r.style ? ` of the chosen style` : ""} also sit inside this group's usual elixir range, ${r.bounds[0].toFixed(1)} to ${r.bounds[1].toFixed(1)} (the 5th to 95th percentile of its real decks, weighted by how often each was played)` : ""}.</p>
+          <p>${esc(how)} Each deck's score adds the deck builder's usual synergy and played-together terms, and the ${num(E.m.matchup.n_results)} shown differ from each other by at least ${num(E.cfg.search.min_diff_cards)} cards. Matchups between two cards need ${num(E.m.matchup.min_pair_battles)} games before they count; with fewer, the pair adds nothing.</p>
+          <p>No made-up decks are added when nothing fits: searching for new combinations exploits the model and produces decks nobody plays.</p>
+        </div></details>
+      </section>`;
+  }
+
   document.addEventListener("click", (ev) => {
+    const cb = ev.target.closest("[data-cbkey],[data-cbrm],[data-cbstyle]");
+    if (cb && E && sel.tab === "build") {
+      const b = sel.build;
+      if (cb.dataset.cbkey) {
+        const k = cb.dataset.cbkey, i = b.cards.indexOf(k);
+        if (i >= 0) b.cards.splice(i, 1);
+        else if (b.cards.length < CB().MAX_PICKS) b.cards.push(k);
+        else { $("#announce").textContent = `You already picked ${CB().MAX_PICKS} cards. Remove one to pick another.`; return; }
+      } else if (cb.dataset.cbrm) b.cards = b.cards.filter((x) => x !== cb.dataset.cbrm);
+      else if (cb.dataset.cbstyle && !cb.disabled) b.style = cb.dataset.cbstyle;
+      const focusSel = cb.dataset.cbkey ? `[data-cbkey="${cb.dataset.cbkey}"]` : cb.dataset.cbstyle ? `[data-cbstyle="${cb.dataset.cbstyle}"]` : "#oq";
+      renderWho(E.m.matchup); saveLink(); run();
+      const f = document.querySelector(focusSel); if (f) f.focus({ preventScroll: true });
+      return;
+    }
     const t = ev.target.closest("[data-tab],[data-style],[data-key],[data-rm],[data-copy],[data-clearq]"); if (!t || !E) return;
     if (t.dataset.tab) { sel.tab = t.dataset.tab; renderWho(E.m.matchup); saveLink(); run(); }
     else if (t.dataset.style) { sel.style = t.dataset.style; renderWho(E.m.matchup); saveLink(); run(); }
@@ -257,6 +362,7 @@
   }
 
   function run() {
+    if (sel.tab === "build") { runBuild(); return; }
     const mu = E.m.matchup, { opps, what } = opponents(), el = $("#results");
     if (!opps.length) {
       el.innerHTML = sel.tab === "cards" && sel.cards.length ? `<div class="panel empty"><b>No collected deck holds all of these cards.</b><span>Remove a card to widen the search.</span></div>` : "";
