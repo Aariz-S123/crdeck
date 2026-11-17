@@ -168,4 +168,39 @@ These settle places where the blueprint left a choice. None was chosen after loo
 
 ## Corrections
 
-None yet.
+No rule has been changed. The entries below are dated observations from the first runs, written after this file was committed (commit `7537ad7`, 2026-11-16).
+
+### 2026-11-16: first list, and the pilot
+
+**First list (cutoff 2026-11-16 00:00 UTC).** Window 2026-11-02 to 2026-11-16, 846,986 top sides from 70,059 players, 233,461 rating-known battles, all 123 cards eligible, status `preview`. Frozen as `docs/balance/snapshots/2026-11-16.json`.
+
+**The pilot (one retrospective anecdote, not evidence).** Cutoff 2026-10-18 00:00 UTC, window 2026-10-07 to 2026-10-17, 50,784 top sides (just over the 50,000 minimum), 20,626 rating-known battles, 118 eligible cards, no momentum (the window is 11 days). Frozen as `docs/balance/snapshots/pilot-2026-10-18.json` and scored once against the official 2026-10-19 update (`docs/balance/track_record.json`):
+
+| | Labels | Watch score hits@15 | hits@5 | Random (expected) | Usage only | Win edge only | 45-55% band | Recency | Trend |
+|---|---|---|---|---|---|---|---|---|---|
+| Nerfs | 4 | 2 (Cannon Cart, Minion Giant) | 0 | 0.51 | 0 | 2 | 0 (lists no card) | 1 | 0 |
+| Buffs | 4 | 3 (Void, Flying Machine, Electro Dragon) | 2 | 0.51 | 2 | 1 | 1 (lists one card) | 0 | 0 |
+
+"Changed at all" (nerf, buff or rework): 6 of the 10 changed cards were on one of the two lists. Missed: Dart Goblin (nerf, rank 21), Rune Giant (nerf, rank 37), Electro Wizard (buffed, but ranked on the nerf side at 17: its Hero form had just been released).
+
+This is one update, scored from battles that were fetched after the fact and that over-weight less active players. It says the pipeline runs end to end. It does not say the score works: with 4 labels per direction, 2 or 3 hits can happen by chance, and the win-edge-only baseline matched the score on nerfs. Nothing was tuned on it.
+
+### 2026-11-16: the edge signal is zero on the first list (observation, rule unchanged)
+
+On the 2026-11-16 list every card's shrunk edge E is 0, so that list is ordered by usage, momentum and release only.
+
+Why: the spread estimate of Section 4 is `tau2 = max(0, variance of edge_raw - mean of se^2)`, an unweighted mean. On this window the variance of the raw edges is 1.00e-4 and the mean of `se^2` is 1.22e-4, so `tau2` is 0. The mean is carried by one card with 129 rating-known sides and a standard error of 10.1 points (its `se^2` alone adds 0.83e-4 to the mean); the median `se^2` is 1.5e-5. The raw edges are not noise: 12 cards sit more than 3.4 standard errors from 0 (Mirror at -4.6 points, Bandit at +1.1, Minion Giant at +1.6).
+
+For reference only, and used by nothing: a precision-weighted estimate of the same spread (DerSimonian-Laird) gives a `tau` of 0.57 points on this window. In the pilot window `tau2` was above 0 (1.6e-4), so the edge did enter the pilot's score.
+
+**Not changed, on purpose.** The rule was fixed before any result and both lists above were made with it. Two ways to repair it, for the owner to choose between before the next list is frozen:
+
+1. Estimate `tau2` with precision weights (DerSimonian-Laird), so one noisy card cannot erase the signal.
+2. Keep the estimate and raise the "no edge" floor from 100 rating-known sides to a number that keeps such cards out of the spread (the card above has 129).
+
+Either would be a dated correction here, applied to snapshots from that day on. The pilot row stays as scored under the original rule. No real (non-pilot) update has been scored yet, so the track record loses nothing.
+
+### 2026-11-16: two smaller observations
+
+- **Momentum of rarely played cards is noisy.** A card in 0.1% of decks can reach the z-score cap on a week-on-week change of a few dozen sides (Goblin Machine, Barbarian Hut on the buff list). M has no shrinkage in this design. Candidate for the G1 ablations, not changed now.
+- **A list is almost, not exactly, reproducible after new logs arrive.** Rebuilding the 2026-11-16 list after the next daily collection gave 846,988 top sides, 2 more than the frozen snapshot (one battle whose earliest record improved). The frozen snapshot is the reference; it is never rebuilt.

@@ -1,0 +1,72 @@
+[
+ {
+  "event_id": "2026-10-19",
+  "effective_date": "2026-10-19",
+  "snapshot_cutoff": "2026-10-18T00:00:00Z",
+  "pilot": true,
+  "k": 15,
+  "eligible": 118,
+  "baselines": {
+   "random": {
+    "nerf": 0.5084745762711864,
+    "buff": 0.5084745762711864
+   },
+   "usage_only": {
+    "nerf": 0,
+    "buff": 2
+   },
+   "edge_only": {
+    "nerf": 2,
+    "buff": 1
+   },
+   "band_rule": {
+    "nerf": 0,
+    "nerf_listed": 0,
+    "buff": 1,
+    "buff_listed": 1
+   },
+   "recency": {
+    "nerf": 1,
+    "nerf_listed": 7,
+    "buff": 0,
+    "buff_listed": 8
+   },
+   "trend": {
+    "nerf": 0,
+    "buff": 0
+   }
+  },
+  "nerf": {
+   "labels": 4,
+   "labels_eligible": 4,
+   "listed": 15,
+   "hits": 2,
+   "hits5": 0,
+   "recall": 0.5,
+   "ap": 0.1401222651222651,
+   "hit_cards": [
+    26000054,
+    26000107
+   ]
+  },
+  "buff": {
+   "labels": 4,
+   "labels_eligible": 4,
+   "listed": 15,
+   "hits": 3,
+   "hits5": 2,
+   "recall": 0.75,
+   "ap": 0.446978021978022,
+   "hit_cards": [
+    26000057,
+    26000063,
+    28000023
+   ]
+  },
+  "changed": {
+   "labels": 10,
+   "labels_eligible": 10,
+   "hits": 6
+  }
+ }
+]
