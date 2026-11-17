@@ -12,6 +12,10 @@ Writes:
   web/modes.json            every mode (Ranked, Trophy Road, All, then every league and arena) with
                             status (exported / not enough data), meta history and forecast,
                             and the run log for the Model log page
+  web/loss_surface.json     the Ranked model's card-form weights, gradient and packed Hessian, for the
+                            approximate custom loss surfaces on How it works (crdeck.explore.loss_surface)
+  web/models/<slug>.decks.json  the per-deck tables of each model, split off its main file
+                            (crdeck.explore.model_parts) so pages that don't explain decks load less
   web/models/<slug>.json    everything web/engine.js needs for one mode
   web/golden/<slug>.json    Python's own answers for that mode, which
                             scripts/check_web_engine.mjs compares against the JS port
@@ -430,6 +434,8 @@ def main() -> None:
         if mode == "ranked" and group is None:
             ranked_ctx = ctx
     labels = json.loads(json.dumps(sorted(set(ranked_ctx.cards.df["label_version"])))) if ranked_ctx is not None else []
+    from crdeck.explore import loss_surface, model_parts
+    ls_text, ls_ref = loss_surface.export(ranked_ctx) if ranked_ctx is not None else (None, None)
     runlog.write_section(paths, "export", {
         "exported_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "code": runlog.git_version(), "label_versions": labels,
@@ -440,11 +446,20 @@ def main() -> None:
         "meta": meta_report(paths, ranked_ctx, mcfg) if ranked_ctx is not None else None,
         "seasons": season_report(paths, ranked_ctx, mcfg),
         "landscape": landscape_report(ranked_ctx) if ranked_ctx is not None else None,
+        "loss_surface": ls_ref,  # the approximate custom-pair file below; None when there is no Ranked model
         "log": runlog.read(paths),
         "caveats": runlog.model_notes_caveats(),
     }
+    if ls_text is not None:
+        (OUT / loss_surface.FILE_NAME).write_text(ls_text, encoding="utf-8")
+        print("wrote", OUT / loss_surface.FILE_NAME, f"{ls_ref['bytes'] / 1e3:.0f} kB")
+    print("split the per-deck tables off", len(model_parts.split_all(OUT / "models")), "model files")
     dump(OUT / "modes.json", index)
     print("wrote", OUT / "modes.json", f"{(OUT / 'modes.json').stat().st_size / 1e6:.2f} MB")
+    # the site-wide "Data as of" footer reads this (crdeck.explore.data_status; also scripts/data_status.py)
+    from crdeck.explore import data_status
+    data_status.refresh(OUT)
+    print("wrote", OUT / data_status.FILE_NAME)
 
 
 if __name__ == "__main__":

@@ -1,9 +1,23 @@
 {
+ "models": {
+  "last_battle": "2026-10-27T01:22:09Z",
+  "trained_from": "2026-09-01T14:58:00Z",
+  "tested_to": "2026-10-27T01:15:00Z",
+  "exported": "2026-10-28T17:00:21Z",
+  "written": "2026-10-28T17:00:21Z"
+ },
+ "future_meta": {
+  "last_period_end": "2026-11-12T03:02:37Z",
+  "periods": 20,
+  "exported": "2026-11-12T08:43:00Z",
+  "written": "2026-11-12T08:43:00Z"
+ },
  "balance_watch": {
   "cutoff": "2026-11-16T00:00:00Z",
   "window_start": "2026-11-02T00:00:00Z",
   "status": "preview",
   "last_update": "2026-10-19",
+  "exported": "2026-11-17T04:40:07Z",
   "written": "2026-11-17T04:40:07Z"
  }
 }

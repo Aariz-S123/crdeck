@@ -10,7 +10,7 @@ const { Engine, deckKey, keyOf, parseDeckKey } = require(path.join(WEB, "engine.
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const fails = [], out = {};
 const expect = (c, m) => { if (!c) fails.push(m); };
-const load = (slug) => JSON.parse(fs.readFileSync(path.join(WEB, "models", slug + ".json"), "utf8"));
+const load = (slug) => require("./model_file.cjs").loadModel(path.join(WEB, "models", slug + ".json"));
 
 async function open(page, hash = "") {
   const errors = [];

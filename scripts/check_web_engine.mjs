@@ -8,6 +8,13 @@ import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 
+// a model file with its per-deck part (<slug>.decks.json, crdeck.explore.model_parts) merged back in
+function loadModel(file) {
+  const body = JSON.parse(readFileSync(file, "utf8")), decks = file.replace(/\.json$/, ".decks.json");
+  if (existsSync(decks)) Object.assign(body, JSON.parse(readFileSync(decks, "utf8")));
+  return body;
+}
+
 const require = createRequire(import.meta.url);
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const { Engine, parseKey, keyOf, SeedError } = require(join(root, "web", "engine.js"));
@@ -24,7 +31,7 @@ for (const entry of index.modes.filter((m) => m.status === "exported")) {
 console.log(`\n=== ${entry.label} (${entry.slug}) ===`);
 const goldenFile = join(goldenDir || join(root, "web", "golden"), `${entry.slug}.json`);
 if (goldenDir && !existsSync(goldenFile)) { console.log("no golden file here, skipped"); continue; }
-const model = JSON.parse(readFileSync(join(root, "web", entry.file), "utf8"));
+const model = loadModel(join(root, "web", entry.file));
 const golden = JSON.parse(readFileSync(goldenFile, "utf8"));
 const eng = new Engine(model);
 

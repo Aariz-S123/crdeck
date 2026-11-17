@@ -3,9 +3,16 @@
 // and explanations that add up. Complements check_web_engine.mjs (parity with Python).
 //   node scripts/sweep_web_engine.mjs
 import { createRequire } from "node:module";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+
+// a model file with its per-deck part (<slug>.decks.json, crdeck.explore.model_parts) merged back in
+function loadModel(file) {
+  const body = JSON.parse(readFileSync(file, "utf8")), decks = file.replace(/\.json$/, ".decks.json");
+  if (existsSync(decks)) Object.assign(body, JSON.parse(readFileSync(decks, "utf8")));
+  return body;
+}
 
 const require = createRequire(import.meta.url);
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -80,7 +87,7 @@ function run(seeds, label, expectRefusal) {
 
 const t0 = Date.now();
 for (const entry of index.modes.filter((m) => m.status === "exported" && (!onlySlug || m.slug === onlySlug))) {
-model = JSON.parse(readFileSync(join(root, "web", entry.file), "utf8"));
+model = loadModel(join(root, "web", entry.file));
 E = new Engine(model);
 const before = { searches, refused, swapsChecked, problems: problems.length };
 // in a single Trophy Road arena, forms not unlocked there (and combinations needing slots not
