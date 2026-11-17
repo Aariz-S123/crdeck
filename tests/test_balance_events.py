@@ -159,3 +159,37 @@ def test_nothing_that_scores_decks_imports_the_watch_list():
     for f in list(src.glob("*.py")) + list((src / "futuremeta").glob("*.py")):
         text = f.read_text(encoding="utf-8")
         assert "balance.watch" not in text and "balance import watch" not in text, f.name
+
+
+# ---------------------------------------------------------------- the usage forecast's regime cut (off by default)
+
+def test_regime_cut_drops_hours_before_a_change_and_unscores_short_series():
+    import numpy as np
+    from crdeck.futuremeta import balance_cut as bc
+    cal = ev.from_web_json(FIX["calendar"])            # card 1 nerfed 2026-01-10 and 2026-01-20 (all forms), card 2 evo buffed 2026-01-10
+    first = np.datetime64("2026-01-05T00:00", "h")
+    moment = np.datetime64("2026-01-26T00:00", "h")
+    hours = int((moment - first) // np.timedelta64(1, "h"))                          # 21 days
+    keys = ["1:base", "2:base", "2:evo", "7:base", "Beatdown"]
+    hourly, scored = np.full((hours, len(keys)), 0.1), np.ones(len(keys), dtype=bool)
+    h2, s2, info = bc.apply(hourly, scored, keys, cal, first, moment)
+    # card 1: the later change (Jan 20) wins; kept from Jan 21 00:00 = 16 days after Jan 5, so 5 days (120 hours) are left
+    assert info["1:base"] == {"from_hour": 16 * 24, "kept_hours": 120, "forecast": True}
+    assert np.isnan(h2[: 16 * 24, 0]).all() and np.isfinite(h2[16 * 24:, 0]).all()
+    # card 2: only its Evolution changed; the base form keeps its whole history
+    assert "2:base" not in info and info["2:evo"]["from_hour"] == 6 * 24
+    # other cards and deck styles are untouched
+    assert np.isfinite(h2[:, 3]).all() and np.isfinite(h2[:, 4]).all() and s2.all()
+    # a change too close to the origin leaves under 48 hours: that series is not forecast
+    late = np.datetime64("2026-01-22T12:00", "h")
+    h3, s3, info3 = bc.apply(np.full((int((late - first) // np.timedelta64(1, "h")), len(keys)), 0.1), scored, keys, cal, first, late)
+    assert info3["1:base"]["kept_hours"] == 36 and info3["1:base"]["forecast"] is False and not s3[0]
+    # a change dated on or after the origin is not known yet
+    early = np.datetime64("2026-01-20T00:00", "h")
+    _, _, info4 = bc.apply(np.full((15 * 24, len(keys)), 0.1), scored, keys, cal, first, early)
+    assert info4["1:base"]["from_hour"] == 6 * 24          # only the Jan 10 change counts
+
+
+def test_regime_cut_is_off_unless_set():
+    from crdeck.futuremeta.data import settings
+    assert not (settings().get("forecast") or {}).get("balance_cut")
