@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Check My Deck · crdeck</title>
+<meta name="description" content="Enter your 8 Clash Royale cards and see the model's estimated win rate in your league or arena, the decks and cards it does well against, and the ones that give it trouble.">
+<meta property="og:title" content="Check My Deck · crdeck">
+<meta property="og:description" content="Enter your 8 Clash Royale cards and see the model's estimated win rate in your league or arena, the decks and cards it does well against, and the ones that give it trouble.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z' fill='%23a8247f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<style>
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.box { padding: var(--space-4) var(--space-5); display: grid; gap: var(--space-3); min-width: 0; grid-template-columns: minmax(0, 1fr); }
+.box h2 { font-size: 1.25rem; }
+.box h3 { font-size: 1.0625rem; }
+.paste { display: grid; gap: 6px; }
+.paste textarea { width: 100%; min-height: 64px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--sunken); color: var(--ink); font: inherit; resize: vertical; }
+.row-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); gap: 6px; }
+.slot-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; min-height: 48px; padding: 4px 4px 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunken); min-width: 0; }
+.slot-row .nm { font-weight: 600; font-size: 0.875rem; flex: 1 1 7em; min-width: 7em; overflow-wrap: break-word; }
+.slot-row .rm { border: 0; background: transparent; color: var(--muted); width: 44px; height: 44px; border-radius: 6px; font-size: 18px; flex: none; }
+.slot-row.empty-slot { color: var(--muted); font-size: 0.875rem; border-style: dashed; background: transparent; }
+.forms { display: inline-flex; gap: 2px; flex: none; }
+.forms button { min-height: 32px; min-width: 44px; padding: 0 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; font-size: 0.75rem; font-weight: 700; }
+.forms button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.cardlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); grid-auto-rows: min-content; gap: 6px; max-height: 300px; overflow-y: auto; padding: 2px; }
+.pick { min-height: 44px; }
+.pick.locked { opacity: 0.55; }
+.big { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); align-items: baseline; }
+.big div { display: grid; }
+.big b { font-family: var(--display); font-size: 2rem; line-height: 1.1; }
+.big span { font-size: 0.8125rem; color: var(--muted); }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+@media (max-width: 860px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.bars { display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: minmax(7em, 10em) minmax(0, 1fr) 4.2em; gap: var(--space-2); align-items: center; font-size: 0.875rem; }
+.bar .track { position: relative; height: 14px; border-radius: 4px; background: var(--sunken); overflow: hidden; }
+.bar .fill { position: absolute; top: 0; bottom: 0; left: 0; background: var(--elixir); border-radius: 4px; }
+.bar .mid { position: absolute; top: -2px; bottom: -2px; left: 50%; width: 2px; background: var(--ink); opacity: 0.6; }
+.bar b { font-family: var(--display); text-align: right; }
+.bar .sub { grid-column: 1 / -1; color: var(--muted); font-size: 0.8125rem; margin-top: -4px; }
+.opp { display: grid; gap: 4px; padding: 10px 0; border-top: 1px solid var(--line); }
+.opp:first-of-type { border-top: 0; }
+.opp .top { display: flex; justify-content: space-between; gap: var(--space-2); align-items: baseline; flex-wrap: wrap; }
+.opp .top b { font-family: var(--display); font-size: 1.25rem; }
+.opp .cards { font-size: 0.8125rem; color: var(--muted); overflow-wrap: anywhere; }
+.ccard { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--space-3); padding: 10px 0; border-top: 1px solid var(--line); }
+.ccard:first-of-type { border-top: 0; }
+.ccard .nm { font-weight: 700; }
+.ccard .eff { font-family: var(--display); font-weight: 700; font-size: 1.125rem; }
+.ccard .why { grid-column: 1 / -1; font-size: 0.8125rem; color: var(--muted); display: grid; gap: 2px; }
+.ccard .why b { color: var(--ink); font-weight: 600; }
+.formula { white-space: pre-wrap; font: 0.8125rem/1.6 ui-monospace, "Cascadia Mono", Consolas, monospace; background: var(--sunken); padding: 10px 12px; border-radius: 8px; overflow-x: auto; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to your deck</a>
+<div class="wrap">
+  <header class="site" id="site"></header>
+  <main id="main" class="wrap">
+    <div class="pagehead">
+      <h1>Check my deck</h1>
+      <p class="lede">Enter the 8 cards you play. You get the model's estimated win rate in your league or arena, the decks and cards your deck should do well against, and the ones that give it trouble. Every number is an estimate from recorded battles, not a promise.</p>
+      <div class="modebar" id="modebar"></div>
+      <div class="facts" id="facts"></div>
+    </div>
+    <section class="panel box" aria-labelledby="deck-h">
+      <h2 id="deck-h">1. Your deck</h2>
+      <div class="paste">
+        <label class="small" for="paste">Paste a card list (names separated by commas or lines, like “Hog Rider, Evo Musketeer, The Log”) or a deck link copied from the game</label>
+        <textarea id="paste" spellcheck="false" autocomplete="off"></textarea>
+        <div class="row-actions"><button class="btn small primary" type="button" id="readpaste">Use this list</button><span class="muted small" id="paste-note" role="status"></span></div>
+      </div>
+      <div class="row-actions"><b id="count">0 of 8</b><span class="muted small">Or pick cards below. Use Base, Evo or Hero to set a card's form.</span><span id="clearbox"></span></div>
+      <div class="slots" id="slots" aria-label="Your 8 cards"></div>
+      <p class="notice small" id="deck-note" hidden></p>
+      <label class="sr" for="q">Search cards</label><input class="search" id="q" type="search" placeholder="Search cards" autocomplete="off">
+      <div class="cardlist" id="cardlist" aria-label="Cards to pick"></div>
+    </section>
+    <p class="sr" id="announce" role="status"></p>
+    <div id="results" class="wrap"></div>
+  </main>
+  <footer class="site-foot">
+    <span>Win rates here are model estimates at equal player rating, from this mode's recorded battles. They are not a promise about your games.</span>
+    <span>A fan-made learning project. Not affiliated with, endorsed by or sponsored by Supercell. Battle data from the official Clash Royale API.</span>
+  </footer>
+</div>
+
+<script src="vendor/katex/katex.min.js"></script>
+<script src="engine.js"></script>
+<script src="common.js"></script>
+<script src="deckcheck.js"></script>
+<script>
+(() => {
+  "use strict";
+  const { $, esc, pct, num } = UI;
+  const DC = window.CRDeckCheck;
+  let ctx = null, E = null, first = true, runId = 0;
+  const pooled = new Map();          // pooled engines by slug, loaded once
+  let deck = [];                     // the reader's cards: [{id, form}]
+  let q = "";
+  const FORM_NAME = { base: "Base", evo: "Evo", hero: "Hero" };
+  const styleName = (s) => (s === CRDeck.UNCERTAIN ? "Mixed style" : s || "");
+  const area = () => (ctx.entry.group || ctx.entry.label);
+  const pts = (v) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}`;
+  const nameKey = (k, eng) => (eng || E).describe(CRDeck.parseKey(k));
+
+  UI.start("check.html", (c) => {
+    ctx = c; E = c.E;
+    if (first) { first = false; const h = c.hash; if (h.deck && h.deck.length) deck = h.deck.slice(0, 8); else if (h.seeds && h.seeds.length) deck = h.seeds.slice(0, 8); }
+    // a card or form this mode doesn't have is left out, and the page says so
+    const dropped = deck.filter((e) => !E.card(e.id) || !E.allowedForms(E.card(e.id)).includes(e.form));
+    deck = deck.filter((e) => !dropped.includes(e));
+    renderDeck(dropped.length ? `Left out ${dropped.length} card${dropped.length === 1 ? "" : "s"} this mode doesn't have.` : "");
+    renderCards();
+    run();
+  }, { failTarget: "#results", onLoading: () => { $("#results").innerHTML = `<div class="panel box"><div class="skel" style="height:120px"></div></div>`; } });
+
+  function saveLink() { UI.setHash(deck.length ? UI.token(ctx.entry.slug, deck, []) : ctx.entry.slug); }
+
+  // ---------------------------------------------------------------- deck input
+  function renderDeck(note) {
+    const size = E.m.rules.deck_size;
+    $("#count").textContent = `${deck.length} of ${size}`;
+    const rows = deck.map((e, i) => {
+      const c = E.card(e.id), forms = E.allowedForms(c);
+      const fb = forms.length > 1 ? `<span class="forms" role="group" aria-label="Form of ${esc(c.name)}">${forms.map((f) => `<button type="button" data-i="${i}" data-form="${f}" aria-pressed="${e.form === f}">${FORM_NAME[f]}</button>`).join("")}</span>` : "";
+      return `<div class="slot-row">${UI.drop(c)}<span class="nm">${esc(c.name)}</span>${fb}<button class="rm" type="button" data-rm="${i}" aria-label="Remove ${esc(c.name)}">×</button></div>`;
+    });
+    if (deck.length < size) rows.push(`<div class="slot-row empty-slot">${size - deck.length} slot${size - deck.length === 1 ? "" : "s"} left</div>`);
+    $("#slots").innerHTML = rows.join("");
+    $("#clearbox").innerHTML = deck.length ? `<button class="btn small" type="button" data-clear>Clear</button>` : "";
+    // what stands between these cards and a playable deck, in plain words
+    const msgs = [];
+    if (note) msgs.push(note);
+    if (deck.length === size) {
+      const chk = E.checkDeck(deck);
+      if (!chk.legal) msgs.push(`This isn't a playable deck yet: ${chk.details.map(esc).join("; ")}.`);
+    }
+    const locked = E.m.availability ? deck.filter((e) => !E.isAvailable(e)) : [];
+    if (locked.length) msgs.push(`${locked.map((e) => esc(E.whyNot(e))).join("; ")}. The deck is still checked, but these cards have little or no data here.`);
+    $("#deck-note").innerHTML = msgs.join(" ");
+    $("#deck-note").hidden = !msgs.length;
+  }
+  function renderCards() {
+    const s = q.trim().toLowerCase(), have = new Map(deck.map((e) => [e.id, e.form]));
+    const list = E.m.forms.map((f) => Object.assign({}, f, { c: E.card(f.card_id) }))
+      .filter((f) => !s || `${f.c.name} ${UI.FORM_WORD[f.form]} ${f.form === "evo" ? "evo" : ""}`.toLowerCase().includes(s))
+      .sort((a, b) => a.c.name.localeCompare(b.c.name) || a.form.localeCompare(b.form));
+    $("#cardlist").innerHTML = list.map((f) => {
+      const e = { id: f.card_id, form: f.form }, locked = E.m.availability && !E.isAvailable(e);
+      return `<button class="pick${locked ? " locked" : ""}" type="button" data-key="${f.key}" aria-pressed="${have.get(f.card_id) === f.form}" title="${esc(locked ? E.whyNot(e) : E.describe(e))}">${UI.drop(f.c)}<span class="pn">${esc(E.describe(e))}</span></button>`;
+    }).join("") || `<p class="muted small">No card matches “${esc(q)}”. <button class="btn small" type="button" data-clearq>Clear the search</button></p>`;
+  }
+  function changed(note) { renderDeck(note || ""); renderCards(); saveLink(); run(); }
+  function refocus(sel) { const el = $(sel); if (el) el.focus({ preventScroll: true }); }
+
+  $("#cardlist").onclick = (ev) => {
+    if (ev.target.closest("[data-clearq]")) { q = ""; $("#q").value = ""; renderCards(); $("#q").focus(); return; }
+    const b = ev.target.closest("[data-key]"); if (!b) return;
+    const e = CRDeck.parseKey(b.dataset.key), i = deck.findIndex((d) => d.id === e.id);
+    let note = "";
+    if (i >= 0 && deck[i].form === e.form) deck.splice(i, 1);
+    else if (i >= 0) { deck[i].form = e.form; note = `A deck holds ${E.card(e.id).name} in one form only, so it is now ${E.describe(e)}.`; }
+    else if (deck.length < E.m.rules.deck_size) deck.push(e);
+    else { renderDeck(`Your deck already has ${E.m.rules.deck_size} cards. Remove one to add another.`); return; }
+    changed(note);
+    refocus(`#cardlist [data-key="${b.dataset.key}"]`);
+  };
+  $("#slots").onclick = (ev) => {
+    const rm = ev.target.closest("[data-rm]");
+    if (rm) { deck.splice(Number(rm.dataset.rm), 1); changed(); refocus(deck.length ? "#slots [data-rm]" : "#q"); return; }
+    const f = ev.target.closest("[data-form]");
+    if (f) { deck[Number(f.dataset.i)].form = f.dataset.form; changed(); refocus(`#slots [data-i="${f.dataset.i}"][data-form="${f.dataset.form}"]`); }
+  };
+  $("#clearbox").onclick = (ev) => { if (ev.target.closest("[data-clear]")) { deck = []; changed(); $("#q").focus(); } };
+  $("#q").addEventListener("input", (ev) => { q = ev.target.value; renderCards(); });
+  $("#readpaste").onclick = () => {
+    const p = DC.parseDeckText(E, $("#paste").value), size = E.m.rules.deck_size;
+    if (!p.entries.length) { $("#paste-note").textContent = p.unknown.length ? `No card names recognized (${p.unknown.slice(0, 3).join(", ")}). Check the spelling.` : "Paste a card list first."; return; }
+    deck = p.entries.slice(0, size);
+    const bits = [`Read ${deck.length} card${deck.length === 1 ? "" : "s"}.`];
+    if (p.entries.length > size) bits.push(`Kept the first ${size}.`);
+    if (p.unknown.length) bits.push(`Not recognized: ${p.unknown.slice(0, 4).join(", ")}${p.unknown.length > 4 ? ", …" : ""}.`);
+    if (p.fromIds) bits.push("A game link doesn't say which cards are Evolutions or Heroes here, so all came in as base cards. Set the forms below.");
+    $("#paste-note").textContent = bits.join(" ");
+    changed();
+  };
+
+  // ---------------------------------------------------------------- results
+  async function matchupEngine() {
+    if (!DC.needsPooled(ctx.entry, E.m)) return { ME: E, pooledEntry: null };
+    const slug = DC.pooledSlug(ctx.INDEX, ctx.entry);
+    const pe = slug ? ctx.INDEX.modes.find((x) => x.slug === slug) : null;
+    if (!pe) return { ME: E, pooledEntry: null };
+    if (!pooled.has(slug)) pooled.set(slug, UI.getJSON(pe.file).then((m) => new CRDeck.Engine(m)));
+    return { ME: await pooled.get(slug), pooledEntry: pe };
+  }
+
+  async function run() {
+    const el = $("#results"), size = E.m.rules.deck_size, mine = ++runId;
+    if (deck.length < size) {
+      el.innerHTML = deck.length ? `<div class="panel empty" role="status"><b>${size - deck.length} more card${size - deck.length === 1 ? "" : "s"} to go.</b><span>The check runs once all ${size} cards are in.</span></div>` : "";
+      return;
+    }
+    if (!E.checkDeck(deck).legal) { el.innerHTML = `<div class="panel empty" role="status"><b>Fix the deck first.</b><span>The note above says what isn't allowed.</span></div>`; return; }
+    el.innerHTML = `<div class="panel box"><div class="skel" style="height:140px"></div><p class="muted small">Checking your deck…</p></div>`;
+    let ME, pooledEntry, r;
+    try { ({ ME, pooledEntry } = await matchupEngine()); if (mine !== runId) return; r = DC.analyze(E, ME, deck); }
+    catch (e) { if (mine !== runId) return; el.innerHTML = `<div class="panel empty" role="alert"><b>The deck check hit an error.</b><span>Your cards are kept. Try again, or pick another mode.</span><details class="more tech"><summary>Technical details</summary><div class="body"><code>${esc(e.message || String(e))}</code></div></details></div>`; return; }
+    if (mine !== runId) return;
+    el.innerHTML = winPanel() + (r.state === "ok" ? matchupPanels(r, ME, pooledEntry) : `<div class="panel empty">This mode has no matchup model, so there are no matchups to show.</div>`);
+    $("#announce").textContent = "Deck checked.";
+  }
+
+  // the win model's estimate against this mode's sampled field (hidden where that model didn't beat a coin flip)
+  function winPanel() {
+    const x = E.explain(deck, E.objectiveDict(E.evaluate(deck))), gate = UI.estimateGate(E.m, ctx.entry), label = area();
+    const [cls, word] = UI.verdict(x.score, UI.verdictInfo(x, "own"));
+    const sup = UI.supportText(E, x, label);
+    const quality = x.data_quality.filter((d) => d.state === "LOW_CARD_DATA" || d.state === "UNKNOWN_CARD");
+    return `<section class="panel box" aria-labelledby="win-h">
+      <h2 id="win-h">2. Estimated win rate in ${esc(label)}</h2>
+      ${gate.show ? `<div class="big"><div><b>${pct(x.score.meta_win_prob)}</b><span>estimated win rate <span class="src model">model</span></span></div>
+          <div><b style="font-size:1.25rem">${pct(x.score.interval[0])} to ${pct(x.score.interval[1])}</b><span>90% range</span></div></div>
+        <span class="pill ${cls}">${esc(word)}</span>
+        <p class="small">Against ${esc(UI.estimateBasis(E, x, label))}. It comes from the win model, which adds up how much each card and card pair helped decks win here.</p>`
+        : `<p class="notice"><b>No win estimate here.</b> ${esc(gate.text)} The matchups below come from a different model and are still shown, with their own check.</p>`}
+      <p class="small">${esc(sup.rec)} ${esc(sup.seen)}</p>
+      <p class="small">Deck style: <b>${esc(UI.archName(x.archetype))}</b> · average elixir ${x.avg_elixir === null ? "n/a" : x.avg_elixir.toFixed(1)}</p>
+      ${x.warnings.length ? `<div class="notice small"><b>Watch out:</b> ${x.warnings.map((g) => esc(g.root_cause)).join(". ")}</div>` : ""}
+      ${quality.length ? `<p class="muted small">${quality.map((d) => esc(d.detail)).join("; ")}.</p>` : ""}
+      ${UI.balanceNote(E, x.entries, ctx.entry)}
+      <div class="row-actions"><a class="btn small" href="reason.html#${UI.token(ctx.entry.slug, x.entries, [])}">Explain this deck →</a><a class="btn small" href="index.html#${UI.token(ctx.entry.slug, null, x.entries)}">Open it in the builder →</a></div>
+    </section>`;
+  }
+
+  function matchupPanels(r, ME, pooledEntry) {
+    const label = area(), ev = DC.evidence(ME), mu = ME.m.matchup;
+    const src = pooledEntry
+      ? `${esc(label)} has only ${num(DC.pairCount(E.m))} card pairing${DC.pairCount(E.m) === 1 ? "" : "s"} with enough battles to learn a matchup, so these use the ${esc(pooledEntry.label)} matchup model (${num(mu.pairs.length)} pairings, every ${esc((ctx.entry.group_word || "group").toLowerCase())} together), scored against the decks people play in ${esc(label)}.`
+      : `These use the ${esc(ctx.entry.label)} matchup model (${num(mu.pairs.length)} card pairings with enough battles).`;
+    const evLine = !ev ? "This matchup model has no held-out check." : ev.better
+      ? `Checked on ${num(ev.battles)} later battles${ev.disjoint ? " by players the model never trained on" : ""}: it told winners from losers ${pct(ev.auc)} of the time (a coin flip is 50%, the win model ${pct(ev.aucStrength)}). A real but small edge.`
+      : `<b>Not shown to help here:</b> on ${num(ev.battles)} later battles${ev.disjoint ? " by players the model never trained on" : ""} it did no better than the win model (it told winners from losers ${pct(ev.auc)} of the time; a coin flip is 50%). Read these numbers as rough.`;
+    const recs = r.poolRecord;
+    const styleRows = r.styles.map((s) => {
+      const rec = recs && recs[s.style];
+      return `<div class="bar"><span>${esc(styleName(s.style))}</span><span class="track" aria-hidden="true"><span class="fill" style="width:${(100 * s.win).toFixed(1)}%"></span><span class="mid"></span></span><b>${pct(s.win)}</b>
+        <span class="sub">${num(s.decks)} common ${esc(styleName(s.style))} deck${s.decks === 1 ? "" : "s"}${rec && rec[0] ? `. Your exact deck really won ${num(rec[1])} of ${num(rec[0])} against this style in the later battles${rec[0] < 30 ? " (few games)" : ""} <span class="src measured">measured</span>` : ""}</span></div>`;
+    }).join("");
+    const deckRow = (d) => `<div class="opp"><div class="top"><b>${pct(d.win)}</b><span class="muted small">${d.style ? `${esc(styleName(d.style))} · ` : ""}${pct(d.share)} of the ${num(r.field.decks)} common decks' games</span></div>
+      <span class="cards">${esc(d.key.split("|").map((k) => nameKey(k, ME)).join(", "))}</span></div>`;
+    const cardRow = (c) => `<div class="ccard"><span class="nm">${esc(nameKey(c.card, ME))}</span><span class="eff">${pts(c.points)} pts</span>
+      <span class="why"><span>In ${pct(c.share, 0)} of the common decks here.</span>
+      <span>${c.parts.slice(0, 2).map((p) => `Your <b>${esc(nameKey(p.mine, ME))}</b> ${p.weight >= 0 ? "+" : "−"}${Math.abs(p.weight).toFixed(3)}${p.ci90 ? ` (90% ${p.ci90[0].toFixed(3)} to ${p.ci90[1].toFixed(3)})` : ""}`).join("; ")}</span></span></div>`;
+    const missing = r.missing.length ? `<p class="muted small">No matchup data for ${r.missing.map((e) => esc(E.describe(e))).join(", ")}, so ${r.missing.length === 1 ? "it adds" : "they add"} nothing to these numbers.</p>` : "";
+    return `
+      <section class="panel box" aria-labelledby="mu-h">
+        <h2 id="mu-h">3. Matchups</h2>
+        <p class="small">${src} ${evLine}</p>
+        ${pooledEntry ? `<p class="notice small"><b>Borrowed model:</b> the matchups come from all of ${esc(pooledEntry.label)}, not only ${esc(label)}. The win rate above still comes from ${esc(label)} alone.</p>` : ""}
+        ${missing}
+        <div class="big"><div><b>${pct(r.field.win)}</b><span>average against the ${num(r.field.decks)} most-played decks here <span class="src model">model</span></span></div>
+          <div><b style="font-size:1.25rem">${pct(r.field.favoured, 0)}</b><span>of their games are against decks yours is favored to beat</span></div></div>
+        <p class="muted small">This average can differ from the win rate above: it comes from a different model and a different set of opponents (the most-played decks in the latest battles, not a random sample of all of them).</p>
+      </section>
+      <section class="panel box" aria-labelledby="st-h">
+        <h3 id="st-h">Against each deck style</h3>
+        <p class="muted small">Estimated win rate against the most-played decks of each style in ${esc(label)}, weighted by how often each was played. The line marks 50%. Styles come from the deck-style classifier. <span class="src model">model</span></p>
+        <div class="bars">${styleRows || `<p class="muted">No deck styles in this mode.</p>`}</div>
+      </section>
+      <div class="two">
+        <section class="panel box" aria-labelledby="beat-h">
+          <h3 id="beat-h">Decks it should beat</h3>
+          <p class="muted small">Its best estimated matchups among the ${num(r.field.decks)} most-played decks. The top of a list of ${num(r.field.decks)} estimates runs higher than real games will. <span class="src model">model</span></p>
+          ${r.beats.map(deckRow).join("") || `<p class="muted">No common deck where it is favored.</p>`}
+        </section>
+        <section class="panel box" aria-labelledby="lose-h">
+          <h3 id="lose-h">Decks that counter it</h3>
+          <p class="muted small">Its worst estimated matchups among the same decks. The bottom of the list runs lower than real games will. <span class="src model">model</span></p>
+          ${r.losesTo.map(deckRow).join("") || `<p class="muted">No common deck is favored against it.</p>`}
+        </section>
+      </div>
+      <div class="two">
+        <section class="panel box" aria-labelledby="hc-h">
+          <h3 id="hc-h">Cards your deck handles</h3>
+          <p class="muted small">Opponent cards your cards did better against than both sides' overall strength predicts, added up over your 8 cards. Points are the change in win rate in an otherwise even battle. Patterns in which decks won, not measured one-on-one fights. <span class="src model">model</span></p>
+          ${r.handles.map(cardRow).join("") || `<p class="muted">No common card here has a learned matchup with your cards.</p>`}
+        </section>
+        <section class="panel box" aria-labelledby="tc-h">
+          <h3 id="tc-h">Cards that give it trouble</h3>
+          <p class="muted small">Opponent cards your cards did worse against than their strength predicts. <span class="src model">model</span></p>
+          ${r.trouble.map(cardRow).join("") || `<p class="muted">No common card here has a learned matchup with your cards.</p>`}
+          <a class="btn small" href="counters.html#${UI.token(ctx.entry.slug, null, deck)}">Find counter decks to your deck →</a>
+        </section>
+      </div>
+      <section class="panel box" aria-labelledby="how-h">
+        <h3 id="how-h">How these are worked out</h3>
+        <details class="more"><summary>Show the math and the assumptions</summary><div class="body small">
+          <div class="formula">${UI.tex(String.raw`\begin{aligned}
+z(A, B) &= \sum_{i \in A} w_i - \sum_{j \in B} w_j + \sum_{i \in A,\, j \in B} K(i, j) \\
+P(A \text{ beats } B) &= \sigma\big(z(A, B)\big) = \frac{1}{1 + e^{-z}} \\
+\text{win rate vs a set} &= \frac{\sum_o n_o\, \sigma\big(z(A, o)\big)}{\sum_o n_o} \\
+\text{card } j\text{'s trouble score} &= \sum_{i \in A} K(i, j)
+\end{aligned}`, `z(A, B) = Σ_{i∈A} w_i − Σ_{j∈B} w_j + Σ_{i∈A, j∈B} K(i, j)
+P(A beats B) = σ(z(A, B)) = 1 / (1 + e^(−z))
+win rate vs a set = Σ_o n_o · σ(z(A, o)) / Σ_o n_o
+card j's trouble score = Σ_{i∈A} K(i, j)`, true)}</div>
+          <p class="muted">A is your deck and B or o an opponent deck. w is a card's overall strength, K(i, j) how much better decks with your card i did against decks with their card j than both cards' strengths predict (K(i, j) = −K(j, i)). All are in log-odds. A pairing needs ${num(mu.min_pair_battles)} battles to get a K; with fewer it adds 0. n_o is how often deck o was played in the latest battles, so common decks count more. A card's points are 100 × (σ(score) − 0.5).</p>
+          <p class="muted">Assumptions: both players have the same rating; card matchups add up (no three-card effects); the opponents are the decks played most in the latest collected battles. The ranges next to single pairings are 90% ranges for that one weight. No range is given for totals, because their parts move together.</p>
+        </div></details>
+      </section>`;
+  }
+})();
+</script>
+</body>
+</html>

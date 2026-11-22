@@ -73,10 +73,11 @@
   const cardHref = (slug, e) => `cards.html#${token(slug, null, [e])}`;
 
   // ------------------------------------------------------------ site bar and mode switch
-  // Four destinations. Explore groups usage trends, the balance watch, the future meta and the card table under one
+  // Five destinations (Check my deck added 2026-11-21). Explore groups usage trends, the balance watch, the future meta and the card table under one
   // menu entry with its own sub-menu. Season readiness left the menu (it has no prediction); its address still works
   // and still belongs to Explore, and Card usage trends links to it.
-  const PAGES = [["index.html", "Build a deck"], ["counters.html", "Find counters"], ["meta.html", "Explore"], ["model.html", "How it works"]];
+  // Check my deck (2026-11-21): the reader's own 8 cards, scored in one mode, with its matchups.
+  const PAGES = [["index.html", "Build a deck"], ["check.html", "Check my deck"], ["counters.html", "Find counters"], ["meta.html", "Explore"], ["model.html", "How it works"]];
   const EXPLORE = [["meta.html", "Card usage trends"], ["balance.html", "Balance watch"], ["future.html", "Future meta"], ["cards.html", "All cards"]];
   const EXPLORE_ALSO = ["seasons.html"];
   const LOGO = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c3.6 4.5 6.5 8 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.5 8.4 7 12 2.5z" fill="var(--elixir)"/><path d="M9.2 14.5a2.9 2.9 0 0 0 2.8 2.9" stroke="var(--surface)" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>`;
